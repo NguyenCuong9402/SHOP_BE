@@ -4,7 +4,7 @@ import traceback
 from time import strftime
 from flask import Flask, request
 from flask_cors import CORS
-from app.extensions import jwt, logger, db
+from app.extensions import jwt, logger, db, migrate
 from .api import v1 as api_v1
 from .settings import PrdConfig
 from .utils import send_result
@@ -35,6 +35,7 @@ def register_extensions(app):
     db.app = app
     db.init_app(app)  # SQLAlchemy
     jwt.init_app(app)
+    migrate.init_app(app, db)
 
     @app.after_request
     def after_request(response):
