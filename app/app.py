@@ -1,21 +1,24 @@
 # -*- coding: utf-8 -*-
-
+import os
 import traceback
+
 from time import strftime
 from flask import Flask, request
 from flask_cors import CORS
-from app.extensions import jwt, logger, db, migrate
-from .api import v1 as api_v1
-from .settings import PrdConfig
-from .utils import send_result
+
+from app.extensions import jwt, logger, migrate
+from app.models import db
+from app.api import v1 as api_v1
+from app.settings import DevConfig, PrdConfig
+from app.utils import send_result
 
 
-def create_app(config_object=PrdConfig):
+def create_app():
     """
     Init App
-    :param config_object:
     :return:
     """
+    config_object = PrdConfig if os.environ.get('ENV') == 'prd' else DevConfig
     app = Flask(__name__, static_url_path="", static_folder="./files")
     app.config.from_object(config_object)
     register_extensions(app)

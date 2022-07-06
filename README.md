@@ -1,5 +1,6 @@
 # Table of Contents
 1. [Install Dev Env](#Install Dev Env)
+2. [Migrate Database](#Migrate Database)
 
 # Install Dev Env
 
@@ -11,3 +12,12 @@
 # Deploy
 1. push code
 2. go to jenkins build code
+
+# Migrate Database
+1. publish a new version, go to app folder and submit new version
+
+`cd app && flask db migrate -m "New version here."`
+
+2. if you want to upgrade database
+
+`cd app && flask db upgrade"`
