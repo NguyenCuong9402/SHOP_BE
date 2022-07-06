@@ -37,7 +37,7 @@ def send_result(data: any = None, message_id: str = '', message: str = "OK", cod
         "duration": duration,
         "dynamic": is_dynamic
     }
-    message_obj: Message = Message.query.get(message_id)
+    message_obj = Message.query.filter_by(message_id=message_id).first()
     if message_obj:
         if message_dict['dynamic'] == 0:
             message_dict['text'] = message_obj.message
@@ -51,7 +51,7 @@ def send_result(data: any = None, message_id: str = '', message: str = "OK", cod
         "code": code,
         "data": data,
         "message": message_dict,
-        "version": get_version(Config.VERSION)
+        "version": Config.VERSION
     }
 
     return jsonify(res), 200
@@ -61,7 +61,6 @@ def send_error(data: any = None, message_id: str = '', message: str = "Error", c
                status: str = 'error', show: bool = False, duration: int = 0,
                val_error: dict = None, is_dynamic=False):
     """
-
     :param data:
     :param message_id:
     :param message:
@@ -83,7 +82,7 @@ def send_error(data: any = None, message_id: str = '', message: str = "Error", c
         "duration": duration,
         "dynamic": is_dynamic
     }
-    message_obj = Message.query.get(message_id)
+    message_obj = Message.query.filter_by(message_id=message_id).first()
     if message_obj:
         if message_dict['dynamic'] == 0:
             message_dict['text'] = message_obj.message
@@ -98,20 +97,10 @@ def send_error(data: any = None, message_id: str = '', message: str = "Error", c
         "code": code,
         "data": data,
         "message": message_dict,
-        "version": get_version(Config.VERSION)
+        "version": Config.VERSION
     }
 
     return jsonify(res), code
-
-
-def get_version(version):
-    """
-    if version = 1, return api v1
-    version = 2, return api v2
-    Returns:
-
-    """
-    return "API v2.0" if version == 2 else "API v1.0"
 
 
 def hash_password(str_pass):

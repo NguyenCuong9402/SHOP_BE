@@ -7,7 +7,7 @@ from app.validator import CreateTestValidator
 api = Blueprint('test', __name__)
 
 
-@api.route("/", methods=["POST"])
+@api.route("", methods=["POST"])
 def create_test():
     # Step 1: validate json input
     try:
@@ -18,6 +18,6 @@ def create_test():
     # validate request body
     json_valid, message_id = data_preprocessing(cls_validator=CreateTestValidator, input_json=json_req)
     if not json_valid:
-        return send_error(message=message_id, code=442)
+        return send_error(message_id=message_id, code=442)
 
-    return send_result(data={"status": "OK"}, message="Logged in successfully!")
+    return send_result(message="OK")

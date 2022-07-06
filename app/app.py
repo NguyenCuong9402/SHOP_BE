@@ -4,7 +4,7 @@ import traceback
 
 from time import strftime
 from flask import Flask, request
-from flask_admin.contrib.sqla import ModelView
+
 from flask_cors import CORS
 from flask_admin import Admin
 from flask_admin.contrib.sqla import ModelView
@@ -43,7 +43,7 @@ def register_extensions(app):
     jwt.init_app(app)
     migrate.init_app(app, db)
 
-    admin = Admin(app, name='microblog', template_mode='bootstrap3')
+    admin = Admin(app, name='Btest admin management', template_mode='bootstrap3')
     admin.add_view(ModelView(Message, db.session))
 
     @app.after_request
@@ -112,4 +112,4 @@ def register_blueprints(app):
     :return:
     """
     app.register_blueprint(api_v1.auth.api, url_prefix='/api/v1/auth')
-    app.register_blueprint(api_v1.test.api, url_prefix='/api/v1/test')
+    app.register_blueprint(api_v1.manager_test.api, url_prefix='/api/v1/test')

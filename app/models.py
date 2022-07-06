@@ -69,24 +69,24 @@ Read more: https://flask-sqlalchemy.palletsprojects.com/en/2.x/models/
 Test Sets and Test Runs table
 """
 
-# test_testexecutions = db.Table('map_test_executions',
-#     db.Column('test_id', db.String(50), db.ForeignKey('tests.id'), primary_key=True),
-#     db.Column('test_execution_id', db.String(50), db.ForeignKey('test_executions.id'), primary_key=True)
-# )
+test_test_executions = db.Table('map_test_executions',
+    db.Column('test_id', db.String(50), db.ForeignKey('tests.id'), primary_key=True),
+    db.Column('test_execution_id', db.String(50), db.ForeignKey('test_executions.id'), primary_key=True)
+)
 
 
-# class TestExecutions(db.Model):
-#     __tablename__ = 'test_executions'
-#     id = db.Column(db.String(50), primary_key=True)
-#     tests = db.relationship('Test', secondary=test_testexecutions, lazy='subquery',
-#                             backref=db.backref('tests', lazy=True))
-#     name = db.Column(db.String(255), nullable=True)
+class TestExecutions(db.Model):
+    __tablename__ = 'test_executions'
+    id = db.Column(db.String(50), primary_key=True)
+    tests = db.relationship('Test', secondary=test_test_executions, lazy='subquery',
+                            backref=db.backref('test_execution_tests', lazy=True))
+    name = db.Column(db.String(255), nullable=True)
 
 
 class Message(db.Model):
     __tablename__ = 'message'
-
-    id = db.Column(db.String(50), primary_key=True)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    message_id = db.Column(db.String(50), unique=True)
     description = db.Column(db.String(255))
     show = db.Column(db.Boolean, default=0)
     duration = db.Column(db.Integer, default=5)
