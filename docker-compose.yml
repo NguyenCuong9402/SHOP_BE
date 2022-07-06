@@ -1,0 +1,20 @@
+version: "3"
+
+services:
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    environment:
+      ENV: ${ENV}
+    command: gunicorn --workers=3 --threads=1 -b 0.0.0.0:5012 --log-level=debug server:app
+    ports:
+      - "5012:5012"
+    networks:
+      - sam-template-net
+
+networks:
+  sam-template-net:
+    name: sam-template-net

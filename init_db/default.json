@@ -1,0 +1,9 @@
+{
+    "users": [
+          {
+            "id": "457c17c8-7a74-11eb-9439-0242ac130002",
+            "username": "admin",
+            "password_hash": "pbkdf2:sha256:150000$VuKE7ySs$ced9ddc3a3ffddbf73f47af936797eb2b4c594e39e452456f9496f72ed7028ce"
+        }
+    ]
+}
