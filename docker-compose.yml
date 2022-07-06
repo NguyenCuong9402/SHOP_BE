@@ -9,12 +9,12 @@ services:
     restart: always
     environment:
       ENV: ${ENV}
-    command: gunicorn --workers=3 --threads=1 -b 0.0.0.0:5012 --log-level=debug server:app
+    command: gunicorn --workers=3 --threads=1 -b 0.0.0.0:5000 --log-level=debug server:app
     ports:
-      - "5012:5012"
+      - "5000:5000"
     networks:
-      - sam-template-net
+      - btest-template-net
 
 networks:
-  sam-template-net:
-    name: sam-template-net
+  btest-template-net:
+    name: btest-template-net
