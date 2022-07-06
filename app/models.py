@@ -34,12 +34,12 @@ class TestStep(db.Model):
     __tablename__ = 'test_steps'
 
     id = db.Column(db.String(50), primary_key=True)
-    data = db.Column(db.String(255), nullable=True)
-    result = db.Column(db.String(255), nullable=True)
+    data = db.Column(db.Text, nullable=True)
+    result = db.Column(db.Text, nullable=True)
     customFields = db.Column(db.Text, nullable=True)
     attachments = db.Column(db.Text, nullable=True)
     index = db.Column(db.Integer, nullable=True)
-    action = db.Column(db.String(255), nullable=True)
+    action = db.Column(db.Text, nullable=True)
     test_id = db.Column(db.String(50), db.ForeignKey('tests.id'),  nullable=False)
 
 
