@@ -6,7 +6,8 @@
 
 1. install python 3.7
 2. pip install -r requirements
-3. python server.py `your server running at port: 5000`
+3. python server.py `your server running at: http://localhost:5000`
+4. message CURD running on uri `http://localhost:5000/admin/message/`
 
 
 # Deploy

@@ -7,6 +7,8 @@ class Config(object):
     SECRET_KEY = 'HA560##$shls12'
     APP_DIR = os.path.abspath(os.path.dirname(__file__))  # This directory
     PROJECT_ROOT = os.path.abspath(os.path.join(APP_DIR, os.pardir))
+    VERSION = "BTest v0.0.1"
+    FLASK_ADMIN_SWATCH = "cerulean"
 
 
 class PrdConfig(Config):

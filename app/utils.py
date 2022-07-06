@@ -4,49 +4,104 @@ from flask import jsonify
 
 from werkzeug.security import generate_password_hash
 
+from app.models import Message
+from app.settings import Config
 
-def send_result(data=None, message="OK", code=200, version=1, status=True):
+
+def send_result(data: any = None, message_id: str = '', message: str = "OK", code: int = 200,
+                status: str = 'success', show: bool = False, duration: int = 0,
+                val_error: dict = None, is_dynamic=False):
     """
     Args:
-    :param data: simple result object like dict, string or list
-    :param message: message send to client, default = OK
-    :param code: code default = 200
-    :param version: version of api
+        data: simple result object like dict, string or list
+        message: message send to client, default = OK
+        code: code default = 200
+        version: version of api
+    :param data:
+    :param message_id:
+    :param message:
+    :param code:
     :param status:
+    :param show:
+    :param duration:
+    :param val_error:
+    :param is_dynamic:
     :return:
     json rendered sting result
     """
-    res = {
-        "jsonrpc": "2.0",
+    message_dict = {
+        "id": message_id,
+        "text": message,
         "status": status,
+        "show": show,
+        "duration": duration,
+        "dynamic": is_dynamic
+    }
+    message_obj: Message = Message.query.get(message_id)
+    if message_obj:
+        if message_dict['dynamic'] == 0:
+            message_dict['text'] = message_obj.message
+        else:
+            message_dict['text'] = message_obj.message.format(**val_error)
+        message_dict['status'] = message_obj.status
+        message_dict['show'] = message_obj.show
+        message_dict['duration'] = message_obj.duration
+
+    res = {
         "code": code,
-        "message": message,
         "data": data,
-        "version": get_version(version)
+        "message": message_dict,
+        "version": get_version(Config.VERSION)
     }
 
     return jsonify(res), 200
 
 
-def send_error(data=None, message="Error", code=200, version=1, status=False):
+def send_error(data: any = None, message_id: str = '', message: str = "Error", code: int = 200,
+               status: str = 'error', show: bool = False, duration: int = 0,
+               val_error: dict = None, is_dynamic=False):
     """
 
     :param data:
+    :param message_id:
     :param message:
     :param code:
-    :param version:
     :param status:
+    :param show:
+    :param duration:
+    :param is_dynamic:
+    :param val_error:
     :return:
     """
-    res_error = {
-        "jsonrpc": "2.0",
+    if val_error is None:
+        val_error = {}
+    message_dict = {
+        "id": message_id,
+        "text": message,
         "status": status,
-        "code": code,
-        "message": message,
-        "data": data,
-        "version": get_version(version)
+        "show": show,
+        "duration": duration,
+        "dynamic": is_dynamic
     }
-    return jsonify(res_error), code
+    message_obj = Message.query.get(message_id)
+    if message_obj:
+        if message_dict['dynamic'] == 0:
+            message_dict['text'] = message_obj.message
+        else:
+            message_dict['text'] = message_obj.message.format(**val_error)
+
+        message_dict['status'] = message_obj.status
+        message_dict['show'] = message_obj.show
+        message_dict['duration'] = message_obj.duration
+
+    res = {
+        "code": code,
+        "data": data,
+        "message": message_dict,
+        "version": get_version(Config.VERSION)
+    }
+
+    return jsonify(res), code
 
 
 def get_version(version):
@@ -77,3 +132,16 @@ def get_timestamp_now():
             current time in timestamp
     """
     return int(time())
+
+
+def data_preprocessing(cls_validator, input_json: dict):
+    """
+    Data preprocessing trim then check validate
+    :param cls_validator:
+    :param input_json:
+    :return: status of class validate
+    """
+    for key, value in input_json.items():
+        if isinstance(value, str):
+            input_json[key] = value.strip()
+    return cls_validator().custom_validate(input_json)

@@ -4,10 +4,13 @@ import traceback
 
 from time import strftime
 from flask import Flask, request
+from flask_admin.contrib.sqla import ModelView
 from flask_cors import CORS
+from flask_admin import Admin
+from flask_admin.contrib.sqla import ModelView
 
 from app.extensions import jwt, logger, migrate
-from app.models import db
+from app.models import db, Message
 from app.api import v1 as api_v1
 from app.settings import DevConfig, PrdConfig
 from app.utils import send_result
@@ -39,6 +42,9 @@ def register_extensions(app):
     db.init_app(app)  # SQLAlchemy
     jwt.init_app(app)
     migrate.init_app(app, db)
+
+    admin = Admin(app, name='microblog', template_mode='bootstrap3')
+    admin.add_view(ModelView(Message, db.session))
 
     @app.after_request
     def after_request(response):
@@ -106,3 +112,4 @@ def register_blueprints(app):
     :return:
     """
     app.register_blueprint(api_v1.auth.api, url_prefix='/api/v1/auth')
+    app.register_blueprint(api_v1.test.api, url_prefix='/api/v1/test')
