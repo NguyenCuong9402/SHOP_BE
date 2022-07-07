@@ -10,7 +10,7 @@ from flask_admin import Admin
 from flask_admin.contrib.sqla import ModelView
 
 from app.extensions import jwt, logger, migrate
-from app.models import db, Message
+from app.models import db, Message, TestType
 from app.api import v1 as api_v1
 from app.settings import DevConfig, PrdConfig
 from app.utils import send_result
@@ -45,6 +45,7 @@ def register_extensions(app):
 
     admin = Admin(app, name='Btest admin management', template_mode='bootstrap3')
     admin.add_view(ModelView(Message, db.session))
+    admin.add_view(ModelView(TestType, db.session))
 
     @app.after_request
     def after_request(response):

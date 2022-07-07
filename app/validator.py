@@ -69,16 +69,19 @@ class CreateTestValidator(BaseValidation):
     Marshmallow Schema
     Target: validate parameters of partner
     """
-
-    cucumber = fields.String(required=False, validate=validate.Length(min=0, max=255))
-    generic = fields.String(required=False, validate=validate.Length(min=0, max=255))
-    issue_id = fields.String(required=True, validate=validate.Length(min=0, max=255))
-    test_type = fields.String(required=True, validate=validate.Length(min=1, max=255))
-    test_set_name = fields.String(required=False, validate=validate.Length(min=0, max=255))
+    project_id = fields.String(required=True, validates=[validate.Length(min=1, max=50)])
+    cucumber = fields.String(required=False, validates=[validate.Length(min=0, max=255)])
+    generic = fields.String(required=False, validates=[validate.Length(min=0, max=255)])
+    issue_id = fields.String(required=False, validates=[validate.Length(min=0, max=255)])
+    issue_jira_id = fields.Number(required=False)
+    test_type = fields.String(required=True, validates=validate.OneOf(["Manual", "Generic", "Cucumber"]))
+    test_set_name = fields.String(required=False, validates=validate.Length(min=0, max=255))
     test_step = fields.List(fields.Nested(TestStepValidator))
     define_message = {
         "issue_id": "001",
         "test_type_id": "002",
         "test_set_name": "008",
-        "test_step": "009"
+        "test_step": "009",
+        "project_id": "010",
+        "test_type": "011"
     }

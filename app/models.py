@@ -17,6 +17,9 @@ class Test(db.Model):
     cucumber = db.Column(db.String(255), nullable=True)
     generic = db.Column(db.String(255), nullable=True)
     issue_id = db.Column(db.String(255), nullable=False)
+    issue_jira_id = db.Column(db.Integer, nullable=True)
+    test_repo = db.Column(db.String(255), nullable=True)
+    project_id = db.Column(db.String(50), nullable=False)
     test_type_id = db.Column(db.String(50), db.ForeignKey('test_type.id'), nullable=False)
     test_steps = db.relationship('TestStep', backref='test_steps', lazy=True)
 
@@ -25,8 +28,11 @@ class TestType(db.Model):
     __tablename__ = 'test_type'
 
     id = db.Column(db.String(50), primary_key=True)
-    value = db.Column(db.String(255), nullable=False)
-    type = db.Column(db.String(255), nullable=False)
+    index = db.Column(db.Integer, nullable=True, autoincrement=True)
+    name = db.Column(db.String(255), nullable=False)
+    kind = db.Column(db.String(255), nullable=True)
+    order = db.Column(db.String(255), nullable=True)
+    default = db.Column(db.String(255), nullable=True)
     project_setting_id = db.Column(db.String(255), nullable=True)
 
 
