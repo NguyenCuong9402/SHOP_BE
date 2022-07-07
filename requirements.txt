@@ -27,3 +27,5 @@ Flask-Admin==1.6.0
 shapely
 geoalchemy2
 psycopg2
+Flask-Marshmallow==0.14.0
+marshmallow-sqlalchemy==0.28.0

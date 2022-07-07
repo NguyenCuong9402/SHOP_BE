@@ -9,7 +9,7 @@ from flask_cors import CORS
 from flask_admin import Admin
 from flask_admin.contrib.sqla import ModelView
 
-from app.extensions import jwt, logger, migrate
+from app.extensions import jwt, logger, migrate, ma
 from app.models import db, Message, TestType
 from app.api import v1 as api_v1
 from app.settings import DevConfig, PrdConfig
@@ -42,7 +42,9 @@ def register_extensions(app):
     db.init_app(app)  # SQLAlchemy
     jwt.init_app(app)
     migrate.init_app(app, db)
+    ma.init_app(app)
 
+    # Flask Admin
     admin = Admin(app, name='Btest admin management', template_mode='bootstrap3')
     admin.add_view(ModelView(Message, db.session))
     admin.add_view(ModelView(TestType, db.session))
@@ -79,6 +81,7 @@ def register_extensions(app):
         error = '{} {} {} {} {} {} {} \n{}'.format(ts, request.remote_addr, request.method, request.scheme,
                                                    request.full_path, message, str(e), tb)
         logger.error(error)
+        db.session.rollback()  # rollback session
 
         return "Internal Server Error", 500
 

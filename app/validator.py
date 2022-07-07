@@ -74,6 +74,7 @@ class CreateTestValidator(BaseValidation):
     generic = fields.String(required=False, validates=[validate.Length(min=0, max=255)])
     issue_id = fields.String(required=False, validates=[validate.Length(min=0, max=255)])
     issue_jira_id = fields.Number(required=False)
+    test_repo = fields.String(required=False, validates=[validate.Length(min=0, max=255)])
     test_type = fields.String(required=True, validates=validate.OneOf(["Manual", "Generic", "Cucumber"]))
     test_set_name = fields.String(required=False, validates=validate.Length(min=0, max=255))
     test_step = fields.List(fields.Nested(TestStepValidator))

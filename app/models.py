@@ -1,6 +1,7 @@
 # coding: utf-8
-from app.extensions import db
+from sqlalchemy.orm import relationship
 
+from app.extensions import db
 
 class User(db.Model):
     __tablename__ = 'users'
@@ -17,11 +18,12 @@ class Test(db.Model):
     cucumber = db.Column(db.String(255), nullable=True)
     generic = db.Column(db.String(255), nullable=True)
     issue_id = db.Column(db.String(255), nullable=False)
-    issue_jira_id = db.Column(db.Integer, nullable=True)
+    issue_jira_id = db.Column(db.String(255), nullable=True)
     test_repo = db.Column(db.String(255), nullable=True)
     project_id = db.Column(db.String(50), nullable=False)
-    test_type_id = db.Column(db.String(50), db.ForeignKey('test_type.id'), nullable=False)
+    test_type_id = db.Column(db.String(50), db.ForeignKey('test_type.id'), nullable=True)
     test_steps = db.relationship('TestStep', backref='test_steps', lazy=True)
+    test_type = db.relationship('TestType', backref='test_types', lazy=True)
 
 
 class TestType(db.Model):
@@ -46,7 +48,7 @@ class TestStep(db.Model):
     attachments = db.Column(db.Text, nullable=True)
     index = db.Column(db.Integer, nullable=True)
     action = db.Column(db.Text, nullable=True)
-    test_id = db.Column(db.String(50), db.ForeignKey('tests.id'), nullable=False)
+    test_id = db.Column(db.String(50), db.ForeignKey('tests.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False)
 
 
 """
