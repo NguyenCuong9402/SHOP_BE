@@ -40,7 +40,7 @@ class TestStep(db.Model):
     attachments = db.Column(db.Text, nullable=True)
     index = db.Column(db.Integer, nullable=True)
     action = db.Column(db.Text, nullable=True)
-    test_id = db.Column(db.String(50), db.ForeignKey('tests.id'),  nullable=False)
+    test_id = db.Column(db.String(50), db.ForeignKey('tests.id'), nullable=False)
 
 
 """
@@ -50,9 +50,9 @@ Test Sets and Test Runs table
 """
 
 test_testsets = db.Table('map_test_testsets',
-    db.Column('test_id', db.String(50), db.ForeignKey('tests.id'), primary_key=True),
-    db.Column('testset_id', db.String(50), db.ForeignKey('test_sets.id'), primary_key=True)
-)
+                         db.Column('test_id', db.String(50), db.ForeignKey('tests.id'), primary_key=True),
+                         db.Column('testset_id', db.String(50), db.ForeignKey('test_sets.id'), primary_key=True)
+                         )
 
 
 class TestSets(db.Model):
@@ -70,9 +70,10 @@ Test Sets and Test Runs table
 """
 
 test_test_executions = db.Table('map_test_executions',
-    db.Column('test_id', db.String(50), db.ForeignKey('tests.id'), primary_key=True),
-    db.Column('test_execution_id', db.String(50), db.ForeignKey('test_executions.id'), primary_key=True)
-)
+                                db.Column('test_id', db.String(50), db.ForeignKey('tests.id'), primary_key=True),
+                                db.Column('test_execution_id', db.String(50), db.ForeignKey('test_executions.id'),
+                                          primary_key=True)
+                                )
 
 
 class TestExecutions(db.Model):

@@ -16,8 +16,8 @@ def create_test():
         return send_error(message="Request body incorrect json format: " + str(ex), code=442)
 
     # validate request body
-    json_valid, message_id = data_preprocessing(cls_validator=CreateTestValidator, input_json=json_req)
+    json_valid, message_id, incorrect_data = data_preprocessing(cls_validator=CreateTestValidator, input_json=json_req)
     if not json_valid:
-        return send_error(message_id=message_id, code=442)
+        return send_error(data=incorrect_data, message_id=message_id, code=442)
 
     return send_result(message="OK")
