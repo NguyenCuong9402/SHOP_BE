@@ -12,7 +12,7 @@ api = Blueprint('test', __name__)
 
 
 @api.route("", methods=["POST"])
-@jwt_required()
+# @jwt_required()
 def create_test():
     """
     Example json request
