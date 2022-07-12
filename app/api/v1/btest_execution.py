@@ -9,7 +9,7 @@ import uuid
 from flask import Blueprint, request
 from marshmallow import ValidationError
 from app.extensions import logger, db
-from app.models import test_test_executions, TestExecutions, MapTestExecutions, Test
+from app.models import test_test_executions, TestExecutions, MapTestExec, Test
 from app.utils import send_error, send_result
 from app.validator import IssueIDSchema, IssueIDValidator
 from sqlalchemy import func
@@ -72,15 +72,15 @@ def add_issue_links(test_execution_id):
         return send_error(message_id=TEST_EXECUTION_NOT_EXIST)
 
     # get index
-    map_test_executions: MapTestExecutions = MapTestExecutions.query.\
-        filter(MapTestExecutions.exec_id == test_execution_id, func.max(MapTestExecutions.index)).first()
+    map_test_executions: MapTestExec = MapTestExec.query.\
+        filter(MapTestExec.exec_id == test_execution_id, func.max(MapTestExec.index)).first()
     if not map_test_executions:
         index = 1
     else:
         index = map_test_executions.index + 1
 
     for item in test_issue:
-        new_maps_test_executions = MapTestExecutions()
+        new_maps_test_executions = MapTestExec()
         new_maps_test_executions.id = str(uuid.uuid4())
         new_maps_test_executions.test_id = item.id
         new_maps_test_executions.exec_id = test_execution_id
@@ -125,8 +125,8 @@ def remove_issue_links(test_execution_id):
     #     return send_error(message_id=TEST_EXECUTION_NOT_EXIST)
 
     # get index
-    map_test_executions: MapTestExecutions = MapTestExecutions.query.\
-        filter(MapTestExecutions.exec_id == test_execution_id, func.max(MapTestExecutions.index)).delete()
+    map_test_executions: MapTestExec = MapTestExec.query.\
+        filter(MapTestExec.exec_id == test_execution_id, func.max(MapTestExec.index)).delete()
     db.session.commit()
 
     return send_result(message_id=REMOVE_ISSUE_TO_EXECUTION)
