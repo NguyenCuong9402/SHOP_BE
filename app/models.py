@@ -3,6 +3,7 @@ from sqlalchemy.orm import relationship
 
 from app.extensions import db
 
+
 class User(db.Model):
     __tablename__ = 'users'
 
@@ -48,7 +49,8 @@ class TestStep(db.Model):
     attachments = db.Column(db.Text, nullable=True)
     index = db.Column(db.Integer, nullable=True)
     action = db.Column(db.Text, nullable=True)
-    test_id = db.Column(db.String(50), db.ForeignKey('tests.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=False)
+    test_id = db.Column(db.String(50), db.ForeignKey('tests.id', ondelete='CASCADE', onupdate='CASCADE'),
+                        nullable=False)
 
 
 """
@@ -103,3 +105,80 @@ class Message(db.Model):
     message = db.Column(db.String(500), nullable=False)
     dynamic = db.Column(db.Boolean, default=0)
     object = db.Column(db.String(255))
+
+
+"""
+Define table for handle run test execution
+"""
+
+
+class TestStatus(db.Model):
+    __tablename__ = 'test_status'
+    id = db.Column(db.String(50), primary_key=True)
+    value = db.Column(db.String(255), unique=True)
+    type = db.Column(db.String(255))
+    project_setting_id = db.Column(db.String(255), nullable=True)
+
+
+class MapTestExec(db.Model):
+    __tablename__ = 'map_test_exec'
+    id = db.Column(db.String(50), primary_key=True)
+    test_id = db.Column(db.String(50), db.ForeignKey('tests.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=True)
+    exec_id = db.Column(db.String(50), db.ForeignKey('test_executions.id', ondelete='CASCADE', onupdate='CASCADE'),
+                        nullable=True)
+    index = db.Column(db.Integer)
+    status_id = db.Column(db.String(50), db.ForeignKey('test_status.id', ondelete='CASCADE', onupdate='CASCADE'),
+                          nullable=True)
+    comment = db.Column(db.Text, nullable=True)
+
+
+class TestStepDetail(db.Model):
+    __tablename__ = 'test_step_details'
+    id = db.Column(db.String(50), primary_key=True)
+    status_id = db.Column(db.String(50), db.ForeignKey('test_status.id', ondelete='CASCADE', onupdate='CASCADE'),
+                          nullable=True)
+    test_step_id = db.Column(db.String(50),
+                             db.ForeignKey('test_steps.id', ondelete='CASCADE', onupdate='CASCADE'),
+                             nullable=True)
+    map_test_exec_id = db.Column(db.String(50),
+                                 db.ForeignKey('map_test_exec.id', ondelete='CASCADE', onupdate='CASCADE'),
+                                 nullable=True)
+    comment = db.Column(db.Text, nullable=True)
+
+
+class TestActivity(db.Model):
+    __tablename__ = 'test_activity'
+    id = db.Column(db.String(50), primary_key=True)
+    map_test_exec_id = db.Column(db.String(50),
+                                 db.ForeignKey('map_test_exec.id', ondelete='CASCADE', onupdate='CASCADE'),
+                                 nullable=True)
+    comment = db.Column(db.Text, nullable=True)
+    status_change = db.Column(db.Text, nullable=True)
+    jira_user_id = db.Column(db.Text, nullable=True)
+
+
+class Defects(db.Model):
+    __tablename__ = 'defects'
+    id = db.Column(db.String(50), primary_key=True)
+    map_test_exec_id = db.Column(db.String(50),
+                                 db.ForeignKey('map_test_exec.id', ondelete='CASCADE', onupdate='CASCADE'),
+                                 nullable=True)
+    test_step_detail_id = db.Column(db.String(50),
+                                    db.ForeignKey('test_step_details.id', ondelete='CASCADE', onupdate='CASCADE'),
+                                    nullable=True)
+
+    test_issue_key = db.Column(db.Text, nullable=True)
+    test_issue_id = db.Column(db.Text, nullable=True)
+
+
+class TestEvidence(db.Model):
+    __tablename__ = 'test_evidence'
+    id = db.Column(db.String(50), primary_key=True)
+    map_test_exec_id = db.Column(db.String(50),
+                                 db.ForeignKey('map_test_exec.id', ondelete='CASCADE', onupdate='CASCADE'),
+                                 nullable=True)
+    test_step_detail_id = db.Column(db.String(50),
+                                    db.ForeignKey('test_step_details.id', ondelete='CASCADE', onupdate='CASCADE'),
+                                    nullable=True)
+    name_file = db.Column(db.Text, nullable=True)
+    url_file = db.Column(db.Text, nullable=True)
