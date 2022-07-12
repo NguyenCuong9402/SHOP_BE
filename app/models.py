@@ -3,7 +3,6 @@ from sqlalchemy.orm import relationship
 from sqlalchemy import ForeignKey, TEXT
 from app.extensions import db
 from sqlalchemy.dialects.mysql import INTEGER
-from app.utils import get_timestamp_now
 
 
 
@@ -30,6 +29,15 @@ class Test(db.Model):
     test_type = db.relationship('TestType', backref='test_types', lazy=True)
 
 
+class ProjectSetting(db.Model):
+    __tablename__ = 'project_setting'
+
+    id = db.Column(db.String(50), primary_key=True)
+    description = db.Column(db.Integer, nullable=True)
+    project_name = db.Column(db.String(255), nullable=True)
+    project_id = db.Column(db.String(255), nullable=False)
+
+
 class TestType(db.Model):
     __tablename__ = 'test_type'
 
@@ -39,7 +47,9 @@ class TestType(db.Model):
     kind = db.Column(db.String(255), nullable=True)
     order = db.Column(db.String(255), nullable=True)
     default = db.Column(db.String(255), nullable=True)
-    project_setting_id = db.Column(db.String(255), db.ForeignKey('project_setting.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=True)
+    project_setting_id = db.Column(db.String(50),
+                                   db.ForeignKey('project_setting.id', ondelete='CASCADE', onupdate='CASCADE'),
+                                   nullable=True)
 
 
 class TestField(db.Model):
@@ -48,7 +58,9 @@ class TestField(db.Model):
     id = db.Column(db.String(50), primary_key=True)
     key = db.Column(db.Integer, nullable=True, autoincrement=True)
     name = db.Column(db.String(255), nullable=False)
-    project_setting_id = db.Column(db.String(255), db.ForeignKey('project_setting.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=True)
+    project_setting_id = db.Column(db.String(50),
+                                   db.ForeignKey('project_setting.id', ondelete='CASCADE', onupdate='CASCADE'),
+                                   nullable=True)
 
 
 class TestStepsConfig(db.Model):
@@ -57,16 +69,9 @@ class TestStepsConfig(db.Model):
     id = db.Column(db.String(50), primary_key=True)
     key = db.Column(db.Integer, nullable=True, autoincrement=True)
     name = db.Column(db.String(255), nullable=False)
-    project_setting_id = db.Column(db.String(255), db.ForeignKey('project_setting.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=True)
-
-
-class ProjectSetting(db.Model):
-    __tablename__ = 'project_setting'
-
-    id = db.Column(db.String(50), primary_key=True)
-    description = db.Column(db.Integer, nullable=True)
-    project_name = db.Column(db.String(255), nullable=True)
-    project_id = db.Column(db.String(255), nullable=False)
+    project_setting_id = db.Column(db.String(50),
+                                   db.ForeignKey('project_setting.id', ondelete='CASCADE', onupdate='CASCADE'),
+                                   nullable=True)
 
 
 class TestStep(db.Model):
@@ -241,7 +246,7 @@ class TestRepo(db.Model):
     id = db.Column(db.String(50), primary_key=True)
     parent_id = db.Column(db.String(50), primary_key=True)
     name = db.Column(db.String(500))
-    create_date = db.Column(INTEGER(unsigned=True), default=get_timestamp_now(), index=True)
+    create_date = db.Column(INTEGER(unsigned=True), default=0, index=True)
 
 
 class MapRepo(db.Model):
@@ -249,4 +254,4 @@ class MapRepo(db.Model):
     id = db.Column(db.String(50), primary_key=True)
     test_id = db.Column(ForeignKey('tests.id', ondelete='SET NULL', onupdate='CASCADE'), index=True)
     test_repo_id = db.Column(ForeignKey('test_repo.id', ondelete='SET NULL', onupdate='CASCADE'), index=True)
-    create_date = db.Column(INTEGER(unsigned=True), default=get_timestamp_now(), index=True)
+    create_date = db.Column(INTEGER(unsigned=True), default=0, index=True)
