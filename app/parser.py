@@ -1,5 +1,5 @@
 from app.extensions import ma
-from app.models import Test, TestStep, TestType
+from app.models import Test, TestStep, TestType, TestField
 
 
 class TestTypeSchema(ma.SQLAlchemyAutoSchema):
@@ -25,20 +25,15 @@ class TestSchema(ma.SQLAlchemySchema):
     test_type = ma.Nested(TestTypeSchema(only=("name",)))
 
 
-class TestTypeSchema(ma.SQLAlchemySchema):
-    class Meta:
-        include_fk = True
-        model = TestType
-        fields = ("id", "index", "name", "kind", "order", "default", "project_setting_id")
-
-    id = ma.auto_field()
-
-
 class TestFieldSchema(ma.SQLAlchemySchema):
     class Meta:
         include_fk = True
+        model = TestField
+        fields = ("key", "name")
+
+
+class TestStepSchema(ma.SQLAlchemySchema):
+    class Meta:
+        include_fk = True
         model = TestType
-        fields = ("id", "index", "name", "kind", "order", "default", "project_setting_id")
-
-    id = ma.auto_field()
-
+        fields = ("key", "name")
