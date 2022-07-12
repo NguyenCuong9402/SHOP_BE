@@ -39,6 +39,15 @@ class TestType(db.Model):
     project_setting_id = db.Column(db.String(255), nullable=True)
 
 
+class TestField(db.Model):
+    __tablename__ = 'test_field'
+
+    id = db.Column(db.String(50), primary_key=True)
+    key = db.Column(db.Integer, nullable=True, autoincrement=True)
+    name = db.Column(db.String(255), nullable=False)
+    project_setting_id = db.Column(db.String(255), nullable=True)
+
+
 class TestStep(db.Model):
     __tablename__ = 'test_steps'
 

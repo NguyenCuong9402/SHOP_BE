@@ -111,10 +111,3 @@ def get_test(test_id):
     test = Test.query.filter_by().first()
     test = TestSchema().dump(test)
     return send_result(data=test, message="OK")
-
-
-@api.route("/test_types/<project_id>", methods=["GET"])
-def get_test_types_by_project(project_id):
-    test = TestType.query.filter_by().all()
-    test = TestTypeSchema().dump(test)
-    return send_result(data=test, message="OK")
