@@ -104,3 +104,18 @@ class IssueIDValidator(BaseValidation):
     Marshmallow Schema
     """
     issue_id = fields.List(fields.String(), required=True)
+
+
+class TestRunSchema(Schema):
+    """
+    Author: hungVD
+    Create Date: 11/07/2022
+    Marshmallow Schema
+    """
+    id = fields.String()
+    test_id = fields.String()
+    exec_id = fields.String()
+    index = fields.Integer()
+    status_id = fields.String()
+    comment = fields.String()
+
