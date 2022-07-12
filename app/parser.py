@@ -32,3 +32,13 @@ class TestTypeSchema(ma.SQLAlchemySchema):
         fields = ("id", "index", "name", "kind", "order", "default", "project_setting_id")
 
     id = ma.auto_field()
+
+
+class TestFieldSchema(ma.SQLAlchemySchema):
+    class Meta:
+        include_fk = True
+        model = TestType
+        fields = ("id", "index", "name", "kind", "order", "default", "project_setting_id")
+
+    id = ma.auto_field()
+
