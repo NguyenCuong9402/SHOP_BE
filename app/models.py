@@ -36,7 +36,34 @@ class TestType(db.Model):
     kind = db.Column(db.String(255), nullable=True)
     order = db.Column(db.String(255), nullable=True)
     default = db.Column(db.String(255), nullable=True)
-    project_setting_id = db.Column(db.String(255), nullable=True)
+    project_setting_id = db.Column(db.String(255), db.ForeignKey('project_setting.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=True)
+
+
+class TestField(db.Model):
+    __tablename__ = 'test_field'
+
+    id = db.Column(db.String(50), primary_key=True)
+    key = db.Column(db.Integer, nullable=True, autoincrement=True)
+    name = db.Column(db.String(255), nullable=False)
+    project_setting_id = db.Column(db.String(255), db.ForeignKey('project_setting.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=True)
+
+
+class TestStepsConfig(db.Model):
+    __tablename__ = 'test_steps_config'
+
+    id = db.Column(db.String(50), primary_key=True)
+    key = db.Column(db.Integer, nullable=True, autoincrement=True)
+    name = db.Column(db.String(255), nullable=False)
+    project_setting_id = db.Column(db.String(255), db.ForeignKey('project_setting.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=True)
+
+
+class ProjectSetting(db.Model):
+    __tablename__ = 'project_setting'
+
+    id = db.Column(db.String(50), primary_key=True)
+    description = db.Column(db.Integer, nullable=True)
+    project_name = db.Column(db.String(255), nullable=True)
+    project_id = db.Column(db.String(255), nullable=False)
 
 
 class TestStep(db.Model):
