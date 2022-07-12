@@ -86,3 +86,21 @@ class CreateTestValidator(BaseValidation):
         "project_id": "010",
         "test_type": "011"
     }
+
+
+class IssueIDSchema(Schema):
+    """
+    Author: hungVD
+    Create Date: 11/07/2022
+    Marshmallow Schema
+    """
+    id = fields.String()
+
+
+class IssueIDValidator(BaseValidation):
+    """
+    Author: hungVD
+    Create Date: 11/07/2022
+    Marshmallow Schema
+    """
+    issue_id = fields.List(fields.String(), required=True)
