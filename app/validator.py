@@ -106,10 +106,56 @@ class IssueIDValidator(BaseValidation):
     issue_id = fields.List(fields.String(), required=True)
 
 
+class DefectsSchema(Schema):
+    """
+    Author: phongnv
+    Create Date: 12/07/2022
+    Marshmallow Schema
+    """
+    id = fields.String()
+    test_issue_key = fields.String()
+    test_issue_id = fields.String()
+
+
+class EvidenceSchema(Schema):
+    """
+    Author: phongnv
+    Create Date: 12/07/2022
+    Marshmallow Schema
+    """
+    id = fields.String()
+    name_file = fields.String()
+    url_file = fields.String()
+
+
+class TestStepRunSchema(Schema):
+    """
+    Author: phongnv
+    Create Date: 12/07/2022
+    Marshmallow Schema
+    """
+    id = fields.String()
+    status_id = fields.String()
+    comment = fields.String()
+    defects = fields.List(fields.Nested(DefectsSchema))
+    evidences = fields.List(fields.Nested(EvidenceSchema))
+
+
+class TestTimerSchema(Schema):
+    """
+    Author: phongnv
+    Create Date: 12/07/2022
+    Marshmallow Schema
+    """
+    id = fields.String()
+    time_type = fields.String()
+    date_time = fields.DateTime()
+
+
 class TestRunSchema(Schema):
     """
-    Author: hungVD
-    Create Date: 11/07/2022
+    Author: phongnv
+    Create Date: 12/07/2022
     Marshmallow Schema
     """
     id = fields.String()
@@ -118,4 +164,7 @@ class TestRunSchema(Schema):
     index = fields.Integer()
     status_id = fields.String()
     comment = fields.String()
-
+    steps = fields.List(fields.Nested(TestStepRunSchema))
+    defects = fields.List(fields.Nested(DefectsSchema))
+    evidences = fields.List(fields.Nested(EvidenceSchema))
+    timers = fields.List(fields.Nested(TestTimerSchema))
