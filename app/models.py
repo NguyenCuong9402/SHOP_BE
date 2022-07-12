@@ -3,7 +3,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy import ForeignKey, TEXT
 from app.extensions import db
 from sqlalchemy.dialects.mysql import INTEGER
-from app.utils import get_timestamp_now
+# from app.utils import get_timestamp_now
 
 
 
@@ -241,7 +241,8 @@ class TestRepo(db.Model):
     id = db.Column(db.String(50), primary_key=True)
     parent_id = db.Column(db.String(50), primary_key=True)
     name = db.Column(db.String(500))
-    create_date = db.Column(INTEGER(unsigned=True), default=get_timestamp_now(), index=True)
+    project_id = db.Column(db.String(50))
+    create_date = db.Column(INTEGER(unsigned=True), index=True)
 
 
 class MapRepo(db.Model):
@@ -249,4 +250,4 @@ class MapRepo(db.Model):
     id = db.Column(db.String(50), primary_key=True)
     test_id = db.Column(ForeignKey('tests.id', ondelete='SET NULL', onupdate='CASCADE'), index=True)
     test_repo_id = db.Column(ForeignKey('test_repo.id', ondelete='SET NULL', onupdate='CASCADE'), index=True)
-    create_date = db.Column(INTEGER(unsigned=True), default=get_timestamp_now(), index=True)
+    create_date = db.Column(INTEGER(unsigned=True), index=True)

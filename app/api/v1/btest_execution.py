@@ -32,10 +32,11 @@ def get_issue_links(test_execution_id):
 
     """
 
-    map_test_executions: TestExecutions = TestExecutions.query.filter(TestExecutions.id == test_execution_id).first()
+    map_test_executions: MapTestExec = MapTestExec.query. \
+        filter(MapTestExec.exec_id == test_execution_id).all()
     if not map_test_executions:
         return send_error(message_id=TEST_EXECUTION_NOT_EXIST)
-    data = IssueIDSchema(many=True).dump(map_test_executions.tests)
+    data = IssueIDSchema(many=True).dump(map_test_executions)
     return send_result(data=data)
 
 
@@ -73,10 +74,12 @@ def add_issue_links(test_execution_id):
 
     # get index
     map_test_executions: MapTestExec = MapTestExec.query.\
-        filter(MapTestExec.exec_id == test_execution_id, func.max(MapTestExec.index)).first()
+        filter(MapTestExec.exec_id == test_execution_id).first()
     if not map_test_executions:
         index = 1
     else:
+        map_test_executions: MapTestExec = MapTestExec.query. \
+            filter(MapTestExec.exec_id == test_execution_id, func.max(MapTestExec.index)).first()
         index = map_test_executions.index + 1
 
     for item in test_issue:
@@ -126,7 +129,7 @@ def remove_issue_links(test_execution_id):
 
     # get index
     map_test_executions: MapTestExec = MapTestExec.query.\
-        filter(MapTestExec.exec_id == test_execution_id, func.max(MapTestExec.index)).delete()
+        filter(MapTestExec.exec_id == test_execution_id).delete()
     db.session.commit()
 
     return send_result(message_id=REMOVE_ISSUE_TO_EXECUTION)
