@@ -130,6 +130,8 @@ class MapTestExec(db.Model):
     status_id = db.Column(db.String(50), db.ForeignKey('test_status.id', ondelete='CASCADE', onupdate='CASCADE'),
                           nullable=True)
     comment = db.Column(db.Text, nullable=True)
+    created_date = db.Column(db.Integer, default=0, index=True)
+    modified_date = db.Column(db.Integer, default=0)
 
 
 class TestStepDetail(db.Model):
@@ -144,6 +146,8 @@ class TestStepDetail(db.Model):
                                  db.ForeignKey('map_test_exec.id', ondelete='CASCADE', onupdate='CASCADE'),
                                  nullable=True)
     comment = db.Column(db.Text, nullable=True)
+    created_date = db.Column(db.Integer, default=0, index=True)
+    modified_date = db.Column(db.Integer, default=0)
 
 
 class TestActivity(db.Model):
@@ -155,6 +159,8 @@ class TestActivity(db.Model):
     comment = db.Column(db.Text, nullable=True)
     status_change = db.Column(db.Text, nullable=True)
     jira_user_id = db.Column(db.Text, nullable=True)
+    created_date = db.Column(db.Integer, default=0, index=True)
+    modified_date = db.Column(db.Integer, default=0)
 
 
 class Defects(db.Model):
@@ -169,6 +175,8 @@ class Defects(db.Model):
 
     test_issue_key = db.Column(db.Text, nullable=True)
     test_issue_id = db.Column(db.Text, nullable=True)
+    created_date = db.Column(db.Integer, default=0, index=True)
+    modified_date = db.Column(db.Integer, default=0)
 
 
 class TestEvidence(db.Model):
@@ -182,3 +190,17 @@ class TestEvidence(db.Model):
                                     nullable=True)
     name_file = db.Column(db.Text, nullable=True)
     url_file = db.Column(db.Text, nullable=True)
+    created_date = db.Column(db.Integer, default=0, index=True)
+    modified_date = db.Column(db.Integer, default=0)
+
+
+class TestTimmer(db.Model):
+    __tablename__ = 'test_timmer'
+    id = db.Column(db.String(50), primary_key=True)
+    map_test_exec_id = db.Column(db.String(50),
+                                 db.ForeignKey('map_test_exec.id', ondelete='CASCADE', onupdate='CASCADE'),
+                                 nullable=True)
+    time_type = db.Column(db.Integer)
+    date_time = db.Column(db.DATE)
+    created_date = db.Column(db.Integer, default=0, index=True)
+    modified_date = db.Column(db.Integer, default=0)
