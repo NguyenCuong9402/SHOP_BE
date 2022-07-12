@@ -1,7 +1,10 @@
 # coding: utf-8
 from sqlalchemy.orm import relationship
-
+from sqlalchemy import ForeignKey, TEXT
 from app.extensions import db
+from sqlalchemy.dialects.mysql import INTEGER
+from app.utils import get_timestamp_now
+
 
 
 class User(db.Model):
@@ -231,3 +234,19 @@ class TestTimer(db.Model):
     date_time = db.Column(db.DATE)
     created_date = db.Column(db.Integer, default=0, index=True)
     modified_date = db.Column(db.Integer, default=0)
+
+
+class TestRepo(db.Model):
+    __tablename__ = 'test_repo'
+    id = db.Column(db.String(50), primary_key=True)
+    parent_id = db.Column(db.String(50), primary_key=True)
+    name = db.Column(db.String(500))
+    create_date = db.Column(INTEGER(unsigned=True), default=get_timestamp_now(), index=True)
+
+
+class MapRepo(db.Model):
+    __tablename__ = 'map_test_repo'
+    id = db.Column(db.String(50), primary_key=True)
+    test_id = db.Column(ForeignKey('tests.id', ondelete='SET NULL', onupdate='CASCADE'), index=True)
+    test_repo_id = db.Column(ForeignKey('test_repo.id', ondelete='SET NULL', onupdate='CASCADE'), index=True)
+    create_date = db.Column(INTEGER(unsigned=True), default=get_timestamp_now(), index=True)
