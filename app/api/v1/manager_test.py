@@ -3,7 +3,7 @@ import uuid
 from flask import Blueprint, request
 from flask_jwt_extended import jwt_required, get_jwt_identity, create_access_token
 
-from app.models import TestStep, Test, TestType, db
+from app.models import TestStep, Test, TestType, db, TestSets, ProjectSetting
 from app.utils import send_result, send_error, data_preprocessing
 from app.validator import CreateTestValidator
 from app.parser import TestSchema, TestTypeSchema
@@ -49,6 +49,15 @@ def create_test():
     # STEP 2 check project_id is existed
     # TODO: not necessary, remove in the future
     project_id = json_req.get("project_id", "")
+    # TODO remove check project exist
+    project_setting = ProjectSetting.query.filter_by(project_id=project_id).first()
+    if not project_setting:
+        project_setting = ProjectSetting(
+            id=str(uuid.uuid1()),
+            project_id=project_id
+        )
+        db.session.add(project_setting)
+        db.session.commit()
 
     # STEP 3 check test type is existed, and create if needed
     # TODO: remove create test type in the future, because test type will create when setup btest for a project
@@ -61,7 +70,7 @@ def create_test():
            "Generic": "Unstructured",
            "Cucumber": "Gherkin",
         }
-        exist_type = TestType(project_setting_id=project_id, name=test_type, kind=map_test_type[test_type])
+        exist_type = TestType(project_setting_id=project_setting.id, name=test_type, kind=map_test_type[test_type])
         exist_type.id = str(uuid.uuid1())
         db.session.add(exist_type)
         db.session.commit()
@@ -78,6 +87,16 @@ def create_test():
 
     # create test sets and add issue to the test sets
     test_set_name = json_req.get("test_set_name", "")
+    # check test set existed
+    test_set_instance = TestSets.query.filter_by(name=test_set_name).first()
+    if not test_set_instance:
+        test_set_instance = TestSets(
+            id=str(uuid.uuid1()),
+            name=test_set_name
+        )
+        db.session.add(test_set_instance)
+
+    test_set_instance.tests.append(test_instance)  # add test instance to test sets
 
     # submit new instance to mysql session
     db.session.add(test_instance)
