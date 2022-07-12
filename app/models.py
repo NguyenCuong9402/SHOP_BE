@@ -132,11 +132,11 @@ class TestStatus(db.Model):
 class MapTestExec(db.Model):
     __tablename__ = 'map_test_exec'
     id = db.Column(db.String(50), primary_key=True)
-    test_id = db.Column(db.String(50), db.ForeignKey('tests.id', ondelete='CASCADE', onupdate='CASCADE'), nullable=True)
-    exec_id = db.Column(db.String(50), db.ForeignKey('test_executions.id', ondelete='CASCADE', onupdate='CASCADE'),
+    test_id = db.Column(db.String(50), db.ForeignKey('tests.id'), nullable=True)
+    exec_id = db.Column(db.String(50), db.ForeignKey('test_executions.id'),
                         nullable=True)
     index = db.Column(db.Integer)
-    status_id = db.Column(db.String(50), db.ForeignKey('test_status.id', ondelete='CASCADE', onupdate='CASCADE'),
+    status_id = db.Column(db.String(50), db.ForeignKey('test_status.id'),
                           nullable=True)
     comment = db.Column(db.Text, nullable=True)
     created_date = db.Column(db.Integer, default=0, index=True)
@@ -203,8 +203,8 @@ class TestEvidence(db.Model):
     modified_date = db.Column(db.Integer, default=0)
 
 
-class TestTimmer(db.Model):
-    __tablename__ = 'test_timmer'
+class TestTimer(db.Model):
+    __tablename__ = 'test_timer'
     id = db.Column(db.String(50), primary_key=True)
     map_test_exec_id = db.Column(db.String(50),
                                  db.ForeignKey('map_test_exec.id', ondelete='CASCADE', onupdate='CASCADE'),
