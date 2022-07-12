@@ -23,3 +23,12 @@ class TestSchema(ma.SQLAlchemySchema):
     id = ma.auto_field()
     test_steps = ma.List(ma.Nested(TestStepSchema))
     test_type = ma.Nested(TestTypeSchema(only=("name",)))
+
+
+class TestTypeSchema(ma.SQLAlchemySchema):
+    class Meta:
+        include_fk = True
+        model = TestType
+        fields = ("id", "index", "name", "kind", "order", "default", "project_setting_id")
+
+    id = ma.auto_field()

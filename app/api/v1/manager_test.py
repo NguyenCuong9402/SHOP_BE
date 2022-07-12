@@ -6,7 +6,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity, create_access_tok
 from app.models import TestStep, Test, TestType, db
 from app.utils import send_result, send_error, data_preprocessing
 from app.validator import CreateTestValidator
-from app.parser import TestSchema
+from app.parser import TestSchema, TestTypeSchema
 
 api = Blueprint('test', __name__)
 
@@ -110,4 +110,11 @@ def delete_test(test_id):
 def get_test(test_id):
     test = Test.query.filter_by().first()
     test = TestSchema().dump(test)
+    return send_result(data=test, message="OK")
+
+
+@api.route("/test_types/<project_id>", methods=["GET"])
+def get_test_types_by_project(project_id):
+    test = TestType.query.filter_by().all()
+    test = TestTypeSchema().dump(test)
     return send_result(data=test, message="OK")
