@@ -67,7 +67,12 @@ def create_defects(test_run_id):
 
 @api.route("/<test_run_id>/defects", methods=["DELETE"])
 def delete_defects(test_run_id):
-    return send_result(message="OK")
+    try:
+        Defects.query.filter(Defects.map_test_exec_id == test_run_id).delete()
+        db.session.commit()
+        return send_result(message="OK")
+    except Exception as ex:
+        return send_error(message="Delete defects: " + str(ex), code=442)
 
 
 @api.route("/<test_run_id>/evidence", methods=["POST"])
@@ -91,9 +96,9 @@ def create_evidence(test_run_id):
     name_file = json_req.get("name_file")
     url_file = json_req.get("url_file")
 
-    new_defects = TestEvidence(id=_id, map_test_exec_id=test_run_id, name_file=name_file,
-                               url_file=url_file, created_date=get_timestamp_now())
-    db.session.add(new_defects)
+    new_evidence = TestEvidence(id=_id, map_test_exec_id=test_run_id, name_file=name_file,
+                                url_file=url_file, created_date=get_timestamp_now())
+    db.session.add(new_evidence)
     db.session.commit()
 
     return send_result(message="OK")
@@ -101,7 +106,12 @@ def create_evidence(test_run_id):
 
 @api.route("/<test_run_id>/evidence", methods=["DELETE"])
 def delete_evidence(test_run_id):
-    return send_result(message="OK")
+    try:
+        TestEvidence.query.filter(TestEvidence.map_test_exec_id == test_run_id).delete()
+        db.session.commit()
+        return send_result(message="OK")
+    except Exception as ex:
+        return send_error(message="Delete evidence: " + str(ex), code=442)
 
 
 @api.route("/<test_run_id>/comment", methods=["PUT"])
@@ -198,22 +208,80 @@ def update_timer(test_run_id):
 
 @api.route("/<test_run_id>/test-step/<test_step_id>/defects", methods=["POST"])
 def create_step_defects(test_run_id, test_step_id):
+    try:
+        json_req = request.get_json()
+    except Exception as ex:
+        return send_error(message="Request Body incorrect json format: " + str(ex), code=442)
+
+    # # logged input fields
+    # logged_input(json.dumps(json_req))
+
+    # validate request body
+    validator_input = DefectsValidator()
+    is_not_validate = validator_input.validate(json_req)
+    if is_not_validate:
+        return send_error(data=is_not_validate, code=442)
+
+    _id = get_jwt_identity()
+
+    test_issue_id = json_req.get("test_issue_id")
+    test_issue_key = json_req.get("test_issue_key")
+
+    new_defects = Defects(id=_id, test_step_detail_id=test_step_id, test_issue_id=test_issue_id,
+                          test_issue_key=test_issue_key, created_date=get_timestamp_now())
+    db.session.add(new_defects)
+    db.session.commit()
     return send_result(message="OK")
 
 
 @api.route("/<test_run_id>/test-step/<test_step_id>/defects", methods=["DELETE"])
 def delete_step_defects(test_run_id, test_step_id):
-    return send_result(message="OK")
+    try:
+        Defects.query.filter(Defects.test_step_detail_id == test_step_id).delete()
+        db.session.commit()
+        return send_result(message="OK")
+    except Exception as ex:
+        return send_error(message="Delete defects: " + str(ex), code=442)
 
 
 @api.route("/<test_run_id>/test-step/<test_step_id>/evidence", methods=["POST"])
 def create_step_evidence(test_run_id, test_step_id):
+    try:
+        json_req = request.get_json()
+    except Exception as ex:
+        return send_error(message="Request Body incorrect json format: " + str(ex), code=442)
+
+    # # logged input fields
+    # logged_input(json.dumps(json_req))
+
+    # validate request body
+    validator_input = EvidenceValidator()
+    is_not_validate = validator_input.validate(json_req)
+    if is_not_validate:
+        return send_error(data=is_not_validate, code=442)
+
+    _id = get_jwt_identity()
+
+    name_file = json_req.get("name_file")
+    url_file = json_req.get("url_file")
+
+    new_evidence = TestEvidence(id=_id, test_step_detail_id=test_step_id,
+                                name_file=name_file,
+                                url_file=url_file, created_date=get_timestamp_now())
+    db.session.add(new_evidence)
+    db.session.commit()
+
     return send_result(message="OK")
 
 
 @api.route("/<test_run_id>/test-step/<test_step_id>/evidence", methods=["DELETE"])
 def delete_step_evidence(test_run_id, test_step_id):
-    return send_result(message="OK")
+    try:
+        TestEvidence.query.filter(TestEvidence.test_step_detail_id == test_step_id).delete()
+        db.session.commit()
+        return send_result(message="OK")
+    except Exception as ex:
+        return send_error(message="Delete evidence: " + str(ex), code=442)
 
 
 @api.route("/<test_run_id>/test-step/<test_step_id>/comment", methods=["PUT"])
