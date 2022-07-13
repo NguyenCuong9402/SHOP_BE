@@ -44,22 +44,28 @@ def get_test_back_next(test_run_id):
     Create Date: 13/07/2022
     Handle get back next
     """
+
+    result = {
+        "back_id": "",
+        "next_id": ""
+    }
+
+    test_run = MapTestExec.query.filter(MapTestExec.id == test_run_id).first()
+    back_test = MapTestExec.query.order_by(desc(MapTestExec.index)).filter(
+        MapTestExec.exec_id == test_run.exec_id, MapTestExec.id != test_run.id,
+        MapTestExec.index < test_run.index).first()
+    if back_test is not None:
+        result["back_id"] = back_test.id
+
+    next_test = MapTestExec.query.order_by(asc(MapTestExec.index)).filter(
+        MapTestExec.exec_id == test_run.exec_id, MapTestExec.id != test_run.id,
+        MapTestExec.index > test_run.index).first()
+
+    if next_test is not None:
+        result["next_id"] = next_test.id
+
     try:
-        test_run = MapTestExec.query.filter(MapTestExec.id == test_run_id).first()
-        back_test = MapTestExec.query.order_by(desc(MapTestExec.index)).filter(
-            MapTestExec.exec_id == test_run.exec_id, MapTestExec.id != test_run.id,
-            MapTestExec.index < test_run.index).first()
-
-        next_test = MapTestExec.query.order_by(asc(MapTestExec.index)).filter(
-            MapTestExec.exec_id == test_run.exec_id, MapTestExec.id != test_run.id,
-            MapTestExec.index > test_run.index).first()
-
-        result = {
-            "back_id": back_test.id,
-            "next_id": next_test.id
-        }
         result_dump = TestRunBackNextSchema().dump(result)
-
         return send_result(data=result_dump, message="OK")
     except Exception as ex:
         return send_error(message="Request back-next: " + str(ex), code=442)
@@ -109,9 +115,9 @@ def delete_defects(test_run_id):
     try:
         Defects.query.filter(Defects.map_test_exec_id == test_run_id).delete()
         db.session.commit()
-        return send_result(message="OK")
     except Exception as ex:
-        return send_error(message="Delete defects: " + str(ex), code=442)
+        return send_error(message="Delete defects error: " + str(ex), code=442)
+    return send_result(message="OK")
 
 
 @api.route("/<test_run_id>/evidence", methods=["POST"])
@@ -186,6 +192,8 @@ def update_comment(test_run_id):
 
     content = json_req.get("content", "")
     test_run = MapTestExec.query.filter(MapTestExec.id == test_run_id).first()
+    if test_run is None:
+        return send_error(message=" Test run id {0} is none".format(test_run_id), code=442)
     test_run.comment = content
     db.session.commit()
     return send_result(message="OK")
@@ -225,6 +233,8 @@ def update_test_status(test_run_id):
         return send_error(data={"status_id": "status none"}, code=442)
 
     map_test_exec = MapTestExec.query.filter(MapTestExec.id == test_run_id).first()
+    if map_test_exec is None:
+        return send_error(message=" Test test run {0} is none".format(test_run_id), code=442)
     map_test_exec.status_id = status_id
     map_test_exec.modified_date = get_timestamp_now()
     db.session.commit()
@@ -390,8 +400,9 @@ def update_comment_test_step(test_run_id, test_step_id):
         return send_error(data=is_not_validate, code=442)
 
     content = json_req.get("content", "")
-    test_run_detail = TestStepDetail.query.filter(MapTestExec.id == test_run_id,
-                                                  TestStepDetail.id == test_step_id).first()
+    test_run_detail = TestStepDetail.query.filter(TestStepDetail.id == test_step_id).first()
+    if test_run_detail is None:
+        return send_error(message=" Test test step run {0} is none".format(test_step_id), code=442)
     test_run_detail.comment = content
     test_run_detail.modified_date = get_timestamp_now()
     db.session.commit()
@@ -427,8 +438,9 @@ def update_test_step_status(test_run_id, test_step_id):
     if test_status is None:
         return send_error(data={"status_id": "status none"}, code=442)
 
-    test_run_detail = TestStepDetail.query.filter(MapTestExec.id == test_run_id,
-                                                  TestStepDetail.id == test_step_id).first()
+    test_run_detail = TestStepDetail.query.filter(TestStepDetail.id == test_step_id).first()
+    if test_run_detail is None:
+        return send_error(message=" Test test step run {0} is none".format(test_run_detail), code=442)
     test_run_detail.status_id = status_id
     test_run_detail.modified_date = get_timestamp_now()
     db.session.commit()
