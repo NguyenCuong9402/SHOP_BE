@@ -117,6 +117,16 @@ class DefectsSchema(Schema):
     test_issue_id = fields.String()
 
 
+class DefectsValidator(Schema):
+    """
+    Author: phongnv
+    Create Date: 12/07/2022
+    Marshmallow Schema
+    """
+    test_issue_id = fields.String(required=True, validates=[validate.Length(min=1, max=255)])
+    test_issue_key = fields.String(required=True, validates=[validate.Length(min=1, max=255)])
+
+
 class EvidenceSchema(Schema):
     """
     Author: phongnv
@@ -126,6 +136,25 @@ class EvidenceSchema(Schema):
     id = fields.String()
     name_file = fields.String()
     url_file = fields.String()
+
+
+class EvidenceValidator(Schema):
+    """
+    Author: phongnv
+    Create Date: 12/07/2022
+    Marshmallow Schema
+    """
+    name_file = fields.String(required=True, validates=[validate.Length(min=1, max=255)])
+    url_file = fields.String(required=True, validates=[validate.Length(min=1, max=500)])
+
+
+class CommentValidator(Schema):
+    """
+    Author: phongnv
+    Create Date: 12/07/2022
+    Marshmallow Schema
+    """
+    content = fields.String(required=False, validates=[validate.Length(min=0, max=500)])
 
 
 class TestStepRunSchema(Schema):
