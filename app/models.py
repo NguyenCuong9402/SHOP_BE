@@ -248,6 +248,7 @@ class TestRepo(db.Model):
     name = db.Column(db.String(500))
     create_date = db.Column(INTEGER(unsigned=True), default=0, index=True)
     project_id = db.Column(db.String(50))
+    index = db.Column(db.Integer)
 
 
 class MapRepo(db.Model):
