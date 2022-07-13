@@ -86,7 +86,7 @@ def create_defects(test_run_id):
     if is_not_validate:
         return send_error(data=is_not_validate, code=442)
 
-    _id = get_jwt_identity()
+    _id = str(uuid.uuid1())
 
     test_issue_id = json_req.get("test_issue_id")
     test_issue_key = json_req.get("test_issue_key")
@@ -135,7 +135,7 @@ def create_evidence(test_run_id):
     if is_not_validate:
         return send_error(data=is_not_validate, code=442)
 
-    _id = get_jwt_identity()
+    _id = str(uuid.uuid1())
 
     name_file = json_req.get("name_file")
     url_file = json_req.get("url_file")
@@ -258,7 +258,7 @@ def update_timer(test_run_id):
 
     test_timer = TestTimer.query.filter(TestTimer.map_test_exec_id == test_run_id).first()
     if test_timer is None:
-        _id = get_jwt_identity()
+        _id = str(uuid.uuid1())
         new_timer = TestTimer(id=_id, time_type=time_type, date_time=date_time, created_date=get_timestamp_now())
         db.session.add(new_timer)
     else:
@@ -291,7 +291,7 @@ def create_step_defects(test_run_id, test_step_id):
     if is_not_validate:
         return send_error(data=is_not_validate, code=442)
 
-    _id = get_jwt_identity()
+    _id = str(uuid.uuid1())
 
     test_issue_id = json_req.get("test_issue_id")
     test_issue_key = json_req.get("test_issue_key")
@@ -339,7 +339,7 @@ def create_step_evidence(test_run_id, test_step_id):
     if is_not_validate:
         return send_error(data=is_not_validate, code=442)
 
-    _id = get_jwt_identity()
+    _id = str(uuid.uuid1())
 
     name_file = json_req.get("name_file")
     url_file = json_req.get("url_file")
