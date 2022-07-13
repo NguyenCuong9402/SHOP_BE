@@ -216,3 +216,13 @@ class TestRunSchema(Schema):
     defects = fields.List(fields.Nested(DefectsSchema))
     evidences = fields.List(fields.Nested(EvidenceSchema))
     test_timer = fields.List(fields.Nested(TestTimerSchema))
+
+
+class TestRunBackNextSchema(Schema):
+    """
+    Author: phongnv
+    Create Date: 12/07/2022
+    Marshmallow Schema
+    """
+    back_id = fields.String()
+    next_id = fields.String()

@@ -7,7 +7,8 @@ from app.models import TestStep, Test, TestType, db, MapTestExec, TestTimer, Def
     TestStatus
 from app.utils import send_result, send_error, data_preprocessing, get_timestamp_now
 from app.validator import TestRunSchema, DefectsValidator, EvidenceValidator, CommentValidator, TestStatusValidator, \
-    TestTimerValidator
+    TestTimerValidator, TestRunBackNextSchema
+from sqlalchemy import desc, func, asc, or_, and_, text, cast, Numeric
 
 api = Blueprint('test-run', __name__)
 
@@ -31,9 +32,27 @@ def get_test_run(test_run_id):
         return send_error(data=e.__str__())
 
 
-@api.route("/<test_run_id>", methods=["GET"])
-def get_test_before_after(test_run_id):
-    return send_result(message="OK")
+@api.route("/<test_run_id>/back-next", methods=["GET"])
+def get_test_back_next(test_run_id):
+    try:
+        test_run = MapTestExec.query.filter(MapTestExec.id == test_run_id).first()
+        back_test = MapTestExec.query.order_by(desc(MapTestExec.index)).filter(
+            MapTestExec.exec_id == test_run.exec_id, MapTestExec.id != test_run.id,
+            MapTestExec.index < test_run.index).first()
+
+        next_test = MapTestExec.query.order_by(asc(MapTestExec.index)).filter(
+            MapTestExec.exec_id == test_run.exec_id, MapTestExec.id != test_run.id,
+            MapTestExec.index > test_run.index).first()
+
+        result = {
+            "back_id": back_test.id,
+            "next_id": next_test.id
+        }
+        result_dump = TestRunBackNextSchema().dump(result)
+
+        return send_result(data=result_dump, message="OK")
+    except Exception as ex:
+        return send_error(message="Request back-next: " + str(ex), code=442)
 
 
 @api.route("/<test_run_id>/defects", methods=["POST"])
