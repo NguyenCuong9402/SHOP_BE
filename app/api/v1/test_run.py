@@ -3,7 +3,7 @@ import uuid
 from flask import Blueprint, request
 from flask_jwt_extended import jwt_required, get_jwt_identity, create_access_token
 
-from app.models import TestStep, Test, TestType, db
+from app.models import TestStep, Test, TestType, db, MapTestExec, TestTimer, Defects, TestEvidence, TestStepDetail
 from app.utils import send_result, send_error, data_preprocessing
 from app.validator import TestRunSchema
 from app.parser import TestSchema, TestTypeSchema
@@ -15,17 +15,19 @@ Function helper
 """
 
 
-
-
-
-@api.route("/<exec_id>", methods=["GET"])
-def get_all_test_run(exec_id):
-    return send_result(message="OK")
+# @api.route("/<exec_id>", methods=["GET"])
+# def get_all_test_run(exec_id):
+#     return send_result(message="OK")
 
 
 @api.route("/<test_run_id>", methods=["GET"])
 def get_test(test_run_id):
-    return send_result(message="OK")
+    try:
+        test_run = MapTestExec.query.filter(MapTestExec.id == test_run_id).first()
+        test_run_dump = TestRunSchema().dump(test_run)
+        return send_result(data=test_run_dump, message="OK")
+    except Exception as e:
+        return send_error(data=e.__str__())
 
 
 @api.route("/<test_run_id>", methods=["GET"])
@@ -35,6 +37,7 @@ def get_test_before_after(test_run_id):
 
 @api.route("/<test_run_id>/defects", methods=["POST"])
 def create_defects(test_run_id):
+
     return send_result(message="OK")
 
 

@@ -167,4 +167,4 @@ class TestRunSchema(Schema):
     steps = fields.List(fields.Nested(TestStepRunSchema))
     defects = fields.List(fields.Nested(DefectsSchema))
     evidences = fields.List(fields.Nested(EvidenceSchema))
-    timers = fields.List(fields.Nested(TestTimerSchema))
+    test_timer = fields.List(fields.Nested(TestTimerSchema))
