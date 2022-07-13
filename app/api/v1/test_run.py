@@ -179,7 +179,7 @@ def delete_evidence(test_run_id, evidence_id):
     return send_result(message="OK")
 
 
-@api.route("/<test_run_id>/comment", methods=["PUT"])
+@api.route("/<test_run_id>/comments", methods=["PUT"])
 def update_comment(test_run_id):
     """
     Author: phongnv
