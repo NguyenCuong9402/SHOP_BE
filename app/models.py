@@ -127,6 +127,7 @@ class TestExecutions(db.Model):
     tests = db.relationship('Test', secondary=test_test_executions, lazy='subquery',
                             backref=db.backref('test_execution_tests', lazy=True))
     name = db.Column(db.String(255), nullable=True)
+    key = db.Column(db.String(255), nullable=True)
 
 
 class Message(db.Model):
