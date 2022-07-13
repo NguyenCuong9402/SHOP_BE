@@ -105,15 +105,20 @@ def create_defects(test_run_id):
     return send_result(message="OK")
 
 
-@api.route("/<test_run_id>/defects", methods=["DELETE"])
-def delete_defects(test_run_id):
+@api.route("/<test_run_id>/defects/<defect_id>", methods=["DELETE"])
+def delete_defects(test_run_id, defect_id):
     """
     Author: phongnv
     Create Date: 13/07/2022
     Handle delete defects
     """
+    defects = Defects.query.filter(Defects.map_test_exec_id == test_run_id,
+                                   Defects.id == defect_id).first()
+    if defects is None:
+        return send_error(message=" Test defects id {0} is none".format(defect_id), code=442)
     try:
-        Defects.query.filter(Defects.map_test_exec_id == test_run_id).delete()
+        Defects.query.filter(Defects.map_test_exec_id == test_run_id,
+                             Defects.id == defect_id).delete()
         db.session.commit()
     except Exception as ex:
         return send_error(message="Delete defects error: " + str(ex), code=442)
@@ -154,15 +159,20 @@ def create_evidence(test_run_id):
     return send_result(message="OK")
 
 
-@api.route("/<test_run_id>/evidence", methods=["DELETE"])
-def delete_evidence(test_run_id):
+@api.route("/<test_run_id>/evidences/<evidence_id>", methods=["DELETE"])
+def delete_evidence(test_run_id, evidence_id):
     """
     Author: phongnv
     Create Date: 13/07/2022
     Handle delete evidence
     """
+    test_evidence = TestEvidence.query.filter(TestEvidence.map_test_exec_id == test_run_id,
+                                              TestEvidence.id == evidence_id).first()
+    if test_evidence is None:
+        return send_error(message=" Test defects id {0} is none".format(evidence_id), code=442)
     try:
-        TestEvidence.query.filter(TestEvidence.map_test_exec_id == test_run_id).delete()
+        TestEvidence.query.filter(TestEvidence.map_test_exec_id == test_run_id,
+                                  TestEvidence.id == evidence_id).delete()
         db.session.commit()
     except Exception as ex:
         return send_error(message="Delete evidence: " + str(ex), code=442)
@@ -313,22 +323,27 @@ def create_step_defects(test_run_id, test_step_id):
     return send_result(message="OK")
 
 
-@api.route("/<test_run_id>/test-step/<test_step_id>/defects", methods=["DELETE"])
-def delete_step_defects(test_run_id, test_step_id):
+@api.route("/<test_run_id>/test-step/<test_step_id>/defects/<defect_id>", methods=["DELETE"])
+def delete_step_defects(test_run_id, test_step_id, defect_id):
     """
     Author: phongnv
     Create Date: 13/07/2022
     Handle delete step defects
     """
+    defects = Defects.query.filter(Defects.test_step_detail_id == test_step_id,
+                                   Defects.id == defect_id).first()
+    if defects is None:
+        return send_error(message=" Test defects id {0} is none".format(defect_id), code=442)
     try:
-        Defects.query.filter(Defects.test_step_detail_id == test_step_id).delete()
+        Defects.query.filter(Defects.test_step_detail_id == test_step_id,
+                             Defects.id == defect_id).delete()
         db.session.commit()
     except Exception as ex:
         return send_error(message="Delete defects: " + str(ex), code=442)
     return send_result(message="OK")
 
 
-@api.route("/<test_run_id>/test-step/<test_step_id>/evidence", methods=["POST"])
+@api.route("/<test_run_id>/test-step/<test_step_id>/evidences", methods=["POST"])
 def create_step_evidence(test_run_id, test_step_id):
     """
     Author: phongnv
@@ -363,22 +378,28 @@ def create_step_evidence(test_run_id, test_step_id):
     return send_result(message="OK")
 
 
-@api.route("/<test_run_id>/test-step/<test_step_id>/evidence", methods=["DELETE"])
-def delete_step_evidence(test_run_id, test_step_id):
+@api.route("/<test_run_id>/test-step/<test_step_id>/evidences/<evidence_id>", methods=["DELETE"])
+def delete_step_evidence(test_run_id, test_step_id, evidence_id):
     """
     Author: phongnv
     Create Date: 13/07/2022
     Handle delete step evidence
     """
+
+    step_evidence = TestEvidence.query.filter(TestEvidence.test_step_detail_id == test_step_id,
+                                              TestEvidence.id == evidence_id).first()
+    if step_evidence is None:
+        return send_error(message=" Test evidence id {0} is none".format(evidence_id), code=442)
     try:
-        TestEvidence.query.filter(TestEvidence.test_step_detail_id == test_step_id).delete()
+        TestEvidence.query.filter(TestEvidence.test_step_detail_id == test_step_id,
+                                  TestEvidence.id == evidence_id).delete()
         db.session.commit()
     except Exception as ex:
         return send_error(message="Delete evidence: " + str(ex), code=442)
     return send_result(message="OK")
 
 
-@api.route("/<test_run_id>/test-step/<test_step_id>/comment", methods=["PUT"])
+@api.route("/<test_run_id>/test-step/<test_step_id>/comments", methods=["PUT"])
 def update_comment_test_step(test_run_id, test_step_id):
     """
     Author: phongnv
