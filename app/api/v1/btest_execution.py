@@ -46,6 +46,7 @@ def create_test_exec():
 
     exec_id = params.get('id', '')
     name = params.get('name', '')
+    key = params.get('key', '')
 
     # check test execution exist
     test_executions: TestExecutions = TestExecutions.query.filter(TestExecutions.id == exec_id).first()
@@ -55,6 +56,7 @@ def create_test_exec():
     new_test_executions = TestExecutions()
     new_test_executions.id = exec_id
     new_test_executions.name = name
+    new_test_executions.key = key
     db.session.add(new_test_executions)
     db.session.commit()
 
