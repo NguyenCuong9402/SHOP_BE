@@ -148,6 +148,15 @@ class EvidenceValidator(Schema):
     url_file = fields.String(required=True, validates=[validate.Length(min=1, max=500)])
 
 
+class TestStatusValidator(Schema):
+    """
+    Author: phongnv
+    Create Date: 12/07/2022
+    Marshmallow Schema
+    """
+    status_id = fields.String(required=True, validates=[validate.Length(min=1, max=50)])
+
+
 class CommentValidator(Schema):
     """
     Author: phongnv
@@ -178,6 +187,16 @@ class TestTimerSchema(Schema):
     """
     id = fields.String()
     time_type = fields.String()
+    date_time = fields.DateTime()
+
+
+class TestTimerValidator(Schema):
+    """
+    Author: phongnv
+    Create Date: 12/07/2022
+    Marshmallow Schema
+    """
+    time_type = fields.Number(required=True)
     date_time = fields.DateTime()
 
 

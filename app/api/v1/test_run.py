@@ -3,10 +3,11 @@ import uuid
 from flask import Blueprint, request
 from flask_jwt_extended import jwt_required, get_jwt_identity, create_access_token
 
-from app.models import TestStep, Test, TestType, db, MapTestExec, TestTimer, Defects, TestEvidence, TestStepDetail
+from app.models import TestStep, Test, TestType, db, MapTestExec, TestTimer, Defects, TestEvidence, TestStepDetail, \
+    TestStatus
 from app.utils import send_result, send_error, data_preprocessing, get_timestamp_now
-from app.validator import TestRunSchema, DefectsValidator, EvidenceValidator, CommentValidator
-from app.parser import TestSchema, TestTypeSchema
+from app.validator import TestRunSchema, DefectsValidator, EvidenceValidator, CommentValidator, TestStatusValidator, \
+    TestTimerValidator
 
 api = Blueprint('test-run', __name__)
 
@@ -133,11 +134,65 @@ def create_activity(test_run_id):
 
 @api.route("/<test_run_id>/status", methods=["PUT"])
 def update_test_status(test_run_id):
+    try:
+        json_req = request.get_json()
+    except Exception as ex:
+        return send_error(message="Request Body incorrect json format: " + str(ex), code=442)
+
+    # # logged input fields
+    # logged_input(json.dumps(json_req))
+
+    # validate request body
+    validator_input = TestStatusValidator()
+    is_not_validate = validator_input.validate(json_req)
+    if is_not_validate:
+        return send_error(data=is_not_validate, code=442)
+
+    status_id = json_req.get("status_id", "")
+
+    test_status = TestStatus.query.filter(TestStatus.id == status_id).first()
+
+    if test_status is None:
+        return send_error(data={"status_id": "status none"}, code=442)
+
+    map_test_exec = MapTestExec.query.filter(MapTestExec.id == test_run_id).first()
+    map_test_exec.status_id = status_id
+    map_test_exec.modified_date = get_timestamp_now()
+    db.session.commit()
+
     return send_result(message="OK")
 
 
 @api.route("/<test_run_id>/timer", methods=["PUT"])
 def update_timer(test_run_id):
+    try:
+        json_req = request.get_json()
+    except Exception as ex:
+        return send_error(message="Request Body incorrect json format: " + str(ex), code=442)
+
+    # # logged input fields
+    # logged_input(json.dumps(json_req))
+
+    # validate request body
+    validator_input = TestTimerValidator()
+    is_not_validate = validator_input.validate(json_req)
+    if is_not_validate:
+        return send_error(data=is_not_validate, code=442)
+
+    time_type = json_req.get("time_type", 0)
+    date_time = json_req.get("date_time", "")
+
+    test_timer = TestTimer.query.filter(TestTimer.map_test_exec_id == test_run_id).first()
+    if test_timer is None:
+        _id = get_jwt_identity()
+        new_timer = TestTimer(id=_id, time_type=time_type, date_time=date_time, created_date=get_timestamp_now())
+        db.session.add(new_timer)
+    else:
+        test_timer.time_type = time_type
+        test_timer.date_time = date_time
+        test_timer.modified_date = get_timestamp_now()
+
+    db.session.commit()
     return send_result(message="OK")
 
 
@@ -188,5 +243,32 @@ def update_comment_test_step(test_run_id, test_step_id):
 
 
 @api.route("/<test_run_id>/test-step/<test_step_id>/status", methods=["PUT"])
-def update_test_step_status(test_run_id):
+def update_test_step_status(test_run_id, test_step_id):
+    try:
+        json_req = request.get_json()
+    except Exception as ex:
+        return send_error(message="Request Body incorrect json format: " + str(ex), code=442)
+
+    # # logged input fields
+    # logged_input(json.dumps(json_req))
+
+    # validate request body
+    validator_input = TestStatusValidator()
+    is_not_validate = validator_input.validate(json_req)
+    if is_not_validate:
+        return send_error(data=is_not_validate, code=442)
+
+    status_id = json_req.get("status_id", "")
+
+    test_status = TestStatus.query.filter(TestStatus.id == status_id).first()
+
+    if test_status is None:
+        return send_error(data={"status_id": "status none"}, code=442)
+
+    test_run_detail = TestStepDetail.query.filter(MapTestExec.id == test_run_id,
+                                                  TestStepDetail.id == test_step_id).first()
+    test_run_detail.status_id = status_id
+    test_run_detail.modified_date = get_timestamp_now()
+    db.session.commit()
+
     return send_result(message="OK")
