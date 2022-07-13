@@ -24,6 +24,11 @@ Function helper
 
 @api.route("/<test_run_id>", methods=["GET"])
 def get_test_run(test_run_id):
+    """
+    Author: phongnv
+    Create Date: 13/07/2022
+    Handle get test run
+    """
     try:
         test_run = MapTestExec.query.filter(MapTestExec.id == test_run_id).first()
         test_run_dump = TestRunSchema().dump(test_run)
@@ -34,6 +39,11 @@ def get_test_run(test_run_id):
 
 @api.route("/<test_run_id>/back-next", methods=["GET"])
 def get_test_back_next(test_run_id):
+    """
+    Author: phongnv
+    Create Date: 13/07/2022
+    Handle get back next
+    """
     try:
         test_run = MapTestExec.query.filter(MapTestExec.id == test_run_id).first()
         back_test = MapTestExec.query.order_by(desc(MapTestExec.index)).filter(
@@ -57,6 +67,11 @@ def get_test_back_next(test_run_id):
 
 @api.route("/<test_run_id>/defects", methods=["POST"])
 def create_defects(test_run_id):
+    """
+    Author: phongnv
+    Create Date: 13/07/2022
+    Handle create defects
+    """
     try:
         json_req = request.get_json()
     except Exception as ex:
@@ -86,6 +101,11 @@ def create_defects(test_run_id):
 
 @api.route("/<test_run_id>/defects", methods=["DELETE"])
 def delete_defects(test_run_id):
+    """
+    Author: phongnv
+    Create Date: 13/07/2022
+    Handle delete defects
+    """
     try:
         Defects.query.filter(Defects.map_test_exec_id == test_run_id).delete()
         db.session.commit()
@@ -96,6 +116,11 @@ def delete_defects(test_run_id):
 
 @api.route("/<test_run_id>/evidence", methods=["POST"])
 def create_evidence(test_run_id):
+    """
+    Author: phongnv
+    Create Date: 13/07/2022
+    Handle create evidence
+    """
     try:
         json_req = request.get_json()
     except Exception as ex:
@@ -125,6 +150,11 @@ def create_evidence(test_run_id):
 
 @api.route("/<test_run_id>/evidence", methods=["DELETE"])
 def delete_evidence(test_run_id):
+    """
+    Author: phongnv
+    Create Date: 13/07/2022
+    Handle delete evidence
+    """
     try:
         TestEvidence.query.filter(TestEvidence.map_test_exec_id == test_run_id).delete()
         db.session.commit()
@@ -135,6 +165,11 @@ def delete_evidence(test_run_id):
 
 @api.route("/<test_run_id>/comment", methods=["PUT"])
 def update_comment(test_run_id):
+    """
+    Author: phongnv
+    Create Date: 13/07/2022
+    Handle update test comment
+    """
     try:
         json_req = request.get_json()
     except Exception as ex:
@@ -163,6 +198,11 @@ def create_activity(test_run_id):
 
 @api.route("/<test_run_id>/status", methods=["PUT"])
 def update_test_status(test_run_id):
+    """
+    Author: phongnv
+    Create Date: 13/07/2022
+    Handle update test status
+    """
     try:
         json_req = request.get_json()
     except Exception as ex:
@@ -194,6 +234,11 @@ def update_test_status(test_run_id):
 
 @api.route("/<test_run_id>/timer", methods=["PUT"])
 def update_timer(test_run_id):
+    """
+    Author: phongnv
+    Create Date: 13/07/2022
+    Handle update timer
+    """
     try:
         json_req = request.get_json()
     except Exception as ex:
@@ -227,6 +272,11 @@ def update_timer(test_run_id):
 
 @api.route("/<test_run_id>/test-step/<test_step_id>/defects", methods=["POST"])
 def create_step_defects(test_run_id, test_step_id):
+    """
+    Author: phongnv
+    Create Date: 13/07/2022
+    Handle create step defects
+    """
     try:
         json_req = request.get_json()
     except Exception as ex:
@@ -255,6 +305,11 @@ def create_step_defects(test_run_id, test_step_id):
 
 @api.route("/<test_run_id>/test-step/<test_step_id>/defects", methods=["DELETE"])
 def delete_step_defects(test_run_id, test_step_id):
+    """
+    Author: phongnv
+    Create Date: 13/07/2022
+    Handle delete step defects
+    """
     try:
         Defects.query.filter(Defects.test_step_detail_id == test_step_id).delete()
         db.session.commit()
@@ -265,6 +320,11 @@ def delete_step_defects(test_run_id, test_step_id):
 
 @api.route("/<test_run_id>/test-step/<test_step_id>/evidence", methods=["POST"])
 def create_step_evidence(test_run_id, test_step_id):
+    """
+    Author: phongnv
+    Create Date: 13/07/2022
+    Handle create step evidence
+    """
     try:
         json_req = request.get_json()
     except Exception as ex:
@@ -295,6 +355,11 @@ def create_step_evidence(test_run_id, test_step_id):
 
 @api.route("/<test_run_id>/test-step/<test_step_id>/evidence", methods=["DELETE"])
 def delete_step_evidence(test_run_id, test_step_id):
+    """
+    Author: phongnv
+    Create Date: 13/07/2022
+    Handle delete step evidence
+    """
     try:
         TestEvidence.query.filter(TestEvidence.test_step_detail_id == test_step_id).delete()
         db.session.commit()
@@ -305,6 +370,11 @@ def delete_step_evidence(test_run_id, test_step_id):
 
 @api.route("/<test_run_id>/test-step/<test_step_id>/comment", methods=["PUT"])
 def update_comment_test_step(test_run_id, test_step_id):
+    """
+    Author: phongnv
+    Create Date: 13/07/2022
+    Handle update step comment
+    """
     try:
         json_req = request.get_json()
     except Exception as ex:
@@ -331,6 +401,11 @@ def update_comment_test_step(test_run_id, test_step_id):
 
 @api.route("/<test_run_id>/test-step/<test_step_id>/status", methods=["PUT"])
 def update_test_step_status(test_run_id, test_step_id):
+    """
+    Author: phongnv
+    Create Date: 13/07/2022
+    Handle update step status
+    """
     try:
         json_req = request.get_json()
     except Exception as ex:
