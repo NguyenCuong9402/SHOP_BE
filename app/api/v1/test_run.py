@@ -164,9 +164,9 @@ def delete_evidence(test_run_id):
     try:
         TestEvidence.query.filter(TestEvidence.map_test_exec_id == test_run_id).delete()
         db.session.commit()
-        return send_result(message="OK")
     except Exception as ex:
         return send_error(message="Delete evidence: " + str(ex), code=442)
+    return send_result(message="OK")
 
 
 @api.route("/<test_run_id>/comment", methods=["PUT"])
@@ -323,9 +323,9 @@ def delete_step_defects(test_run_id, test_step_id):
     try:
         Defects.query.filter(Defects.test_step_detail_id == test_step_id).delete()
         db.session.commit()
-        return send_result(message="OK")
     except Exception as ex:
         return send_error(message="Delete defects: " + str(ex), code=442)
+    return send_result(message="OK")
 
 
 @api.route("/<test_run_id>/test-step/<test_step_id>/evidence", methods=["POST"])
@@ -373,9 +373,9 @@ def delete_step_evidence(test_run_id, test_step_id):
     try:
         TestEvidence.query.filter(TestEvidence.test_step_detail_id == test_step_id).delete()
         db.session.commit()
-        return send_result(message="OK")
     except Exception as ex:
         return send_error(message="Delete evidence: " + str(ex), code=442)
+    return send_result(message="OK")
 
 
 @api.route("/<test_run_id>/test-step/<test_step_id>/comment", methods=["PUT"])
