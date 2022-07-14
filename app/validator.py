@@ -94,7 +94,7 @@ class IssueIDSchema(Schema):
     Create Date: 11/07/2022
     Marshmallow Schema
     """
-    id = fields.String()
+    test_id = fields.String()
 
 
 class IssueIDValidator(BaseValidation):
@@ -250,3 +250,51 @@ class TestRunBackNextSchema(Schema):
     """
     back_id = fields.String()
     next_id = fields.String()
+
+
+class TestExecValidator(BaseValidation):
+    """
+    Author: hungVD
+    Create Date: 11/07/2022
+    Marshmallow Schema
+    """
+    id = fields.String(required=True)
+    name = fields.String(required=True)
+    key = fields.String(required=True)
+
+
+class RepoValidator(BaseValidation):
+    """
+    Author: hungVD
+    Create Date: 11/07/2022
+    Marshmallow Schema
+    """
+    id = fields.String(required=True, validates=[validate.Length(min=1, max=50)])
+    name = fields.String(required=True, validates=[validate.Length(min=1, max=255)])
+    parent_folder_id = fields.String(required=True)
+    project_id = fields.String(required=True)
+
+
+class MoveRepoValidator(BaseValidation):
+    """
+    Author: hungVD
+    Create Date: 11/07/2022
+    Marshmallow Schema
+    """
+    id = fields.String(required=True, validates=[validate.Length(min=1, max=50)])
+    index = fields.Number(required=True)
+    parent_folder_id = fields.String(required=True)
+    project_id = fields.String(required=True)
+
+
+class RepositoryAddIssueValidator(BaseValidation):
+    """
+    Author: hungVD
+    Create Date: 11/07/2022
+    Marshmallow Schema
+    """
+    issue_id = fields.List(fields.String(), required=True)
+    folder_id = fields.String(required=True)
+    project_id = fields.String(required=True)
+
+
