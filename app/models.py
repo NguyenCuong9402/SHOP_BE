@@ -106,6 +106,7 @@ class TestSets(db.Model):
     tests = db.relationship('Test', secondary=test_testsets, lazy='subquery',
                             backref=db.backref('tests', lazy=True))
     name = db.Column(db.String(255), nullable=True)
+    key = db.Column(db.String(255), nullable=True)
 
 
 """
