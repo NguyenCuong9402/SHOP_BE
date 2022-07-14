@@ -107,6 +107,7 @@ class TestSets(db.Model):
                             backref=db.backref('tests', lazy=True))
     name = db.Column(db.String(255), nullable=True)
     key = db.Column(db.String(255), nullable=True)
+    jira_id = db.Column(db.String(255), nullable=True)
 
 
 """
