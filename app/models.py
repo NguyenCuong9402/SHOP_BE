@@ -3,7 +3,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy import ForeignKey, TEXT
 from app.extensions import db
 from sqlalchemy.dialects.mysql import INTEGER
-
+from sqlalchemy.ext.hybrid import hybrid_property
 
 
 class User(db.Model):
@@ -169,6 +169,26 @@ class MapTestExec(db.Model):
     created_date = db.Column(db.Integer, default=0, index=True)
     modified_date = db.Column(db.Integer, default=0)
 
+    @hybrid_property
+    def steps(self):
+        steps = TestStepDetail.query.filter_by(map_test_exec_id=self.id).all()
+        return steps
+
+    @hybrid_property
+    def defects(self):
+        defects = Defects.query.filter_by(map_test_exec_id=self.id).all()
+        return defects
+
+    @hybrid_property
+    def evidences(self):
+        evidences = TestEvidence.query.filter_by(map_test_exec_id=self.id).all()
+        return evidences
+
+    @hybrid_property
+    def test_timer(self):
+        test_timer = TestTimer.query.filter_by(map_test_exec_id=self.id).first()
+        return test_timer
+
 
 class TestStepDetail(db.Model):
     __tablename__ = 'test_step_details'
@@ -184,6 +204,16 @@ class TestStepDetail(db.Model):
     comment = db.Column(db.Text, nullable=True)
     created_date = db.Column(db.Integer, default=0, index=True)
     modified_date = db.Column(db.Integer, default=0)
+
+    @hybrid_property
+    def defects(self):
+        defects = Defects.query.filter_by(test_step_detail_id=self.id).all()
+        return defects
+
+    @hybrid_property
+    def evidences(self):
+        evidences = TestEvidence.query.filter_by(test_step_detail_id=self.id).all()
+        return evidences
 
 
 class TestActivity(db.Model):
