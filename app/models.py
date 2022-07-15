@@ -281,7 +281,7 @@ class TestTimer(db.Model):
                                  db.ForeignKey('map_test_exec.id', ondelete='CASCADE', onupdate='CASCADE'),
                                  nullable=True)
     time_type = db.Column(db.Integer, default=1)  # 1 start time, 2 end time
-    date_time = db.Column(db.DATE)
+    date_time = db.Column(db.DATE)  # format %Y-%m-%d %H:%M:%S.%f
     created_date = db.Column(db.Integer, default=0, index=True)
     modified_date = db.Column(db.Integer, default=0)
 

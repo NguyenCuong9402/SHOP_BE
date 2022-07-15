@@ -324,9 +324,10 @@ def create_timer(test_run_id):
 
     else:
         time_start = TestTimer.query.filter(TestTimer.map_test_exec_id == test_run_id, TestTimer.time_type == 1).first()
-        result_time = datetime.strptime(str_date_time, '%d/%m/%y %H:%M:%S') - datetime.strptime(time_start.date_time,
-                                                                                                '%d/%m/%y %H:%M:%S')
-        total_seconds = result_time.total_seconds()
+        result_time = datetime.strptime(str(str_date_time), '%Y-%m-%d %H:%M:%S.%f') - datetime.strptime(
+            str(time_start.date_time),
+            '%Y-%m-%d %H:%M:%S.%f')
+        total_seconds = int(result_time.total_seconds())
 
     _id = str(uuid.uuid1())
     new_timer = TestTimer(id=_id, map_test_exec_id=test_run_id, time_type=time_type, date_time=str_date_time,
