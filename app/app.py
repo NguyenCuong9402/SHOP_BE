@@ -8,12 +8,13 @@ from flask import Flask, request
 from flask_cors import CORS
 from flask_admin import Admin
 from flask_admin.contrib.sqla import ModelView
+from werkzeug.exceptions import NotFound
 
 from app.extensions import jwt, logger, migrate, ma
 from app.models import db, Message, TestType
 from app.api import v1 as api_v1
 from app.settings import DevConfig, PrdConfig
-from app.utils import send_result
+from app.utils import send_result, send_error
 
 
 def create_app():
@@ -83,7 +84,24 @@ def register_extensions(app):
         logger.error(error)
         db.session.rollback()  # rollback session
 
-        return "Internal Server Error", 500
+        return send_error(message=error, code=500)
+
+    @app.errorhandler(NotFound)
+    def exceptions(e):
+        """
+        Handling exceptions
+        :param e:
+        :return:
+        """
+        # ts = strftime('[%Y-%b-%d %H:%M]')
+        # tb = traceback.format_exc()
+        # message = "5xx INTERNAL SERVER ERROR"
+        # error = '{} {} {} {} {} {} {} \n{}'.format(ts, request.remote_addr, request.method, request.scheme,
+        #                                            request.full_path, message, str(e), tb)
+        # logger.error(error)
+        # db.session.rollback()  # rollback session
+
+        return send_error(message="Request not found", code=400)
 
 
 def register_monitor(app):

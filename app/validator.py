@@ -4,8 +4,10 @@ from datetime import date
 
 from marshmallow import Schema, fields, validate, ValidationError, types, validates_schema, post_dump
 
-
 # Validator
+from app.parser import TestSchema
+
+
 class BaseValidation(Schema):
 
     def custom_validate(
@@ -73,6 +75,8 @@ class CreateTestValidator(BaseValidation):
     cucumber = fields.String(required=False, validates=[validate.Length(min=0, max=255)])
     generic = fields.String(required=False, validates=[validate.Length(min=0, max=255)])
     issue_id = fields.String(required=False, validates=[validate.Length(min=0, max=255)])
+    test_set_key = fields.String(required=False, validates=[validate.Length(min=0, max=255)])
+    test_set_id = fields.String(required=False, validates=[validate.Length(min=0, max=255)])
     issue_jira_id = fields.Number(required=False)
     test_repo = fields.String(required=False, validates=[validate.Length(min=0, max=255)])
     test_type = fields.String(required=True, validates=validate.OneOf(["Manual", "Generic", "Cucumber"]))
@@ -88,13 +92,25 @@ class CreateTestValidator(BaseValidation):
     }
 
 
+class UpdateTestValidator(BaseValidation):
+    """
+    Author: Thinh le
+    Create Date: 17/7/2022
+    Marshmallow Schema
+    Target: validate parameters of partner
+    """
+    key = fields.String(required=False, validates=[validate.Length(min=0, max=50)])
+    name = fields.String(required=False, validates=[validate.Length(min=0, max=255)])
+    self = fields.String(required=False, validates=[validate.Length(min=0, max=255)])
+
+
 class IssueIDSchema(Schema):
     """
     Author: hungVD
     Create Date: 11/07/2022
     Marshmallow Schema
     """
-    test_id = fields.String()
+    tests = fields.Nested(TestSchema)
 
 
 class IssueIDValidator(BaseValidation):
@@ -148,6 +164,29 @@ class EvidenceValidator(Schema):
     url_file = fields.String(required=True, validates=[validate.Length(min=1, max=500)])
 
 
+class TestActivitySchema(Schema):
+    """
+    Author: phongnv
+    Create Date: 12/07/2022
+    Marshmallow Schema
+    """
+    id = fields.String()
+    comment = fields.String()
+    status_change = fields.String()
+    jira_user_id = fields.String()
+
+
+class TestActivityValidator(Schema):
+    """
+    Author: phongnv
+    Create Date: 12/07/2022
+    Marshmallow Schema
+    """
+    comment = fields.String(required=True, validates=[validate.Length(min=1, max=500)])
+    status_change = fields.String(required=True, validates=[validate.Length(min=1, max=500)])
+    jira_user_id = fields.String(required=True, validates=[validate.Length(min=1, max=500)])
+
+
 class TestStatusValidator(Schema):
     """
     Author: phongnv
@@ -188,6 +227,7 @@ class TestTimerSchema(Schema):
     id = fields.String()
     time_type = fields.String()
     date_time = fields.DateTime()
+    str_date_time = fields.String()
 
 
 class TestTimerValidator(Schema):
@@ -196,7 +236,7 @@ class TestTimerValidator(Schema):
     Create Date: 12/07/2022
     Marshmallow Schema
     """
-    time_type = fields.Number(required=True)
+    time_type = fields.Integer(required=True)
     date_time = fields.DateTime()
 
 
@@ -212,10 +252,12 @@ class TestRunSchema(Schema):
     index = fields.Integer()
     status_id = fields.String()
     comment = fields.String()
+    total_seconds = fields.Integer()
     steps = fields.List(fields.Nested(TestStepRunSchema))
     defects = fields.List(fields.Nested(DefectsSchema))
     evidences = fields.List(fields.Nested(EvidenceSchema))
     test_timer = fields.List(fields.Nested(TestTimerSchema))
+    list_activity = fields.List(fields.Nested(TestActivitySchema))
 
 
 class TestRunBackNextSchema(Schema):

@@ -1,6 +1,6 @@
 # coding: utf-8
 from sqlalchemy.orm import relationship
-from sqlalchemy import ForeignKey, TEXT
+from sqlalchemy import ForeignKey, TEXT, asc
 from app.extensions import db
 from sqlalchemy.dialects.mysql import INTEGER
 from sqlalchemy.ext.hybrid import hybrid_property
@@ -22,6 +22,9 @@ class Test(db.Model):
     generic = db.Column(db.String(255), nullable=True)
     issue_id = db.Column(db.String(255), nullable=False)
     issue_jira_id = db.Column(db.String(255), nullable=True)
+    key = db.Column(db.String(255), nullable=True)
+    name = db.Column(db.String(255), nullable=True)
+    self = db.Column(db.String(255), nullable=True)
     test_repo = db.Column(db.String(255), nullable=True)
     project_id = db.Column(db.String(50), nullable=False)
     test_type_id = db.Column(db.String(50), db.ForeignKey('test_type.id'), nullable=True)
@@ -106,6 +109,8 @@ class TestSets(db.Model):
     tests = db.relationship('Test', secondary=test_testsets, lazy='subquery',
                             backref=db.backref('tests', lazy=True))
     name = db.Column(db.String(255), nullable=True)
+    key = db.Column(db.String(255), nullable=True)
+    jira_id = db.Column(db.String(255), nullable=True)
 
 
 """
@@ -160,34 +165,42 @@ class MapTestExec(db.Model):
     __tablename__ = 'map_test_exec'
     id = db.Column(db.String(50), primary_key=True)
     test_id = db.Column(db.String(50), db.ForeignKey('tests.id'), nullable=True)
-    exec_id = db.Column(db.String(50), db.ForeignKey('test_executions.id'),
-                        nullable=True)
+    exec_id = db.Column(db.String(50), db.ForeignKey('test_executions.id'), nullable=True)
     index = db.Column(db.Integer)
-    status_id = db.Column(db.String(50), db.ForeignKey('test_status.id'),
-                          nullable=True)
+    status_id = db.Column(db.String(50), db.ForeignKey('test_status.id'), nullable=True)
     comment = db.Column(db.Text, nullable=True)
     created_date = db.Column(db.Integer, default=0, index=True)
     modified_date = db.Column(db.Integer, default=0)
+    tests = db.relationship('Test', backref=db.backref('tests_test_exec', lazy=True))
+    total_seconds = db.Column(db.Integer, default=0)
 
     @hybrid_property
     def steps(self):
-        steps = TestStepDetail.query.filter_by(map_test_exec_id=self.id).all()
+        steps = TestStepDetail.order_by(asc(TestStepDetail.created_date)).query.filter_by(
+            map_test_exec_id=self.id).all()
         return steps
 
     @hybrid_property
     def defects(self):
-        defects = Defects.query.filter_by(map_test_exec_id=self.id).all()
+        defects = Defects.query.order_by(asc(Defects.created_date)).filter_by(map_test_exec_id=self.id).all()
         return defects
 
     @hybrid_property
     def evidences(self):
-        evidences = TestEvidence.query.filter_by(map_test_exec_id=self.id).all()
+        evidences = TestEvidence.query.order_by(asc(TestEvidence.created_date)).filter_by(
+            map_test_exec_id=self.id).all()
         return evidences
 
     @hybrid_property
     def test_timer(self):
-        test_timer = TestTimer.query.filter_by(map_test_exec_id=self.id).first()
+        test_timer = TestTimer.query.order_by(asc(TestTimer.created_date)).filter_by(map_test_exec_id=self.id).all()
         return test_timer
+
+    @hybrid_property
+    def list_activity(self):
+        list_activity = TestActivity.query.order_by(asc(TestActivity.created_date)).filter_by(
+            map_test_exec_id=self.id).all()
+        return list_activity
 
 
 class TestStepDetail(db.Model):
@@ -207,12 +220,13 @@ class TestStepDetail(db.Model):
 
     @hybrid_property
     def defects(self):
-        defects = Defects.query.filter_by(test_step_detail_id=self.id).all()
+        defects = Defects.query.order_by(asc(Defects.created_date)).filter_by(test_step_detail_id=self.id).all()
         return defects
 
     @hybrid_property
     def evidences(self):
-        evidences = TestEvidence.query.filter_by(test_step_detail_id=self.id).all()
+        evidences = TestEvidence.query.order_by(asc(TestEvidence.created_date)).filter_by(
+            test_step_detail_id=self.id).all()
         return evidences
 
 
@@ -266,8 +280,9 @@ class TestTimer(db.Model):
     map_test_exec_id = db.Column(db.String(50),
                                  db.ForeignKey('map_test_exec.id', ondelete='CASCADE', onupdate='CASCADE'),
                                  nullable=True)
-    time_type = db.Column(db.Integer)
-    date_time = db.Column(db.DATE)
+    time_type = db.Column(db.Integer, default=1)  # 1 start time, 2 end time
+    date_time = db.Column(db.DATE)  # format %Y-%m-%d %H:%M:%S.%f
+    str_date_time = db.Column(db.Text, nullable=True)
     created_date = db.Column(db.Integer, default=0, index=True)
     modified_date = db.Column(db.Integer, default=0)
 
