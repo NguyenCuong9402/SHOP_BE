@@ -290,7 +290,7 @@ class TestTimer(db.Model):
 class TestRepo(db.Model):
     __tablename__ = 'test_repo'
     id = db.Column(db.String(50), primary_key=True)
-    folder_id = db.Column(db.String(50))
+    folder_id = db.Column(db.String(50), unique=True)
     parent_id = db.Column(db.String(50))
     name = db.Column(db.String(500))
     create_date = db.Column(INTEGER(unsigned=True), default=0, index=True)
