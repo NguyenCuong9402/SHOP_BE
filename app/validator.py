@@ -327,7 +327,7 @@ class GetRepositoryValidator(BaseValidation):
     project_id = fields.String(required=True)
 
 
-class TestSchema(Schema):
+class TestMapRepoSchema(Schema):
     """
     Author: hungVD
     Create Date: 11/07/2022
@@ -345,7 +345,7 @@ class MapRepoSchema(Schema):
     Marshmallow Schema
     """
     test_id = fields.String()
-    test_issue = fields.List(fields.Nested(TestSchema))
+    test_issue = fields.List(fields.Nested(TestMapRepoSchema))
 
 
 class RepositorySchema(Schema):

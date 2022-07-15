@@ -106,6 +106,7 @@ def create_test_repo():
 
     new_test_repo = TestRepo()
     new_test_repo.id = str(uuid.uuid4())
+    new_test_repo.folder_id = str(uuid.uuid4())
     new_test_repo.parent_id = parent_folder_id
     new_test_repo.name = name
     new_test_repo.project_id = project_id
@@ -183,7 +184,7 @@ def move_test_repo():
     parent_folder_id = params.get('parent_folder_id', ID_REPO_DEFAULT)
 
     # check repo exist
-    test_repo: TestRepo = TestRepo.query.filter(TestRepo.id == repo_id).first()
+    test_repo: TestRepo = TestRepo.query.filter(TestRepo.folder_id == repo_id).first()
     if not test_repo:
         return send_error(message_id=TEST_REPO_NOT_EXIST)
 
@@ -191,7 +192,7 @@ def move_test_repo():
     test_repo_name_exist: TestRepo = TestRepo.query.filter(TestRepo.project_id == project_id,
                                                            TestRepo.parent_id == parent_folder_id,
                                                            TestRepo.name == test_repo.name,
-                                                           TestRepo.id != test_repo.id).first()
+                                                           TestRepo.folder_id != test_repo.folder_id).first()
     if test_repo_name_exist:
         return send_error(message_id=TEST_REP_NAME_EXIST)
 
@@ -243,7 +244,7 @@ def add_issue_links():
     project_id = params.get('project_id', '')
 
     # check repo exist
-    test_repo_exist: TestRepo = TestRepo.query.filter(TestRepo.id == folder_id).first()
+    test_repo_exist: TestRepo = TestRepo.query.filter(TestRepo.folder_id == folder_id).first()
     if not test_repo_exist:
         return send_error(message_id=TEST_REPO_NOT_EXIST)
 
@@ -259,7 +260,7 @@ def add_issue_links():
         new_maps_repo = MapRepo()
         new_maps_repo.id = str(uuid.uuid4())
         new_maps_repo.test_id = issue_id
-        new_maps_repo.test_repo_id = folder_id
+        new_maps_repo.test_repo_id = test_repo_exist.id
         new_maps_repo.index = index
         new_maps_repo.create_date = datetime.utcnow().timestamp()
         db.session.add(new_maps_repo)
@@ -294,7 +295,7 @@ def re_oder_issue_links():
     project_id = params.get('project_id', '')
 
     # check repo exist
-    test_repo_exist: TestRepo = TestRepo.query.filter(TestRepo.id == folder_id).first()
+    test_repo_exist: TestRepo = TestRepo.query.filter(TestRepo.folder_id == folder_id).first()
     if not test_repo_exist:
         return send_error(message_id=TEST_REPO_NOT_EXIST)
 
@@ -334,7 +335,7 @@ def move_issue_links():
     project_id = params.get('project_id', '')
 
     # check repo exist
-    test_repo_exist: TestRepo = TestRepo.query.filter(TestRepo.id == folder_id).first()
+    test_repo_exist: TestRepo = TestRepo.query.filter(TestRepo.folder_id == folder_id).first()
     if not test_repo_exist:
         return send_error(message_id=TEST_REPO_NOT_EXIST)
 
@@ -346,14 +347,14 @@ def move_issue_links():
         db.session.delete(item)
 
     test_repo_max_index = db.session.query(func.max(MapRepo.index).label('index')). \
-        filter(MapRepo.test_repo_id == folder_id).first()
+        filter(MapRepo.test_repo_id == test_repo_issue.id).first()
     index = test_repo_max_index.index
 
     for issue_id in issue_ids:
         new_maps_repo = MapRepo()
         new_maps_repo.id = str(uuid.uuid4())
         new_maps_repo.test_id = issue_id
-        new_maps_repo.test_repo_id = folder_id
+        new_maps_repo.test_repo_id = test_repo_issue.id
         new_maps_repo.index = index
         new_maps_repo.create_date = datetime.utcnow().timestamp()
         db.session.add(new_maps_repo)
