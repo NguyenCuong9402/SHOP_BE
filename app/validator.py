@@ -4,7 +4,6 @@ from datetime import date
 
 from marshmallow import Schema, fields, validate, ValidationError, types, validates_schema, post_dump
 
-
 # Validator
 from app.parser import TestSchema
 
@@ -103,8 +102,6 @@ class UpdateTestValidator(BaseValidation):
     key = fields.String(required=False, validates=[validate.Length(min=0, max=50)])
     name = fields.String(required=False, validates=[validate.Length(min=0, max=255)])
     self = fields.String(required=False, validates=[validate.Length(min=0, max=255)])
-
-
 
 
 class IssueIDSchema(Schema):
@@ -230,6 +227,7 @@ class TestTimerSchema(Schema):
     id = fields.String()
     time_type = fields.String()
     date_time = fields.DateTime()
+    str_date_time = fields.String()
 
 
 class TestTimerValidator(Schema):
@@ -254,6 +252,7 @@ class TestRunSchema(Schema):
     index = fields.Integer()
     status_id = fields.String()
     comment = fields.String()
+    total_seconds = fields.Integer()
     steps = fields.List(fields.Nested(TestStepRunSchema))
     defects = fields.List(fields.Nested(DefectsSchema))
     evidences = fields.List(fields.Nested(EvidenceSchema))
@@ -315,5 +314,3 @@ class RepositoryAddIssueValidator(BaseValidation):
     issue_id = fields.List(fields.String(), required=True)
     folder_id = fields.String(required=True)
     project_id = fields.String(required=True)
-
-

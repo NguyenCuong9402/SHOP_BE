@@ -325,21 +325,20 @@ def create_timer(test_run_id):
     elif time_type == 2:
         time_start = TestTimer.query.filter(TestTimer.map_test_exec_id == test_run_id, TestTimer.time_type == 1).first()
         result_time = datetime.strptime(str(str_date_time), '%Y-%m-%d %H:%M:%S.%f') - datetime.strptime(
-            str(time_start.date_time),
+            str(time_start.str_date_time),
             '%Y-%m-%d %H:%M:%S.%f')
         total_seconds = int(result_time.total_seconds())
 
+        test_run = MapTestExec.query.filter(MapTestExec.id == test_run_id).first()
+        if test_run is None:
+            return send_error(message=" Test test run {0} is none".format(test_run_id), code=442)
+        test_run.total_seconds = test_run.total_seconds + total_seconds
+
     _id = str(uuid.uuid1())
 
-    date_time_input = datetime.strptime(str(str_date_time), '%Y-%m-%d %H:%M:%S.%f')
-    new_timer = TestTimer(id=_id, map_test_exec_id=test_run_id, time_type=time_type, date_time=date_time_input,
+    new_timer = TestTimer(id=_id, map_test_exec_id=test_run_id, time_type=time_type, str_date_time=str_date_time,
                           created_date=get_timestamp_now())
     db.session.add(new_timer)
-
-    test_run = MapTestExec.query.filter(MapTestExec.id == test_run_id).first()
-    if test_run is None:
-        return send_error(message=" Test test run {0} is none".format(test_run_id), code=442)
-    test_run.total_seconds = total_seconds
 
     db.session.commit()
     new_timer_dump = TestTimerSchema().dump(new_timer)
