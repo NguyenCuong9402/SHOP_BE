@@ -172,6 +172,7 @@ class MapTestExec(db.Model):
     created_date = db.Column(db.Integer, default=0, index=True)
     modified_date = db.Column(db.Integer, default=0)
     tests = db.relationship('Test', backref=db.backref('tests_test_exec', lazy=True))
+    total_seconds = db.Column(db.Integer, default=0)
 
     @hybrid_property
     def steps(self):
@@ -279,7 +280,7 @@ class TestTimer(db.Model):
     map_test_exec_id = db.Column(db.String(50),
                                  db.ForeignKey('map_test_exec.id', ondelete='CASCADE', onupdate='CASCADE'),
                                  nullable=True)
-    time_type = db.Column(db.Integer)
+    time_type = db.Column(db.Integer, default=1)  # 1 start time, 2 end time
     date_time = db.Column(db.DATE)
     created_date = db.Column(db.Integer, default=0, index=True)
     modified_date = db.Column(db.Integer, default=0)
