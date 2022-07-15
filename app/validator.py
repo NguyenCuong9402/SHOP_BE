@@ -238,7 +238,7 @@ class TestTimerValidator(Schema):
     Create Date: 12/07/2022
     Marshmallow Schema
     """
-    time_type = fields.Number(required=True)
+    time_type = fields.Integer(required=True)
     date_time = fields.DateTime()
 
 

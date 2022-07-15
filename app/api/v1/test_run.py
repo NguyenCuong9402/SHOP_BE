@@ -308,21 +308,21 @@ def create_timer(test_run_id):
 
     test_status = TestTimer.query.filter(TestTimer.map_test_exec_id == test_run_id).all()
 
-    time_type = json_req.get("time_type", 1)
+    time_type = int(json_req.get("time_type", 1))
     str_date_time = json_req.get("date_time", "")
     total_seconds = 0
 
-    if test_status is None and time_type == 2:
+    if len(test_status) == 0 and time_type == 2:
         return send_error(message="Test run has not started!", code=442)
 
-    if test_status is not None and len(test_status) == 1:
+    if len(test_status) == 1 and time_type != 2:
         return send_error(message="Test run processing!", code=442)
 
     if time_type == 1:
         # clear timer
         TestTimer.query.filter(TestTimer.map_test_exec_id == test_run_id).delete()
 
-    else:
+    elif time_type == 2:
         time_start = TestTimer.query.filter(TestTimer.map_test_exec_id == test_run_id, TestTimer.time_type == 1).first()
         result_time = datetime.strptime(str(str_date_time), '%Y-%m-%d %H:%M:%S.%f') - datetime.strptime(
             str(time_start.date_time),
@@ -330,7 +330,9 @@ def create_timer(test_run_id):
         total_seconds = int(result_time.total_seconds())
 
     _id = str(uuid.uuid1())
-    new_timer = TestTimer(id=_id, map_test_exec_id=test_run_id, time_type=time_type, date_time=str_date_time,
+
+    date_time_input = datetime.strptime(str(str_date_time), '%Y-%m-%d %H:%M:%S.%f')
+    new_timer = TestTimer(id=_id, map_test_exec_id=test_run_id, time_type=time_type, date_time=date_time_input,
                           created_date=get_timestamp_now())
     db.session.add(new_timer)
 
@@ -344,7 +346,7 @@ def create_timer(test_run_id):
     return send_result(data=new_timer_dump, message="OK")
 
 
-@api.route("/<test_run_id>/restart-timer", methods=["PUT"])
+@api.route("/<test_run_id>/restart-timer", methods=["DELETE"])
 def rstart_timer(test_run_id):
     """
     Author: phongnv
