@@ -6,6 +6,9 @@ from marshmallow import Schema, fields, validate, ValidationError, types, valida
 
 
 # Validator
+from app.parser import TestSchema
+
+
 class BaseValidation(Schema):
 
     def custom_validate(
@@ -73,6 +76,8 @@ class CreateTestValidator(BaseValidation):
     cucumber = fields.String(required=False, validates=[validate.Length(min=0, max=255)])
     generic = fields.String(required=False, validates=[validate.Length(min=0, max=255)])
     issue_id = fields.String(required=False, validates=[validate.Length(min=0, max=255)])
+    test_set_key = fields.String(required=False, validates=[validate.Length(min=0, max=255)])
+    test_set_id = fields.String(required=False, validates=[validate.Length(min=0, max=255)])
     issue_jira_id = fields.Number(required=False)
     test_repo = fields.String(required=False, validates=[validate.Length(min=0, max=255)])
     test_type = fields.String(required=True, validates=validate.OneOf(["Manual", "Generic", "Cucumber"]))
@@ -88,13 +93,27 @@ class CreateTestValidator(BaseValidation):
     }
 
 
+class UpdateTestValidator(BaseValidation):
+    """
+    Author: Thinh le
+    Create Date: 17/7/2022
+    Marshmallow Schema
+    Target: validate parameters of partner
+    """
+    key = fields.String(required=False, validates=[validate.Length(min=0, max=50)])
+    name = fields.String(required=False, validates=[validate.Length(min=0, max=255)])
+    self = fields.String(required=False, validates=[validate.Length(min=0, max=255)])
+
+
+
+
 class IssueIDSchema(Schema):
     """
     Author: hungVD
     Create Date: 11/07/2022
     Marshmallow Schema
     """
-    test_id = fields.String()
+    tests = fields.Nested(TestSchema)
 
 
 class IssueIDValidator(BaseValidation):

@@ -22,6 +22,9 @@ class Test(db.Model):
     generic = db.Column(db.String(255), nullable=True)
     issue_id = db.Column(db.String(255), nullable=False)
     issue_jira_id = db.Column(db.String(255), nullable=True)
+    key = db.Column(db.String(255), nullable=True)
+    name = db.Column(db.String(255), nullable=True)
+    self = db.Column(db.String(255), nullable=True)
     test_repo = db.Column(db.String(255), nullable=True)
     project_id = db.Column(db.String(50), nullable=False)
     test_type_id = db.Column(db.String(50), db.ForeignKey('test_type.id'), nullable=True)
@@ -106,6 +109,8 @@ class TestSets(db.Model):
     tests = db.relationship('Test', secondary=test_testsets, lazy='subquery',
                             backref=db.backref('tests', lazy=True))
     name = db.Column(db.String(255), nullable=True)
+    key = db.Column(db.String(255), nullable=True)
+    jira_id = db.Column(db.String(255), nullable=True)
 
 
 """
@@ -160,14 +165,13 @@ class MapTestExec(db.Model):
     __tablename__ = 'map_test_exec'
     id = db.Column(db.String(50), primary_key=True)
     test_id = db.Column(db.String(50), db.ForeignKey('tests.id'), nullable=True)
-    exec_id = db.Column(db.String(50), db.ForeignKey('test_executions.id'),
-                        nullable=True)
+    exec_id = db.Column(db.String(50), db.ForeignKey('test_executions.id'), nullable=True)
     index = db.Column(db.Integer)
-    status_id = db.Column(db.String(50), db.ForeignKey('test_status.id'),
-                          nullable=True)
+    status_id = db.Column(db.String(50), db.ForeignKey('test_status.id'), nullable=True)
     comment = db.Column(db.Text, nullable=True)
     created_date = db.Column(db.Integer, default=0, index=True)
     modified_date = db.Column(db.Integer, default=0)
+    tests = db.relationship('Test', backref=db.backref('tests_test_exec', lazy=True))
 
     @hybrid_property
     def steps(self):

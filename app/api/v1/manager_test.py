@@ -5,7 +5,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity, create_access_tok
 
 from app.models import TestStep, Test, TestType, db, TestSets, ProjectSetting
 from app.utils import send_result, send_error, data_preprocessing
-from app.validator import CreateTestValidator
+from app.validator import CreateTestValidator, UpdateTestValidator
 from app.parser import TestSchema, TestTypeSchema
 
 api = Blueprint('test', __name__)
@@ -22,6 +22,8 @@ def create_test():
         "issue_id": "12321",
         "test_type": "12321",
         "test_set_name": 123,
+        "test_set_key": testSetkey,
+        "test_set_id": testSetId,
         "test_step": [
             {
                 "data": "123",
@@ -92,9 +94,12 @@ def create_test():
     if not test_set_instance:
         test_set_instance = TestSets(
             id=str(uuid.uuid1()),
-            name=test_set_name
+            name=test_set_name,
+            key=json_req.get("test_set_key", ""),
+            jira_id=json_req.get("test_set_id", ""),
         )
         db.session.add(test_set_instance)
+        db.session.commit()
 
     test_set_instance.tests.append(test_instance)  # add test instance to test sets
 
@@ -116,6 +121,31 @@ def create_test():
 
     # STEP 5: setup ok, commit change to mysql
     db.session.commit()
+    return send_result(data={"id": test_instance.id}, message="OK")
+
+
+@api.route("/<test_id>", methods=["PUT"])
+def update_test(test_id):
+    existed = Test.query.filter_by(id=test_id).first()
+    if not existed:
+        return send_error(message="Not found existed test")
+
+    try:
+        json_req = request.get_json()
+    except Exception as ex:
+        return send_error(message="Request body incorrect json format: " + str(ex), code=442)
+
+    # validate request body
+    json_valid, message_id, incorrect_data = data_preprocessing(cls_validator=UpdateTestValidator, input_json=json_req)
+    if not json_valid:
+        return send_error(data=incorrect_data, message_id=message_id, code=442)
+
+    for key, value in json_req.items():
+        setattr(existed, key, value)
+
+    db.session.add(existed)
+    db.session.commit()  # save changes
+
     return send_result(message="OK")
 
 
@@ -126,7 +156,14 @@ def delete_test(test_id):
 
 
 @api.route("/<test_id>", methods=["GET"])
-def get_test(test_id):
-    test = Test.query.filter_by().first()
+def get_test_by_id(test_id):
+    test = Test.query.filter_by(id=test_id).first()
     test = TestSchema().dump(test)
+    return send_result(data=test, message="OK")
+
+
+@api.route("", methods=["GET"])
+def get_tests():
+    test = Test.query.filter_by().all()
+    test = TestSchema(many=True).dump(test)
     return send_result(data=test, message="OK")
