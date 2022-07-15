@@ -270,6 +270,17 @@ class RepositoryAddIssueValidator(BaseValidation):
     Marshmallow Schema
     """
     issue_id = fields.List(fields.String(), required=True)
+    index = fields.Number(required=True)
+    folder_id = fields.String(required=True)
+    project_id = fields.String(required=True)
+
+
+class GetRepositoryValidator(BaseValidation):
+    """
+    Author: hungVD
+    Create Date: 11/07/2022
+    Marshmallow Schema
+    """
     folder_id = fields.String(required=True)
     project_id = fields.String(required=True)
 

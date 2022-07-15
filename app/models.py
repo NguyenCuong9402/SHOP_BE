@@ -275,7 +275,7 @@ class TestTimer(db.Model):
 class TestRepo(db.Model):
     __tablename__ = 'test_repo'
     id = db.Column(db.String(50), primary_key=True)
-    parent_id = db.Column(db.String(50), primary_key=True)
+    parent_id = db.Column(db.String(50))
     name = db.Column(db.String(500))
     create_date = db.Column(INTEGER(unsigned=True), default=0, index=True)
     project_id = db.Column(db.String(50))
@@ -288,3 +288,4 @@ class MapRepo(db.Model):
     test_id = db.Column(ForeignKey('tests.id', ondelete='SET NULL', onupdate='CASCADE'), index=True)
     test_repo_id = db.Column(ForeignKey('test_repo.id', ondelete='SET NULL', onupdate='CASCADE'), index=True)
     create_date = db.Column(INTEGER(unsigned=True), default=0, index=True)
+    index = db.Column(db.Integer)
