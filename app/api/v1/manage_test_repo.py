@@ -11,11 +11,12 @@ from marshmallow import ValidationError
 from app.extensions import logger, db
 from app.models import test_test_executions, TestExecutions, MapTestExec, Test, TestRepo, MapRepo
 from app.utils import send_error, send_result
-from app.validator import RepoValidator, MoveRepoValidator, RepositoryAddIssueValidator, GetRepositoryValidator
+from app.validator import RepoValidator, MoveRepoValidator, RepositoryAddIssueValidator, \
+    GetRepositoryValidator, RepositorySchema
 from sqlalchemy import func
 from datetime import datetime
 
-api = Blueprint('enrollments', __name__)
+api = Blueprint('test-repo', __name__)
 
 TEST_REPO_NOT_EXIST = '119'
 TEST_REP_NAME_EXIST = '119'
@@ -381,37 +382,16 @@ def get_repository():
         }))
         return send_error(message_id=INVALID_PARAMETERS_ERROR, data=err.messages)
 
-    issue_ids = params.get('issue_id', [])
-    folder_id = params.get('folder_id', '')
+    folder_id = params.get('folder_id', '-1')
     project_id = params.get('project_id', '')
 
     # check repo exist
-    test_repo_exist: TestRepo = TestRepo.query.filter(TestRepo.id == folder_id).first()
+    test_repo_exist: TestRepo = TestRepo.query.\
+        filter(TestRepo.project_id == project_id, TestRepo.folder_id == folder_id).first()
     if not test_repo_exist:
         return send_error(message_id=TEST_REPO_NOT_EXIST)
 
-    # check test exist
-    test_repo_issue: MapRepo = MapRepo.query.filter(MapRepo.test_id.in_(issue_ids)).all()
-    for item in test_repo_issue:
-        # re index issue
-        status = reindex_issue(index=None, issue_ids=[item.test_id], repo_id=test_repo_issue.test_repo_id)
-        db.session.delete(item)
-
-    test_repo_max_index = db.session.query(func.max(MapRepo.index).label('index')). \
-        filter(MapRepo.test_repo_id == folder_id).first()
-    index = test_repo_max_index.index
-
-    for issue_id in issue_ids:
-        new_maps_repo = MapRepo()
-        new_maps_repo.id = str(uuid.uuid4())
-        new_maps_repo.test_id = issue_id
-        new_maps_repo.test_repo_id = folder_id
-        new_maps_repo.index = index
-        new_maps_repo.create_date = datetime.utcnow().timestamp()
-        db.session.add(new_maps_repo)
-        index += 1
-    db.session.commit()
+    # get test repo
+    resp_data = RepositorySchema(many=True).dump(test_repo_exist)
     return send_result(message_id=MOVER_ISSUE_TO_REPO)
-
-
 

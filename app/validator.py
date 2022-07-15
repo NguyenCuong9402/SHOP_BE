@@ -285,3 +285,38 @@ class GetRepositoryValidator(BaseValidation):
     project_id = fields.String(required=True)
 
 
+class TestSchema(Schema):
+    """
+    Author: hungVD
+    Create Date: 11/07/2022
+    Marshmallow Schema
+    """
+    id = fields.String()
+    issue_id = fields.String()
+    issue_jira_id = fields.String()
+
+
+class MapRepoSchema(Schema):
+    """
+    Author: hungVD
+    Create Date: 11/07/2022
+    Marshmallow Schema
+    """
+    test_id = fields.String()
+    test_issue = fields.List(fields.Nested(TestSchema))
+
+
+class RepositorySchema(Schema):
+    """
+    Author: hungVD
+    Create Date: 11/07/2022
+    Marshmallow Schema
+    """
+    id = fields.String()
+    parent_id = fields.String()
+    name = fields.String()
+    index = fields.Integer()
+    children_folder = fields.List(fields.Nested(lambda: RepositorySchema()))
+    map_test_repo = fields.List(fields.Nested(MapRepoSchema))
+
+
