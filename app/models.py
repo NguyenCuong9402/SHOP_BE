@@ -282,6 +282,7 @@ class TestTimer(db.Model):
                                  nullable=True)
     time_type = db.Column(db.Integer, default=1)  # 1 start time, 2 end time
     date_time = db.Column(db.DATE)
+    str_date_time = db.Column(db.Text, nullable=True)
     created_date = db.Column(db.Integer, default=0, index=True)
     modified_date = db.Column(db.Integer, default=0)
 
