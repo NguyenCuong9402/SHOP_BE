@@ -8,8 +8,11 @@ import json
 import uuid
 from flask import Blueprint, request
 from marshmallow import ValidationError
+from sqlalchemy import or_
+
 from app.extensions import logger, db
 from app.models import test_test_executions, TestExecutions, MapTestExec, Test
+from app.parser import TestExecSchema
 from app.utils import send_error, send_result
 from app.validator import IssueIDSchema, IssueIDValidator, TestExecValidator
 from sqlalchemy.sql import func
@@ -73,11 +76,14 @@ def get_issue_links(test_execution_id):
 
     """
 
-    map_test_executions: MapTestExec = MapTestExec.query. \
-        filter(MapTestExec.exec_id == test_execution_id).all()
-    if not map_test_executions:
-        return send_error(message_id=TEST_EXECUTION_NOT_EXIST)
-    data = IssueIDSchema(many=True).dump(map_test_executions)
+    existed_exec = TestExecutions.query.filter(or_(TestExecutions.id == test_execution_id, TestExecutions.key == test_execution_id)).first()
+    if not existed_exec:
+        return send_error(data=[], message_id=TEST_EXECUTION_NOT_EXIST)
+
+    test_execution_id = existed_exec.id
+
+    map_test_executions = MapTestExec.query.filter(MapTestExec.exec_id == test_execution_id).all()
+    data = TestExecSchema(many=True).dump(map_test_executions)
     return send_result(data=data)
 
 
@@ -104,9 +110,12 @@ def add_issue_links(test_execution_id):
     issue_ids = params.get('issue_id', [])
 
     # check test execution exist
-    test_executions: TestExecutions = TestExecutions.query.filter(TestExecutions.id == test_execution_id).first()
+    test_executions: TestExecutions = TestExecutions.query.filter(or_(TestExecutions.id == test_execution_id,
+                                                                      TestExecutions.key == test_execution_id)).first()
     if not test_executions:
         return send_error(message_id=TEST_EXECUTION_NOT_EXIST)
+
+    test_execution_id = test_executions.id
 
     # check test exist
     test_issue: Test = Test.query.filter(Test.id.in_(issue_ids)).all()
