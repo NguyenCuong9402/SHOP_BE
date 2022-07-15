@@ -335,32 +335,28 @@ def create_timer(test_run_id):
     db.session.add(new_timer)
 
     test_run = MapTestExec.query.filter(MapTestExec.id == test_run_id).first()
+    if test_run is None:
+        return send_error(message=" Test test run {0} is none".format(test_run_id), code=442)
     test_run.total_seconds = total_seconds
 
     db.session.commit()
-
     new_timer_dump = TestTimerSchema().dump(new_timer)
     return send_result(data=new_timer_dump, message="OK")
 
 
 @api.route("/<test_run_id>/restart-timer", methods=["PUT"])
-def create_timer(test_run_id):
+def rstart_timer(test_run_id):
     """
     Author: phongnv
     Create Date: 13/07/2022
     Handle update timer
     """
-    try:
-
-        test_run = MapTestExec.query.filter(MapTestExec.id == test_run_id).first()
-        if test_run is None:
-            return send_error(message=" Test test run {0} is none".format(test_run_id), code=442)
-        test_run.total_seconds = 0
-        TestTimer.query.filter(TestTimer.map_test_exec_id == test_run_id).delete()
-        db.session.commit()
-    except Exception as ex:
-        return send_error(message="Request Body incorrect json format: " + str(ex), code=442)
-
+    test_run = MapTestExec.query.filter(MapTestExec.id == test_run_id).first()
+    if test_run is None:
+        return send_error(message=" Test test run {0} is none".format(test_run_id), code=442)
+    test_run.total_seconds = 0
+    TestTimer.query.filter(TestTimer.map_test_exec_id == test_run_id).delete()
+    db.session.commit()
     return send_result(message="OK")
 
 
