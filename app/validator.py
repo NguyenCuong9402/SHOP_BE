@@ -64,6 +64,15 @@ class TestStepValidator(BaseValidation):
     }
 
 
+class TestSetsValidator(BaseValidation):
+    name = fields.String(required=False)
+    key = fields.String(required=False)
+    define_message = {
+        "name": "003",
+        "key": "004",
+    }
+
+
 class CreateTestValidator(BaseValidation):
     """
     Author: TienNguyen
@@ -80,7 +89,7 @@ class CreateTestValidator(BaseValidation):
     issue_jira_id = fields.Number(required=False)
     test_repo = fields.String(required=False, validates=[validate.Length(min=0, max=255)])
     test_type = fields.String(required=True, validates=validate.OneOf(["Manual", "Generic", "Cucumber"]))
-    test_set_name = fields.String(required=False, validates=validate.Length(min=0, max=255))
+    test_sets = fields.List(fields.Nested(TestSetsValidator))
     test_step = fields.List(fields.Nested(TestStepValidator))
     define_message = {
         "issue_id": "001",
