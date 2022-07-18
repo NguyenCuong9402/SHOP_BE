@@ -4,11 +4,12 @@ from flask import Blueprint, request
 from flask_jwt_extended import jwt_required, get_jwt_identity, create_access_token
 
 from app.models import TestStep, Test, TestType, db, MapTestExec, TestTimer, Defects, TestEvidence, TestStepDetail, \
-    TestStatus
+    TestStatus, TestActivity
 from app.utils import send_result, send_error, data_preprocessing, get_timestamp_now
 from app.validator import TestRunSchema, DefectsValidator, EvidenceValidator, CommentValidator, TestStatusValidator, \
-    TestTimerValidator, TestRunBackNextSchema
+    TestTimerValidator, TestRunBackNextSchema, TestActivityValidator, TestActivitySchema, TestTimerSchema
 from sqlalchemy import desc, func, asc, or_, and_, text, cast, Numeric
+from datetime import datetime
 
 api = Blueprint('test-run', __name__)
 
@@ -211,7 +212,39 @@ def update_comment(test_run_id):
 
 @api.route("/<test_run_id>/activity", methods=["POST"])
 def create_activity(test_run_id):
-    return send_result(message="OK")
+    """
+        Author: phongnv
+        Create Date: 13/07/2022
+        Handle create evidence
+        """
+    try:
+        json_req = request.get_json()
+    except Exception as ex:
+        return send_error(message="Request Body incorrect json format: " + str(ex), code=442)
+
+    # # logged input fields
+    # logged_input(json.dumps(json_req))
+
+    # validate request body
+    validator_input = TestActivityValidator()
+    is_not_validate = validator_input.validate(json_req)
+    if is_not_validate:
+        return send_error(data=is_not_validate, code=442)
+
+    _id = str(uuid.uuid1())
+
+    comment = json_req.get("comment")
+    status_change = json_req.get("status_change")
+    jira_user_id = json_req.get("jira_user_id")
+
+    new_activity = TestActivity(id=_id, map_test_exec_id=test_run_id, comment=comment,
+                                status_change=status_change, jira_user_id=jira_user_id,
+                                created_date=get_timestamp_now())
+    db.session.add(new_activity)
+    db.session.commit()
+
+    new_activity_dump = TestActivitySchema().dump(new_activity)
+    return send_result(data=new_activity_dump, message="OK")
 
 
 @api.route("/<test_run_id>/status", methods=["PUT"])
@@ -252,8 +285,8 @@ def update_test_status(test_run_id):
     return send_result(message="OK")
 
 
-@api.route("/<test_run_id>/timer", methods=["PUT"])
-def update_timer(test_run_id):
+@api.route("/<test_run_id>/timer", methods=["POST"])
+def create_timer(test_run_id):
     """
     Author: phongnv
     Create Date: 13/07/2022
@@ -273,19 +306,57 @@ def update_timer(test_run_id):
     if is_not_validate:
         return send_error(data=is_not_validate, code=442)
 
-    time_type = json_req.get("time_type", 0)
-    date_time = json_req.get("date_time", "")
+    test_status = TestTimer.query.filter(TestTimer.map_test_exec_id == test_run_id).all()
 
-    test_timer = TestTimer.query.filter(TestTimer.map_test_exec_id == test_run_id).first()
-    if test_timer is None:
-        _id = str(uuid.uuid1())
-        new_timer = TestTimer(id=_id, time_type=time_type, date_time=date_time, created_date=get_timestamp_now())
-        db.session.add(new_timer)
-    else:
-        test_timer.time_type = time_type
-        test_timer.date_time = date_time
-        test_timer.modified_date = get_timestamp_now()
+    time_type = int(json_req.get("time_type", 1))
+    str_date_time = json_req.get("date_time", "")
+    total_seconds = 0
 
+    if len(test_status) == 0 and time_type == 2:
+        return send_error(message="Test run has not started!", code=442)
+
+    if len(test_status) == 1 and time_type != 2:
+        return send_error(message="Test run processing!", code=442)
+
+    if time_type == 1:
+        # clear timer
+        TestTimer.query.filter(TestTimer.map_test_exec_id == test_run_id).delete()
+
+    elif time_type == 2:
+        time_start = TestTimer.query.filter(TestTimer.map_test_exec_id == test_run_id, TestTimer.time_type == 1).first()
+        result_time = datetime.strptime(str(str_date_time), '%Y-%m-%d %H:%M:%S.%f') - datetime.strptime(
+            str(time_start.str_date_time),
+            '%Y-%m-%d %H:%M:%S.%f')
+        total_seconds = int(result_time.total_seconds())
+
+        test_run = MapTestExec.query.filter(MapTestExec.id == test_run_id).first()
+        if test_run is None:
+            return send_error(message=" Test test run {0} is none".format(test_run_id), code=442)
+        test_run.total_seconds = test_run.total_seconds + total_seconds
+
+    _id = str(uuid.uuid1())
+
+    new_timer = TestTimer(id=_id, map_test_exec_id=test_run_id, time_type=time_type, str_date_time=str_date_time,
+                          created_date=get_timestamp_now())
+    db.session.add(new_timer)
+
+    db.session.commit()
+    new_timer_dump = TestTimerSchema().dump(new_timer)
+    return send_result(data=new_timer_dump, message="OK")
+
+
+@api.route("/<test_run_id>/restart-timer", methods=["DELETE"])
+def rstart_timer(test_run_id):
+    """
+    Author: phongnv
+    Create Date: 13/07/2022
+    Handle update timer
+    """
+    test_run = MapTestExec.query.filter(MapTestExec.id == test_run_id).first()
+    if test_run is None:
+        return send_error(message=" Test test run {0} is none".format(test_run_id), code=442)
+    test_run.total_seconds = 0
+    TestTimer.query.filter(TestTimer.map_test_exec_id == test_run_id).delete()
     db.session.commit()
     return send_result(message="OK")
 

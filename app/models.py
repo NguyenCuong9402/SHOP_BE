@@ -1,6 +1,6 @@
 # coding: utf-8
 from sqlalchemy.orm import relationship
-from sqlalchemy import ForeignKey, TEXT
+from sqlalchemy import ForeignKey, TEXT, asc
 from app.extensions import db
 from sqlalchemy.dialects.mysql import INTEGER
 from sqlalchemy.ext.hybrid import hybrid_property
@@ -172,26 +172,35 @@ class MapTestExec(db.Model):
     created_date = db.Column(db.Integer, default=0, index=True)
     modified_date = db.Column(db.Integer, default=0)
     tests = db.relationship('Test', backref=db.backref('tests_test_exec', lazy=True))
+    total_seconds = db.Column(db.Integer, default=0)
 
     @hybrid_property
     def steps(self):
-        steps = TestStepDetail.query.filter_by(map_test_exec_id=self.id).all()
+        steps = TestStepDetail.order_by(asc(TestStepDetail.created_date)).query.filter_by(
+            map_test_exec_id=self.id).all()
         return steps
 
     @hybrid_property
     def defects(self):
-        defects = Defects.query.filter_by(map_test_exec_id=self.id).all()
+        defects = Defects.query.order_by(asc(Defects.created_date)).filter_by(map_test_exec_id=self.id).all()
         return defects
 
     @hybrid_property
     def evidences(self):
-        evidences = TestEvidence.query.filter_by(map_test_exec_id=self.id).all()
+        evidences = TestEvidence.query.order_by(asc(TestEvidence.created_date)).filter_by(
+            map_test_exec_id=self.id).all()
         return evidences
 
     @hybrid_property
     def test_timer(self):
-        test_timer = TestTimer.query.filter_by(map_test_exec_id=self.id).first()
+        test_timer = TestTimer.query.order_by(asc(TestTimer.created_date)).filter_by(map_test_exec_id=self.id).all()
         return test_timer
+
+    @hybrid_property
+    def list_activity(self):
+        list_activity = TestActivity.query.order_by(asc(TestActivity.created_date)).filter_by(
+            map_test_exec_id=self.id).all()
+        return list_activity
 
 
 class TestStepDetail(db.Model):
@@ -211,12 +220,13 @@ class TestStepDetail(db.Model):
 
     @hybrid_property
     def defects(self):
-        defects = Defects.query.filter_by(test_step_detail_id=self.id).all()
+        defects = Defects.query.order_by(asc(Defects.created_date)).filter_by(test_step_detail_id=self.id).all()
         return defects
 
     @hybrid_property
     def evidences(self):
-        evidences = TestEvidence.query.filter_by(test_step_detail_id=self.id).all()
+        evidences = TestEvidence.query.order_by(asc(TestEvidence.created_date)).filter_by(
+            test_step_detail_id=self.id).all()
         return evidences
 
 
@@ -270,8 +280,9 @@ class TestTimer(db.Model):
     map_test_exec_id = db.Column(db.String(50),
                                  db.ForeignKey('map_test_exec.id', ondelete='CASCADE', onupdate='CASCADE'),
                                  nullable=True)
-    time_type = db.Column(db.Integer)
-    date_time = db.Column(db.DATE)
+    time_type = db.Column(db.Integer, default=1)  # 1 start time, 2 end time
+    date_time = db.Column(db.DATE)  # format %Y-%m-%d %H:%M:%S.%f
+    str_date_time = db.Column(db.Text, nullable=True)
     created_date = db.Column(db.Integer, default=0, index=True)
     modified_date = db.Column(db.Integer, default=0)
 
@@ -279,11 +290,22 @@ class TestTimer(db.Model):
 class TestRepo(db.Model):
     __tablename__ = 'test_repo'
     id = db.Column(db.String(50), primary_key=True)
-    parent_id = db.Column(db.String(50), primary_key=True)
+    folder_id = db.Column(db.String(50), unique=True)
+    parent_id = db.Column(db.String(50))
     name = db.Column(db.String(500))
     create_date = db.Column(INTEGER(unsigned=True), default=0, index=True)
     project_id = db.Column(db.String(50))
     index = db.Column(db.Integer)
+
+    @hybrid_property
+    def map_test_repo(self):
+        map_test_repo = MapRepo.query.filter_by(test_repo_id=self.id).order_by(MapRepo.index.asc()).all()
+        return map_test_repo
+
+    @hybrid_property
+    def children_folder(self):
+        children_repo = TestRepo.query.filter_by(parent_id=self.id).order_by(TestRepo.index.asc()).all()
+        return children_repo
 
 
 class MapRepo(db.Model):
@@ -292,3 +314,6 @@ class MapRepo(db.Model):
     test_id = db.Column(ForeignKey('tests.id', ondelete='SET NULL', onupdate='CASCADE'), index=True)
     test_repo_id = db.Column(ForeignKey('test_repo.id', ondelete='SET NULL', onupdate='CASCADE'), index=True)
     create_date = db.Column(INTEGER(unsigned=True), default=0, index=True)
+    index = db.Column(db.Integer)
+
+    test_issue = db.relationship('Test', foreign_keys="MapRepo.test_id")
