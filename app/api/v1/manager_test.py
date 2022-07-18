@@ -21,9 +21,9 @@ def create_test():
         "generic": "12321",
         "issue_id": "12321",
         "test_type": "12321",
-        "test_set_name": 123,
-        "test_set_key": testSetkey,
-        "test_set_id": testSetId,
+        "test_sets": [{name: "BTEST_iOS_Newsfeed_v1.1", key: "B1-341"}],
+        # "test_set_key": testSetkey,
+        # "test_set_id": testSetId,
         "test_step": [
             {
                 "data": "123",
@@ -47,6 +47,7 @@ def create_test():
         return send_error(data=incorrect_data, message_id=message_id, code=442)
 
     test_steps = json_req.get("test_step")
+    test_sets = json_req.get("test_sets")
 
     # STEP 2 check project_id is existed
     # TODO: not necessary, remove in the future
@@ -88,20 +89,23 @@ def create_test():
     )
 
     # create test sets and add issue to the test sets
-    test_set_name = json_req.get("test_set_name", "")
-    # check test set existed
-    test_set_instance = TestSets.query.filter_by(name=test_set_name).first()
-    if not test_set_instance:
-        test_set_instance = TestSets(
-            id=str(uuid.uuid1()),
-            name=test_set_name,
-            key=json_req.get("test_set_key", ""),
-            jira_id=json_req.get("test_set_id", ""),
-        )
-        db.session.add(test_set_instance)
-        db.session.commit()
+    for test_set in test_sets:
+        test_set_name = test_set.get("name", "")
+        test_set_key = test_set.get("key", "")
+        if test_set_key and test_set_name:
+            # check test set existed
+            test_set_instance = TestSets.query.filter_by(name=test_set_name, key=test_set_key).first()
+            if not test_set_instance:
+                test_set_instance = TestSets(
+                    id=str(uuid.uuid1()),
+                    name=test_set_name,
+                    key=json_req.get("test_set_key", ""),
+                    jira_id=json_req.get("test_set_id", ""),
+                )
+                db.session.add(test_set_instance)
+                db.session.commit()
 
-    test_set_instance.tests.append(test_instance)  # add test instance to test sets
+            test_set_instance.tests.append(test_instance)  # add test instance to test sets
 
     # submit new instance to mysql session
     db.session.add(test_instance)
