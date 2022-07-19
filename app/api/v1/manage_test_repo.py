@@ -16,7 +16,7 @@ from app.validator import RepoValidator, MoveRepoValidator, RepositoryAddIssueVa
 from sqlalchemy import func
 from datetime import datetime
 
-api = Blueprint('test-repo', __name__)
+api = Blueprint('test-repository', __name__)
 
 TEST_REPO_NOT_EXIST = '119'
 TEST_REP_NAME_EXIST = '119'
@@ -37,7 +37,7 @@ def reindex_issue(index, issue_ids, repo_id):
     """
     index_temp = 0
 
-    if index:   # if index not None : Re oder issue in repository
+    if index is not None:   # if index not None : Re oder issue in repository
         len_index = len(issue_ids)
         index_renew = index
 
@@ -45,7 +45,7 @@ def reindex_issue(index, issue_ids, repo_id):
 
         for item in map_repo:
 
-            if item.id in issue_ids:
+            if item.test_id in issue_ids:
                 item.index = index_renew
                 index_renew += 1
                 continue
@@ -79,7 +79,7 @@ def create_test_repo():
     # 1. Get keyword from json body
     try:
         body = request.get_json()
-        params = RepoValidator(exclude =("id",)).load(body) if body else dict()
+        params = RepoValidator(exclude=("id",)).load(body) if body else dict()
     except ValidationError as err:
         logger.error(json.dumps({
             "message": err.messages,
@@ -89,17 +89,25 @@ def create_test_repo():
 
     project_id = params.get('project_id', '')
     parent_folder_id = params.get('parent_folder_id', ID_REPO_DEFAULT)
-    name = params.get('project_id')
+    name = params.get('name')
 
     # check repo exist
     test_repo_exist: TestRepo = TestRepo.query.filter(TestRepo.project_id == project_id,
-                                                      TestRepo.parent_id == project_id).first()
+                                                      TestRepo.folder_id == parent_folder_id).first()
     if not test_repo_exist:
         return send_error(message_id=TEST_REPO_NOT_EXIST)
 
+    # get max index in parent folder
+    test_repo_max_index = db.session.query(func.max(TestRepo.index).label('index')). \
+        filter(TestRepo.project_id == project_id, TestRepo.parent_id == parent_folder_id).first()
+    if test_repo_max_index.index is not None:
+        index = test_repo_max_index.index + 1
+    else:
+        index = 0
+
     # check test exist
     test_repo_name_exist: TestRepo = TestRepo.query.filter(TestRepo.project_id == project_id,
-                                                           TestRepo.parent_id == project_id,
+                                                           TestRepo.parent_id == parent_folder_id,
                                                            TestRepo.name == name).first()
     if test_repo_name_exist:
         return send_error(message_id=TEST_REP_NAME_EXIST)
@@ -111,13 +119,14 @@ def create_test_repo():
     new_test_repo.name = name
     new_test_repo.project_id = project_id
     new_test_repo.create_date = datetime.utcnow().timestamp()
+    new_test_repo.index = index
     db.session.add(new_test_repo)
     db.session.commit()
 
     return send_result(message_id=CREATE_REPO)
 
 
-@api.route('/rename', methods=['POST'])
+@api.route('/rename', methods=['PUT'])
 def rename_test_repo():
     """ This api get information of an enrollment_info.
 
@@ -138,10 +147,10 @@ def rename_test_repo():
         return send_error(message_id=INVALID_PARAMETERS_ERROR, data=err.messages)
 
     repo_id = params.get('id', '')
-    name = params.get('project_id')
+    name = params.get('name')
 
     # check repo exist
-    test_repo: TestRepo = TestRepo.query.filter(TestRepo.id == repo_id).first()
+    test_repo: TestRepo = TestRepo.query.filter(TestRepo.folder_id == repo_id).first()
     if not test_repo:
         return send_error(message_id=TEST_REPO_NOT_EXIST)
 
@@ -197,14 +206,14 @@ def move_test_repo():
         return send_error(message_id=TEST_REP_NAME_EXIST)
 
     # update index
-    if index:
+    if index is not None:
         if index < test_repo.index:
             db.session.query(TestRepo). \
-                filter(TestRepo.index > index, TestRepo.index < test_repo.index - 1). \
+                filter(TestRepo.index >= index, TestRepo.index < test_repo.index). \
                 update(dict(index=TestRepo.index + 1))
         elif index > test_repo.index:
             db.session.query(TestRepo). \
-                filter(TestRepo.index > test_repo.index + 1, TestRepo.index < index). \
+                filter(TestRepo.index > test_repo.index, TestRepo.index <= index). \
                 update(dict(index=TestRepo.index - 1))
     else:
         test_repo_max_index = db.session.query(func.max(TestRepo.index).label('index')).\
@@ -231,7 +240,7 @@ def add_issue_links():
     # 1. Get keyword from json body
     try:
         body = request.get_json()
-        params = RepositoryAddIssueValidator().load(body) if body else dict()
+        params = RepositoryAddIssueValidator(exclude=('index', )).load(body) if body else dict()
     except ValidationError as err:
         logger.error(json.dumps({
             "message": err.messages,
@@ -244,18 +253,23 @@ def add_issue_links():
     project_id = params.get('project_id', '')
 
     # check repo exist
-    test_repo_exist: TestRepo = TestRepo.query.filter(TestRepo.folder_id == folder_id).first()
+    test_repo_exist: TestRepo = TestRepo.query.filter(TestRepo.project_id == project_id, TestRepo.folder_id == folder_id).first()
     if not test_repo_exist:
         return send_error(message_id=TEST_REPO_NOT_EXIST)
 
     # check test exist
     test_repo_issue: MapRepo = MapRepo.query.filter(MapRepo.test_id.in_(issue_ids)).all()
-    list_issue_add = list(set(issue_ids)-set([test_repo_issue.test_id]))
+    if test_repo_issue:
+        list_issue_add = list(set(issue_ids)-set([item.test_id for item in test_repo_issue]))
+    else:
+        list_issue_add = issue_ids
 
     test_repo_max_index = db.session.query(func.max(MapRepo.index).label('index')). \
-        filter(MapRepo.test_repo_id == folder_id).first()
-    index = test_repo_max_index.index
-
+        filter(MapRepo.test_repo_id == test_repo_exist.id).first()
+    if test_repo_max_index.index is not None:
+        index = test_repo_max_index.index + 1
+    else:
+        index = 0
     for issue_id in list_issue_add:
         new_maps_repo = MapRepo()
         new_maps_repo.id = str(uuid.uuid4())
@@ -295,7 +309,7 @@ def re_oder_issue_links():
     project_id = params.get('project_id', '')
 
     # check repo exist
-    test_repo_exist: TestRepo = TestRepo.query.filter(TestRepo.folder_id == folder_id).first()
+    test_repo_exist: TestRepo = TestRepo.query.filter(TestRepo.project_id == project_id,TestRepo.folder_id == folder_id).first()
     if not test_repo_exist:
         return send_error(message_id=TEST_REPO_NOT_EXIST)
 
@@ -322,7 +336,7 @@ def move_issue_links():
     # 1. Get keyword from json body
     try:
         body = request.get_json()
-        params = RepositoryAddIssueValidator().load(body) if body else dict()
+        params = RepositoryAddIssueValidator(exclude=('index', )).load(body) if body else dict()
     except ValidationError as err:
         logger.error(json.dumps({
             "message": err.messages,
@@ -341,20 +355,26 @@ def move_issue_links():
 
     # check test exist
     test_repo_issue: MapRepo = MapRepo.query.filter(MapRepo.test_id.in_(issue_ids)).all()
+    # re index issue
+    if test_repo_issue is None:
+        return send_error(message_id=TEST_NOT_EXIST)
+    status = reindex_issue(index=None, issue_ids=[item.test_id for item in test_repo_issue], repo_id=test_repo_issue[0].test_repo_id)
     for item in test_repo_issue:
-        # re index issue
-        status = reindex_issue(index=None, issue_ids=[item.test_id], repo_id=test_repo_issue.test_repo_id)
         db.session.delete(item)
 
     test_repo_max_index = db.session.query(func.max(MapRepo.index).label('index')). \
-        filter(MapRepo.test_repo_id == test_repo_issue.id).first()
+        filter(MapRepo.test_repo_id == test_repo_exist.id).first()
     index = test_repo_max_index.index
+    if test_repo_max_index.index is not None:
+        index = test_repo_max_index.index + 1
+    else:
+        index = 0
 
     for issue_id in issue_ids:
         new_maps_repo = MapRepo()
         new_maps_repo.id = str(uuid.uuid4())
         new_maps_repo.test_id = issue_id
-        new_maps_repo.test_repo_id = test_repo_issue.id
+        new_maps_repo.test_repo_id = test_repo_exist.id
         new_maps_repo.index = index
         new_maps_repo.create_date = datetime.utcnow().timestamp()
         db.session.add(new_maps_repo)
@@ -393,6 +413,6 @@ def get_repository():
         return send_error(message_id=TEST_REPO_NOT_EXIST)
 
     # get test repo
-    resp_data = RepositorySchema(many=True).dump(test_repo_exist)
-    return send_result(message_id=MOVER_ISSUE_TO_REPO)
+    resp_data = RepositorySchema().dump(test_repo_exist)
+    return send_result(data=resp_data, message_id=MOVER_ISSUE_TO_REPO)
 

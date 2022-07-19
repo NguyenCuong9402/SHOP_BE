@@ -304,7 +304,7 @@ class TestRepo(db.Model):
 
     @hybrid_property
     def children_folder(self):
-        children_repo = TestRepo.query.filter_by(parent_id=self.id).order_by(TestRepo.index.asc()).all()
+        children_repo = TestRepo.query.filter_by(parent_id=self.folder_id).order_by(TestRepo.index.asc()).all()
         return children_repo
 
 

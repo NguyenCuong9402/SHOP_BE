@@ -345,7 +345,7 @@ class MapRepoSchema(Schema):
     Marshmallow Schema
     """
     test_id = fields.String()
-    test_issue = fields.List(fields.Nested(TestMapRepoSchema))
+    test_issue = fields.Nested(TestMapRepoSchema)
 
 
 class RepositorySchema(Schema):
@@ -355,6 +355,7 @@ class RepositorySchema(Schema):
     Marshmallow Schema
     """
     id = fields.String()
+    folder_id = fields.String()
     parent_id = fields.String()
     name = fields.String()
     index = fields.Integer()
