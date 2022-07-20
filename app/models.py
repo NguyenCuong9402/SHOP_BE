@@ -158,7 +158,7 @@ Define table for handle run test execution
 class TestStatus(db.Model):
     __tablename__ = 'test_status'
     id = db.Column(db.String(50), primary_key=True)
-    value = db.Column(db.String(255), unique=True)
+    value = db.Column(db.String(255))
     type = db.Column(db.String(255))
     project_setting_id = db.Column(db.String(255), nullable=True)
 

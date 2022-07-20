@@ -23,8 +23,7 @@ def upgrade():
     sa.Column('value', sa.String(length=255), nullable=True),
     sa.Column('type', sa.String(length=255), nullable=True),
     sa.Column('project_setting_id', sa.String(length=255), nullable=True),
-    sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('value')
+    sa.PrimaryKeyConstraint('id')
     )
     op.create_table('map_test_exec',
     sa.Column('id', sa.String(length=50), nullable=False),
