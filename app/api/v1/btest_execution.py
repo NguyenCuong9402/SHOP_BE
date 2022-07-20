@@ -11,10 +11,10 @@ from marshmallow import ValidationError
 from sqlalchemy import or_
 
 from app.extensions import logger, db
-from app.models import test_test_executions, TestExecutions, MapTestExec, Test
+from app.models import test_test_executions, TestExecutions, MapTestExec, Test, TestStatus, TestSets
 from app.parser import TestExecSchema
 from app.utils import send_error, send_result
-from app.validator import IssueIDSchema, IssueIDValidator, TestExecValidator
+from app.validator import IssueIDSchema, IssueIDValidator, TestExecValidator, GetExecutionValidator, TestRunSchema
 from sqlalchemy.sql import func
 
 api = Blueprint('enrollments', __name__)
@@ -66,7 +66,7 @@ def create_test_exec():
     return send_result(message_id=CREATE_TEST_EXECUTION)
 
 
-@api.route('/<test_execution_id>', methods=['GET'])
+@api.route('/<test_execution_id>/testruns', methods=['POST'])
 def get_issue_links(test_execution_id):
     """ This api get information of an enrollment_info.
 
@@ -75,16 +75,51 @@ def get_issue_links(test_execution_id):
         Examples::
 
     """
+    # 1. Get keyword from json body
+    try:
+        params = request.get_json()
+        params = GetExecutionValidator().load(params) if params else dict()
+    except ValidationError as err:
+        logger.error(json.dumps({
+            "message": err.messages,
+            "data": err.valid_data
+        }))
+        return send_error(message_id=INVALID_PARAMETERS_ERROR, data=err.messages)
 
-    existed_exec = TestExecutions.query.filter(or_(TestExecutions.id == test_execution_id, TestExecutions.key == test_execution_id)).first()
-    if not existed_exec:
-        return send_error(data=[], message_id=TEST_EXECUTION_NOT_EXIST)
+    fields = params.get('fields_column', None)
+    filters = params.get('filters', {})
 
-    test_execution_id = existed_exec.id
+    statuses = filters.get('statuses', None)
+    test_sets = filters.get('test_sets', None)
+    issue_ids = filters.get('test_issue_ids', None)
 
-    map_test_executions = MapTestExec.query.filter(MapTestExec.exec_id == test_execution_id).all()
-    data = TestExecSchema(many=True).dump(map_test_executions)
-    return send_result(data=data)
+    query = MapTestExec.query
+
+    # add fields
+    if fields is not None:
+        column_show = []
+        fields = fields + ['test_id', 'id']
+        # for key in fields:
+        #     column_show.append(getattr(MapTestExec, key))
+        # query = query.with_entities(*column_show)
+
+    # Add filters
+    if statuses is not None:
+        query = query.join(TestStatus, MapTestExec.status_id == TestStatus.id).filter(TestStatus.value.in_(statuses))
+
+    if test_sets is not None:
+        query = query.join(Test, MapTestExec.test_id == Test.id).filter(Test.test_sets.any(TestSets.id.in_(test_sets)))
+
+    if issue_ids is not None:
+        query = query.filter(MapTestExec.test_id.in_(issue_ids))
+
+    test_run = query.filter(MapTestExec.exec_id == test_execution_id).all()
+
+    if fields is not None:
+        test_run_dump = TestRunSchema(many=True, only=fields).dump(test_run)
+    else:
+        test_run_dump = TestRunSchema(many=True).dump(test_run)
+    return send_result(data=test_run_dump, message="OK")
 
 
 @api.route('/<test_execution_id>', methods=['POST'])
@@ -183,3 +218,4 @@ def remove_issue_links(test_execution_id):
     db.session.commit()
 
     return send_result(message_id=REMOVE_ISSUE_TO_EXECUTION)
+

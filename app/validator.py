@@ -336,6 +336,27 @@ class GetRepositoryValidator(BaseValidation):
     project_id = fields.String(required=True)
 
 
+class FiltersRepositoryValidator(BaseValidation):
+    """
+    Author: hungVD
+    Create Date: 11/07/2022
+    Marshmallow Schema
+    """
+    test_issue_ids = fields.List(fields.String(), required=False)
+    statuses = fields.List(fields.String(), required=False)
+    test_sets = fields.List(fields.String(), required=False)
+
+
+class GetExecutionValidator(BaseValidation):
+    """
+    Author: hungVD
+    Create Date: 11/07/2022
+    Marshmallow Schema
+    """
+    fields_column = fields.List(fields.String(validates=validate.OneOf(["defects", "comment", "status_id"]), required=True), required=False)
+    filters = fields.Nested(FiltersRepositoryValidator, required=False)
+
+
 class TestMapRepoSchema(Schema):
     """
     Author: hungVD
@@ -370,5 +391,6 @@ class RepositorySchema(Schema):
     index = fields.Integer()
     children_folder = fields.List(fields.Nested(lambda: RepositorySchema()))
     map_test_repo = fields.List(fields.Nested(MapRepoSchema))
+
 
 
