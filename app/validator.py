@@ -285,7 +285,7 @@ class TestExecValidator(BaseValidation):
     Create Date: 11/07/2022
     Marshmallow Schema
     """
-    id = fields.String(required=True)
+    issue_id = fields.String(required=True)
     name = fields.String(required=True)
     key = fields.String(required=True)
 
@@ -393,4 +393,14 @@ class RepositorySchema(Schema):
     map_test_repo = fields.List(fields.Nested(MapRepoSchema))
 
 
+class TestExecutionSchema(Schema):
+    """
+    Author: hungvd
+    Create Date: 21/07/2022
+    Marshmallow Schema
+    """
+    id = fields.String()
+    jira_id = fields.String()
+    name = fields.String()
+    key = fields.String()
 

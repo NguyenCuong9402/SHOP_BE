@@ -15,11 +15,12 @@ from app.models import test_test_executions, TestExecutions, MapTestExec, Test, 
 from app.gateway import authorization_require
 from app.parser import TestExecSchema
 from app.utils import send_error, send_result
-from app.validator import IssueIDSchema, IssueIDValidator, TestExecValidator, GetExecutionValidator, TestRunSchema
+from app.validator import IssueIDSchema, IssueIDValidator, TestExecValidator, \
+    GetExecutionValidator, TestRunSchema, TestExecutionSchema
 from sqlalchemy.sql import func
 from flask_jwt_extended import verify_jwt_in_request, get_jwt
 
-api = Blueprint('enrollments', __name__)
+api = Blueprint('testexec', __name__)
 
 TEST_EXECUTION_NOT_EXIST = '119'
 ADD_ISSUE_TO_EXECUTION = '18'
@@ -57,7 +58,7 @@ def create_test_exec():
     key = params.get('key', '')
 
     # check test execution exist
-    test_executions: TestExecutions = TestExecutions.query.filter(TestExecutions.id == exec_id).first()
+    test_executions: TestExecutions = TestExecutions.query.filter(TestExecutions.jira_id == exec_id).first()
     if test_executions:
         return send_error(message_id=TEST_EXECUTION_EXIST)
 
@@ -69,8 +70,9 @@ def create_test_exec():
     new_test_executions.key = key
     db.session.add(new_test_executions)
     db.session.commit()
+    test_exec_data = TestExecutionSchema().dump(new_test_executions)
 
-    return send_result(message_id=CREATE_TEST_EXECUTION)
+    return send_result(data=test_exec_data, message_id=CREATE_TEST_EXECUTION)
 
 
 @api.route('/<test_execution_id>/testruns', methods=['POST'])

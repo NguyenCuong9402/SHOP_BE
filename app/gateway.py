@@ -25,8 +25,8 @@ def authorization_require():
             # permission_route = "{0}@{1}".format(request.method.lower(), request.url_rule.rule)
             claims = get_jwt()
 
-            if claims.get("sub"):
-                return send_error(message='You have to change your password before do this action')
+            if claims:
+                return fn(*args, **kwargs)
 
             # check permission from redis
             # list_permission = pickle.loads(red.get(f"permission_{get_jwt_identity()}"))
