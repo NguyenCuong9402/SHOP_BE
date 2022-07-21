@@ -12,10 +12,12 @@ from sqlalchemy import or_
 
 from app.extensions import logger, db
 from app.models import test_test_executions, TestExecutions, MapTestExec, Test, TestStatus, TestSets
+from app.gateway import authorization_require
 from app.parser import TestExecSchema
 from app.utils import send_error, send_result
 from app.validator import IssueIDSchema, IssueIDValidator, TestExecValidator, GetExecutionValidator, TestRunSchema
 from sqlalchemy.sql import func
+from flask_jwt_extended import verify_jwt_in_request, get_jwt
 
 api = Blueprint('enrollments', __name__)
 
@@ -28,6 +30,7 @@ INVALID_PARAMETERS_ERROR = 'g1'
 
 
 @api.route('', methods=['POST'])
+@authorization_require()
 def create_test_exec():
     """ This api get information of an enrollment_info.
 
@@ -40,6 +43,8 @@ def create_test_exec():
     try:
         body = request.get_json()
         params = TestExecValidator().load(body) if body else dict()
+        token = get_jwt()
+        cloud_id = token.get('sub').get('cloudId')
     except ValidationError as err:
         logger.error(json.dumps({
             "message": err.messages,
@@ -47,7 +52,7 @@ def create_test_exec():
         }))
         return send_error(message_id=INVALID_PARAMETERS_ERROR, data=err.messages)
 
-    exec_id = params.get('id', '')
+    exec_id = params.get('issue_id', '')
     name = params.get('name', '')
     key = params.get('key', '')
 
@@ -57,7 +62,9 @@ def create_test_exec():
         return send_error(message_id=TEST_EXECUTION_EXIST)
 
     new_test_executions = TestExecutions()
-    new_test_executions.id = exec_id
+    new_test_executions.id = str(uuid.uuid4())
+    new_test_executions.jira_id = exec_id
+    new_test_executions.cloud_id = cloud_id
     new_test_executions.name = name
     new_test_executions.key = key
     db.session.add(new_test_executions)
@@ -67,6 +74,7 @@ def create_test_exec():
 
 
 @api.route('/<test_execution_id>/testruns', methods=['POST'])
+@authorization_require()
 def get_issue_links(test_execution_id):
     """ This api get information of an enrollment_info.
 
@@ -75,6 +83,8 @@ def get_issue_links(test_execution_id):
         Examples::
 
     """
+    verify_jwt_in_request()
+    claims = get_jwt()
     # 1. Get keyword from json body
     try:
         params = request.get_json()
@@ -123,6 +133,7 @@ def get_issue_links(test_execution_id):
 
 
 @api.route('/<test_execution_id>', methods=['POST'])
+@authorization_require()
 def add_issue_links(test_execution_id):
     """ This api get information of an enrollment_info.
 
@@ -149,8 +160,6 @@ def add_issue_links(test_execution_id):
                                                                       TestExecutions.key == test_execution_id)).first()
     if not test_executions:
         return send_error(message_id=TEST_EXECUTION_NOT_EXIST)
-
-    test_execution_id = test_executions.id
 
     # check test exist
     test_issue: Test = Test.query.filter(Test.id.in_(issue_ids)).all()
@@ -181,6 +190,7 @@ def add_issue_links(test_execution_id):
 
 
 @api.route('/<test_execution_id>', methods=['DELETE'])
+@authorization_require()
 def remove_issue_links(test_execution_id):
     """ This api get information of an enrollment_info.
 
@@ -203,7 +213,8 @@ def remove_issue_links(test_execution_id):
     issue_ids = params.get('issue_id', [])
 
     # check test execution exist
-    test_executions: TestExecutions = TestExecutions.query.filter(TestExecutions.id == test_execution_id).first()
+    test_executions: TestExecutions = TestExecutions.query.filter(or_(TestExecutions.id == test_execution_id,
+                                                                      TestExecutions.key == test_execution_id)).first()
     if not test_executions:
         return send_error(message_id=TEST_EXECUTION_NOT_EXIST)
 
