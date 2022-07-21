@@ -131,8 +131,8 @@ test_test_executions = db.Table('map_test_executions',
 class TestExecutions(db.Model):
     __tablename__ = 'test_executions'
     id = db.Column(db.String(50), primary_key=True)
-    jira_id = db.Column(db.String(255), nullable=False, unique=True)
-    cloud_id = db.Column(db.String(255), nullable=False)
+    jira_id = db.Column(db.String(255), nullable=True, unique=True)
+    cloud_id = db.Column(db.String(255), nullable=True)
     tests = db.relationship('Test', secondary=test_test_executions, lazy='subquery',
                             backref=db.backref('test_execution_tests', lazy=True))
     name = db.Column(db.String(255), nullable=True)
