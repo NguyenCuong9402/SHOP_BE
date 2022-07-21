@@ -232,3 +232,23 @@ def remove_issue_links(test_execution_id):
 
     return send_result(message_id=REMOVE_ISSUE_TO_EXECUTION)
 
+
+@api.route('/<test_execution_id>', methods=['GET'])
+def get_issue_by_exec_id(test_execution_id):
+    """ This api get information of an enrollment_info.
+
+        Returns:
+
+        Examples::
+
+    """
+
+    existed_exec = TestExecutions.query.filter(or_(TestExecutions.id == test_execution_id, TestExecutions.key == test_execution_id)).first()
+    if not existed_exec:
+        return send_error(data=[], message_id=TEST_EXECUTION_NOT_EXIST)
+
+    test_execution_id = existed_exec.id
+
+    map_test_executions = MapTestExec.query.filter(MapTestExec.exec_id == test_execution_id).all()
+    data = TestExecSchema(many=True).dump(map_test_executions)
+    return send_result(data=data)
