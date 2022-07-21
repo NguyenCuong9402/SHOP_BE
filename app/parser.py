@@ -56,4 +56,4 @@ class TestExecSchema(ma.SQLAlchemySchema):
         fields = ("id", "name", "key", "tests")
 
     id = ma.auto_field()
-    tests = ma.Nested(TestSchema(only=("issue_id", "test_type", "key", "name")))
+    tests = ma.Nested(TestSchema(only=("id", "issue_id", "test_type", "key", "name")))

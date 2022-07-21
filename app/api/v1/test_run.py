@@ -24,6 +24,7 @@ Function helper
 
 
 @api.route("/<test_run_id>", methods=["GET"])
+@jwt_required()
 def get_test_run(test_run_id):
     """
     Author: phongnv
@@ -31,7 +32,27 @@ def get_test_run(test_run_id):
     Handle get test run
     """
     try:
+        current_identify = get_jwt_identity()
+        print(current_identify)
         test_run = MapTestExec.query.filter(MapTestExec.id == test_run_id).first()
+        test_run_dump = TestRunSchema().dump(test_run)
+        return send_result(data=test_run_dump, message="OK")
+    except Exception as e:
+        return send_error(data=e.__str__())
+
+
+@api.route("/<exec_id>/test/<test_id>", methods=["GET"])
+@jwt_required()
+def get_test_run_by_test_id(exec_id, test_id):
+    """
+    Author: thinhlx
+    Create Date: 13/07/2022
+    Handle get test run
+    """
+    try:
+        current_identify = get_jwt_identity()
+        print(current_identify)
+        test_run = MapTestExec.query.filter_by(exec_id=exec_id, test_id=test_id).first()
         test_run_dump = TestRunSchema().dump(test_run)
         return send_result(data=test_run_dump, message="OK")
     except Exception as e:
