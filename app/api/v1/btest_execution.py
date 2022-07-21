@@ -18,7 +18,7 @@ from app.utils import send_error, send_result
 from app.validator import IssueIDSchema, IssueIDValidator, TestExecValidator, \
     GetExecutionValidator, TestRunSchema, TestExecutionSchema
 from sqlalchemy.sql import func
-from flask_jwt_extended import verify_jwt_in_request, get_jwt
+from flask_jwt_extended import get_jwt_identity
 
 api = Blueprint('testexec', __name__)
 
@@ -28,6 +28,8 @@ REMOVE_ISSUE_TO_EXECUTION = '16'
 CREATE_TEST_EXECUTION = '19'
 TEST_EXECUTION_EXIST = '20'
 INVALID_PARAMETERS_ERROR = 'g1'
+
+DEFAULT_STATUS = '1'
 
 
 @api.route('', methods=['POST'])
@@ -44,8 +46,8 @@ def create_test_exec():
     try:
         body = request.get_json()
         params = TestExecValidator().load(body) if body else dict()
-        token = get_jwt()
-        cloud_id = token.get('sub').get('cloudId')
+        token = get_jwt_identity()
+        cloud_id = token.get('cloudId')
     except ValidationError as err:
         logger.error(json.dumps({
             "message": err.messages,
@@ -85,8 +87,6 @@ def get_issue_links(test_execution_id):
         Examples::
 
     """
-    verify_jwt_in_request()
-    claims = get_jwt()
     # 1. Get keyword from json body
     try:
         params = request.get_json()
@@ -110,7 +110,7 @@ def get_issue_links(test_execution_id):
     # add fields
     if fields is not None:
         column_show = []
-        fields = fields + ['test_id', 'id']
+        fields = fields + ['test_id', 'id', 'tests']
         # for key in fields:
         #     column_show.append(getattr(MapTestExec, key))
         # query = query.with_entities(*column_show)
@@ -184,6 +184,7 @@ def add_issue_links(test_execution_id):
         new_maps_test_executions.test_id = item.id
         new_maps_test_executions.exec_id = test_execution_id
         new_maps_test_executions.index = index
+        new_maps_test_executions.status_id = DEFAULT_STATUS
         db.session.add(new_maps_test_executions)
         index += 1
     db.session.commit()
