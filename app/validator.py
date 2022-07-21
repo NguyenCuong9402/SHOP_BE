@@ -285,7 +285,7 @@ class TestExecValidator(BaseValidation):
     Create Date: 11/07/2022
     Marshmallow Schema
     """
-    id = fields.String(required=True)
+    issue_id = fields.String(required=True)
     name = fields.String(required=True)
     key = fields.String(required=True)
 
@@ -321,5 +321,86 @@ class RepositoryAddIssueValidator(BaseValidation):
     Marshmallow Schema
     """
     issue_id = fields.List(fields.String(), required=True)
+    index = fields.Number(required=True)
     folder_id = fields.String(required=True)
     project_id = fields.String(required=True)
+
+
+class GetRepositoryValidator(BaseValidation):
+    """
+    Author: hungVD
+    Create Date: 11/07/2022
+    Marshmallow Schema
+    """
+    folder_id = fields.String(required=True)
+    project_id = fields.String(required=True)
+
+
+class FiltersRepositoryValidator(BaseValidation):
+    """
+    Author: hungVD
+    Create Date: 11/07/2022
+    Marshmallow Schema
+    """
+    test_issue_ids = fields.List(fields.String(), required=False)
+    statuses = fields.List(fields.String(), required=False)
+    test_sets = fields.List(fields.String(), required=False)
+
+
+class GetExecutionValidator(BaseValidation):
+    """
+    Author: hungVD
+    Create Date: 11/07/2022
+    Marshmallow Schema
+    """
+    fields_column = fields.List(fields.String(validates=validate.OneOf(["defects", "comment", "status_id"]), required=True), required=False)
+    filters = fields.Nested(FiltersRepositoryValidator, required=False)
+
+
+class TestMapRepoSchema(Schema):
+    """
+    Author: hungVD
+    Create Date: 11/07/2022
+    Marshmallow Schema
+    """
+    id = fields.String()
+    issue_id = fields.String()
+    issue_jira_id = fields.String()
+
+
+class MapRepoSchema(Schema):
+    """
+    Author: hungVD
+    Create Date: 11/07/2022
+    Marshmallow Schema
+    """
+    test_id = fields.String()
+    test_issue = fields.Nested(TestMapRepoSchema)
+
+
+class RepositorySchema(Schema):
+    """
+    Author: hungVD
+    Create Date: 11/07/2022
+    Marshmallow Schema
+    """
+    id = fields.String()
+    folder_id = fields.String()
+    parent_id = fields.String()
+    name = fields.String()
+    index = fields.Integer()
+    children_folder = fields.List(fields.Nested(lambda: RepositorySchema()))
+    map_test_repo = fields.List(fields.Nested(MapRepoSchema))
+
+
+class TestExecutionSchema(Schema):
+    """
+    Author: hungvd
+    Create Date: 21/07/2022
+    Marshmallow Schema
+    """
+    id = fields.String()
+    jira_id = fields.String()
+    name = fields.String()
+    key = fields.String()
+

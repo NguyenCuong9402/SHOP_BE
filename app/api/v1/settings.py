@@ -49,3 +49,14 @@ def get_test_steps_by_project(project_id):
         }
     ]
     return send_result(data=data_mock, message="OK")
+
+
+@api.route("/<project_id>/testexec", methods=["GET"])
+def get_test_execution_by_project(project_id):
+    data_mock = [
+        {
+            "filters": ["statuses", "test_sets", "test_issue_ids"],
+            "fields_column": ["defects", "comment", "status_id"]
+        }
+    ]
+    return send_result(data=data_mock, message="OK")
