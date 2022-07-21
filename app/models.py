@@ -14,6 +14,18 @@ class User(db.Model):
     password_hash = db.Column(db.String(255), nullable=False)
 
 
+"""
+Many to many relationship
+Read more: https://flask-sqlalchemy.palletsprojects.com/en/2.x/models/
+Test Sets and Test Runs table
+"""
+
+test_testsets = db.Table('map_test_testsets',
+                         db.Column('test_id', db.String(50), db.ForeignKey('tests.id'), primary_key=True),
+                         db.Column('testset_id', db.String(50), db.ForeignKey('test_sets.id'), primary_key=True)
+                         )
+
+
 class Test(db.Model):
     __tablename__ = 'tests'
 
@@ -30,6 +42,8 @@ class Test(db.Model):
     test_type_id = db.Column(db.String(50), db.ForeignKey('test_type.id'), nullable=True)
     test_steps = db.relationship('TestStep', backref='test_steps', lazy=True)
     test_type = db.relationship('TestType', backref='test_types', lazy=True)
+    test_sets = db.relationship('TestSets', secondary=test_testsets, lazy='subquery',
+                                backref=db.backref('test_sets', lazy=True), viewonly=True)
 
 
 class ProjectSetting(db.Model):
@@ -91,18 +105,6 @@ class TestStep(db.Model):
                         nullable=False)
 
 
-"""
-Many to many relationship
-Read more: https://flask-sqlalchemy.palletsprojects.com/en/2.x/models/
-Test Sets and Test Runs table
-"""
-
-test_testsets = db.Table('map_test_testsets',
-                         db.Column('test_id', db.String(50), db.ForeignKey('tests.id'), primary_key=True),
-                         db.Column('testset_id', db.String(50), db.ForeignKey('test_sets.id'), primary_key=True)
-                         )
-
-
 class TestSets(db.Model):
     __tablename__ = 'test_sets'
     id = db.Column(db.String(50), primary_key=True)
@@ -129,6 +131,8 @@ test_test_executions = db.Table('map_test_executions',
 class TestExecutions(db.Model):
     __tablename__ = 'test_executions'
     id = db.Column(db.String(50), primary_key=True)
+    jira_id = db.Column(db.String(255), nullable=True, unique=True)
+    cloud_id = db.Column(db.String(255), nullable=True)
     tests = db.relationship('Test', secondary=test_test_executions, lazy='subquery',
                             backref=db.backref('test_execution_tests', lazy=True))
     name = db.Column(db.String(255), nullable=True)
@@ -304,7 +308,7 @@ class TestRepo(db.Model):
 
     @hybrid_property
     def children_folder(self):
-        children_repo = TestRepo.query.filter_by(parent_id=self.id).order_by(TestRepo.index.asc()).all()
+        children_repo = TestRepo.query.filter_by(parent_id=self.folder_id).order_by(TestRepo.index.asc()).all()
         return children_repo
 
 
