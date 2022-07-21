@@ -110,7 +110,7 @@ def get_issue_links(test_execution_id):
     # add fields
     if fields is not None:
         column_show = []
-        fields = fields + ['test_id', 'id']
+        fields = fields + ['test_id', 'id', 'tests']
         # for key in fields:
         #     column_show.append(getattr(MapTestExec, key))
         # query = query.with_entities(*column_show)

@@ -249,6 +249,21 @@ class TestTimerValidator(Schema):
     date_time = fields.DateTime()
 
 
+class TestRunDetailSchema(Schema):
+    """
+    Author: HungVD
+    Create Date: 21/07/2022
+    Marshmallow Schema
+    """
+    issue_id = fields.String()
+    test_repo = fields.String()
+    project_id = fields.Integer()
+    issue_jira_id = fields.String()
+    key = fields.String()
+    name = fields.String()
+    test_type_id = fields.String()
+
+
 class TestRunSchema(Schema):
     """
     Author: phongnv
@@ -267,6 +282,7 @@ class TestRunSchema(Schema):
     evidences = fields.List(fields.Nested(EvidenceSchema))
     test_timer = fields.List(fields.Nested(TestTimerSchema))
     list_activity = fields.List(fields.Nested(TestActivitySchema))
+    tests = fields.Nested(TestRunDetailSchema)
 
 
 class TestRunBackNextSchema(Schema):
