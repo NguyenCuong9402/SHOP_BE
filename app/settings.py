@@ -48,3 +48,6 @@ class DevConfig(Config):
     # mysql config
     SQLALCHEMY_DATABASE_URI = 'mysql://root:G-^rqEyhE6p=A#u*RU:V9J6-@sv4.vn.boot.ai:3306/btest-stg'
     SQLALCHEMY_TRACK_MODIFICATIONS = True
+
+    # upload config
+    UPLOAD_FOLDER = "app/files"

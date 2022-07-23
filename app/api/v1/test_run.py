@@ -116,6 +116,13 @@ def create_defects(test_run_id):
     test_issue_id = json_req.get("test_issue_id")
     test_issue_key = json_req.get("test_issue_key")
 
+    # check existed
+    defect = Defects.query.filter_by(map_test_exec_id=test_run_id,
+                                     test_issue_id=test_issue_id,
+                                     test_issue_key=test_issue_key).first()
+    if defect:
+        return send_error(message="defect existed")
+
     new_defects = Defects(id=_id, map_test_exec_id=test_run_id, test_issue_id=test_issue_id,
                           test_issue_key=test_issue_key, created_date=get_timestamp_now())
     db.session.add(new_defects)
