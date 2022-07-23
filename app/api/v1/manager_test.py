@@ -2,6 +2,7 @@ import uuid
 
 from flask import Blueprint, request
 from flask_jwt_extended import jwt_required, get_jwt_identity, create_access_token
+from sqlalchemy import or_
 
 from app.models import TestStep, Test, TestType, db, TestSets, ProjectSetting
 from app.utils import send_result, send_error, data_preprocessing
@@ -48,8 +49,8 @@ def create_test():
     if not json_valid:
         return send_error(data=incorrect_data, message_id=message_id, code=442)
 
-    test_steps = json_req.get("test_step")
-    test_sets = json_req.get("test_sets")
+    test_steps = json_req.get("test_step", [])
+    test_sets = json_req.get("test_sets", [])
 
     # STEP 2 check project_id is existed
     # TODO: not necessary, remove in the future
@@ -95,21 +96,21 @@ def create_test():
     for test_set in test_sets:
         test_set_name = test_set.get("name", "")
         test_set_key = test_set.get("key", "")
-        if test_set_key and test_set_name:
+        # if test_set_key and test_set_name:
             # check test set existed
-            test_set_instance = TestSets.query.filter_by(name=test_set_name, key=test_set_key, cloud_id=cloud_id).first()
-            if not test_set_instance:
-                test_set_instance = TestSets(
-                    id=str(uuid.uuid1()),
-                    name=test_set_name,
-                    key=json_req.get("test_set_key", ""),
-                    jira_id=json_req.get("test_set_id", ""),
-                    cloud_id=cloud_id
-                )
-                db.session.add(test_set_instance)
-                db.session.commit()
+        test_set_instance = TestSets.query.filter_by(name=test_set_name, key=test_set_key, cloud_id=cloud_id).first()
+        if not test_set_instance:
+            test_set_instance = TestSets(
+                id=str(uuid.uuid1()),
+                name=test_set_name,
+                key=test_set_key,
+                jira_id=json_req.get("test_set_id", ""),
+                cloud_id=cloud_id
+            )
+            db.session.add(test_set_instance)
+            db.session.commit()
 
-            test_set_instance.tests.append(test_instance)  # add test instance to test sets
+        test_set_instance.tests.append(test_instance)  # add test instance to test sets
 
     # submit new instance to mysql session
     db.session.add(test_instance)
@@ -134,8 +135,11 @@ def create_test():
 
 
 @api.route("/<test_id>", methods=["PUT"])
+@jwt_required()
 def update_test(test_id):
-    existed = Test.query.filter_by(id=test_id).first()
+    token = get_jwt_identity()
+    cloud_id = token.get('cloudId')
+    existed = Test.query.filter_by(id=test_id, cloud_id=cloud_id).first()
     if not existed:
         return send_error(message="Not found existed test")
 
@@ -165,14 +169,21 @@ def delete_test(test_id):
 
 
 @api.route("/<test_id>", methods=["GET"])
+@jwt_required()
 def get_test_by_id(test_id):
-    test = Test.query.filter_by(id=test_id).first()
+    token = get_jwt_identity()
+    cloud_id = token.get('cloudId')
+    test = Test.query.filter_by(or_(id=test_id, key=test_id, name=test_id, issue_jira_id=test_id),
+                                cloud_id=cloud_id).first()
     test = TestSchema().dump(test)
     return send_result(data=test, message="OK")
 
 
 @api.route("", methods=["GET"])
+@jwt_required()
 def get_tests():
-    test = Test.query.filter_by().all()
+    token = get_jwt_identity()
+    cloud_id = token.get('cloudId')
+    test = Test.query.filter_by(cloud_id=cloud_id).all()
     test = TestSchema(many=True).dump(test)
     return send_result(data=test, message="OK")

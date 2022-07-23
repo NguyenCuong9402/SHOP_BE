@@ -60,7 +60,10 @@ def create_test_exec():
     key = params.get('key', '')
 
     # check test execution exist
-    test_executions: TestExecutions = TestExecutions.query.filter(TestExecutions.jira_id == issue_id).first()
+    test_executions: TestExecutions = TestExecutions.query.filter(or_(
+        TestExecutions.jira_id == issue_id,
+        TestExecutions.key == key,
+    )).first()
     if test_executions:
         return send_error(message_id=TEST_EXECUTION_EXIST)
 
@@ -138,7 +141,7 @@ def get_issue_links(test_execution_id):
     if issue_ids is not None:
         query = query.filter(MapTestExec.test_id.in_(issue_ids))
 
-    test_run = query.filter(MapTestExec.exec_id == test_execution_id).all()
+    test_run = query.filter(MapTestExec.exec_id == existed_exec.id).all()
 
     if fields is not None:
         test_run_dump = TestRunSchema(many=True, only=fields).dump(test_run)
@@ -183,8 +186,8 @@ def add_issue_links(test_execution_id):
         return send_error(message_id=TEST_EXECUTION_NOT_EXIST)
 
     # check test exist
-    test_issue: Test = Test.query.filter(Test.id.in_(issue_ids)).all()
-    if not test_issue:
+    test_issues = Test.query.filter(Test.id.in_(issue_ids)).all()
+    if len(test_issues) == 0:
         return send_error(message_id=TEST_EXECUTION_NOT_EXIST)
 
     # get index
@@ -197,7 +200,7 @@ def add_issue_links(test_execution_id):
             filter(MapTestExec.exec_id == test_executions.id).first()
         index = test_executions_index.index + 1
 
-    for item in test_issue:
+    for item in test_issues:
         new_maps_test_executions = MapTestExec()
         new_maps_test_executions.id = str(uuid.uuid4())
         new_maps_test_executions.test_id = item.id

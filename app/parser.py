@@ -1,5 +1,5 @@
 from app.extensions import ma
-from app.models import Test, TestStep, TestType, TestField, TestSets, TestExecutions
+from app.models import Test, TestStep, TestType, TestField, TestSets, TestExecutions, MapTestExec
 
 
 class TestTypeSchema(ma.SQLAlchemyAutoSchema):
@@ -57,3 +57,35 @@ class TestExecSchema(ma.SQLAlchemySchema):
 
     id = ma.auto_field()
     tests = ma.Nested(TestSchema(only=("id", "issue_id", "test_type", "key", "name")))
+
+
+class TestInTestRunSchema(ma.SQLAlchemySchema):
+    class Meta:
+        include_fk = True
+        model = Test
+        fields = ("id", "issue_id", "cloud_id", "issue_jira_id", "key",
+                  "name", "self", "test_repo", "project_id", "test_steps", "test_type")
+
+    id = ma.auto_field()
+    test_steps = ma.List(ma.Nested(TestStepSchema))
+    test_type = ma.Nested(TestTypeSchema())
+
+
+class TestRunExecSchema(ma.SQLAlchemySchema):
+    class Meta:
+        include_fk = True
+        model = MapTestExec
+        fields = ("id", "test_id", "exec_id", "index", "status_id", "comment",
+                  "created_date", "modified_date", "tests", "total_seconds")
+
+    # test_id = db.Column(db.String(50), db.ForeignKey('tests.id'), nullable=True)
+    # exec_id = db.Column(db.String(50), db.ForeignKey('test_executions.id'), nullable=True)
+    # index = db.Column(db.Integer)
+    # status_id = db.Column(db.String(50), db.ForeignKey('test_status.id'), nullable=True)
+    # comment = db.Column(db.Text, nullable=True)
+    # created_date = db.Column(db.Integer, default=0, index=True)
+    # modified_date = db.Column(db.Integer, default=0)
+    # tests = db.relationship('Test', backref=db.backref('tests_test_exec', lazy=True))
+    # total_seconds = db.Column(db.Integer, default=0)
+    id = ma.auto_field()
+    tests = ma.Nested(TestInTestRunSchema())

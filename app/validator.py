@@ -108,6 +108,7 @@ class UpdateTestValidator(BaseValidation):
     Marshmallow Schema
     Target: validate parameters of partner
     """
+    issue_jira_id = fields.String(required=False, validates=[validate.Length(min=0, max=50)])
     key = fields.String(required=False, validates=[validate.Length(min=0, max=50)])
     name = fields.String(required=False, validates=[validate.Length(min=0, max=255)])
     self = fields.String(required=False, validates=[validate.Length(min=0, max=255)])
@@ -262,6 +263,7 @@ class TestRunDetailSchema(Schema):
     key = fields.String()
     name = fields.String()
     test_type_id = fields.String()
+    steps = fields.List(fields.Nested(TestStepRunSchema))
 
 
 class TestRunSchema(Schema):

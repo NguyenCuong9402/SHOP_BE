@@ -4,7 +4,8 @@ from flask import Blueprint, request
 from flask_jwt_extended import jwt_required, get_jwt_identity, create_access_token
 
 from app.models import TestStep, Test, TestType, db, MapTestExec, TestTimer, Defects, TestEvidence, TestStepDetail, \
-    TestStatus, TestActivity
+    TestStatus, TestActivity, TestExecutions
+from app.parser import TestExecSchema, TestRunExecSchema
 from app.utils import send_result, send_error, data_preprocessing, get_timestamp_now
 from app.validator import TestRunSchema, DefectsValidator, EvidenceValidator, CommentValidator, TestStatusValidator, \
     TestTimerValidator, TestRunBackNextSchema, TestActivityValidator, TestActivitySchema, TestTimerSchema
@@ -33,9 +34,8 @@ def get_test_run(test_run_id):
     """
     try:
         current_identify = get_jwt_identity()
-        print(current_identify)
         test_run = MapTestExec.query.filter(MapTestExec.id == test_run_id).first()
-        test_run_dump = TestRunSchema().dump(test_run)
+        test_run_dump = TestRunExecSchema().dump(test_run)
         return send_result(data=test_run_dump, message="OK")
     except Exception as e:
         return send_error(data=e.__str__())
@@ -49,14 +49,11 @@ def get_test_run_by_test_id(exec_id, test_id):
     Create Date: 13/07/2022
     Handle get test run
     """
-    try:
-        current_identify = get_jwt_identity()
-        print(current_identify)
-        test_run = MapTestExec.query.filter_by(exec_id=exec_id, test_id=test_id).first()
-        test_run_dump = TestRunSchema().dump(test_run)
-        return send_result(data=test_run_dump, message="OK")
-    except Exception as e:
-        return send_error(data=e.__str__())
+    current_identify = get_jwt_identity()
+    cloud_id = current_identify.get("cloudId")
+    test_run = TestExecutions.query.filter(exec_id=exec_id, test_id=test_id).first()
+    test_run_dump = TestRunSchema().dump(test_run)
+    return send_result(data=test_run_dump, message="OK")
 
 
 @api.route("/<test_run_id>/back-next", methods=["GET"])

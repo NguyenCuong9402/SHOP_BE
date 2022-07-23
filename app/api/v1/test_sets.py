@@ -12,6 +12,7 @@ api = Blueprint('test_sets', __name__)
 
 
 @api.route("/<test_set_id>", methods=["GET"])
+@jwt_required()
 def get_test_by_id(test_set_id):
     token = get_jwt_identity()
     cloud_id = token.get('cloudId')
@@ -27,6 +28,7 @@ def get_test_by_id(test_set_id):
 
 
 @api.route("", methods=["GET"])
+@jwt_required()
 def get_test_sets():
     token = get_jwt_identity()
     cloud_id = token.get('cloudId')
