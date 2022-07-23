@@ -12,7 +12,7 @@ api = Blueprint('test', __name__)
 
 
 @api.route("", methods=["POST"])
-# @jwt_required()
+@jwt_required()
 def create_test():
     """
     Example json request
@@ -38,6 +38,8 @@ def create_test():
     # Step 1: validate json input
     try:
         json_req = request.get_json()
+        token = get_jwt_identity()
+        cloud_id = token.get('cloudId')
     except Exception as ex:
         return send_error(message="Request body incorrect json format: " + str(ex), code=442)
 
@@ -85,7 +87,8 @@ def create_test():
         issue_jira_id=json_req.get("issue_jira_id", ""),
         test_repo=json_req.get("test_repo", ""),
         project_id=json_req.get("project_id", ""),
-        test_type_id=exist_type.id
+        test_type_id=exist_type.id,
+        cloud_id=cloud_id
     )
 
     # create test sets and add issue to the test sets
@@ -94,13 +97,14 @@ def create_test():
         test_set_key = test_set.get("key", "")
         if test_set_key and test_set_name:
             # check test set existed
-            test_set_instance = TestSets.query.filter_by(name=test_set_name, key=test_set_key).first()
+            test_set_instance = TestSets.query.filter_by(name=test_set_name, key=test_set_key, cloud_id=cloud_id).first()
             if not test_set_instance:
                 test_set_instance = TestSets(
                     id=str(uuid.uuid1()),
                     name=test_set_name,
                     key=json_req.get("test_set_key", ""),
                     jira_id=json_req.get("test_set_id", ""),
+                    cloud_id=cloud_id
                 )
                 db.session.add(test_set_instance)
                 db.session.commit()
@@ -119,7 +123,8 @@ def create_test():
             customFields=test_step.get("customFields", ""),
             attachments=test_step.get("attachments", ""),
             action=test_step.get("action", ""),
-            test_id=test_instance.id
+            test_id=test_instance.id,
+            cloud_id=cloud_id
         )
         db.session.add(new_instance)
 

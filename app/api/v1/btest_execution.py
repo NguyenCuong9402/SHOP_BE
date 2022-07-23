@@ -18,7 +18,7 @@ from app.utils import send_error, send_result
 from app.validator import IssueIDSchema, IssueIDValidator, TestExecValidator, \
     GetExecutionValidator, TestRunSchema, TestExecutionSchema
 from sqlalchemy.sql import func
-from flask_jwt_extended import get_jwt_identity
+from flask_jwt_extended import get_jwt_identity, jwt_required
 
 api = Blueprint('testexec', __name__)
 
@@ -55,18 +55,18 @@ def create_test_exec():
         }))
         return send_error(message_id=INVALID_PARAMETERS_ERROR, data=err.messages)
 
-    exec_id = params.get('issue_id', '')
+    issue_id = params.get('issue_id', '')
     name = params.get('name', '')
     key = params.get('key', '')
 
     # check test execution exist
-    test_executions: TestExecutions = TestExecutions.query.filter(TestExecutions.jira_id == exec_id).first()
+    test_executions: TestExecutions = TestExecutions.query.filter(TestExecutions.jira_id == issue_id).first()
     if test_executions:
         return send_error(message_id=TEST_EXECUTION_EXIST)
 
     new_test_executions = TestExecutions()
     new_test_executions.id = str(uuid.uuid4())
-    new_test_executions.jira_id = exec_id
+    new_test_executions.jira_id = issue_id
     new_test_executions.cloud_id = cloud_id
     new_test_executions.name = name
     new_test_executions.key = key
@@ -91,12 +91,25 @@ def get_issue_links(test_execution_id):
     try:
         params = request.get_json()
         params = GetExecutionValidator().load(params) if params else dict()
+        token = get_jwt_identity()
+        cloud_id = token.get('cloudId')
     except ValidationError as err:
         logger.error(json.dumps({
             "message": err.messages,
             "data": err.valid_data
         }))
         return send_error(message_id=INVALID_PARAMETERS_ERROR, data=err.messages)
+
+    existed_exec = TestExecutions.query.filter(or_(
+        TestExecutions.id == test_execution_id,
+        TestExecutions.jira_id == test_execution_id,
+        TestExecutions.key == test_execution_id,
+        TestExecutions.name == test_execution_id),
+        TestExecutions.cloud_id == cloud_id
+    ).first()
+
+    if not existed_exec:
+        return send_error(data=[], message_id=TEST_EXECUTION_NOT_EXIST)
 
     fields = params.get('fields_column', None)
     filters = params.get('filters', {})
@@ -148,6 +161,8 @@ def add_issue_links(test_execution_id):
     try:
         body = request.get_json()
         params = IssueIDValidator().load(body) if body else dict()
+        token = get_jwt_identity()
+        cloud_id = token.get('cloudId')
     except ValidationError as err:
         logger.error(json.dumps({
             "message": err.messages,
@@ -158,8 +173,12 @@ def add_issue_links(test_execution_id):
     issue_ids = params.get('issue_id', [])
 
     # check test execution exist
-    test_executions: TestExecutions = TestExecutions.query.filter(or_(TestExecutions.id == test_execution_id,
-                                                                      TestExecutions.key == test_execution_id)).first()
+    test_executions: TestExecutions = TestExecutions.query.filter(or_(
+        TestExecutions.id == test_execution_id,
+        TestExecutions.jira_id == test_execution_id,
+        TestExecutions.key == test_execution_id,
+        TestExecutions.name == test_execution_id),
+        TestExecutions.cloud_id == cloud_id).first()
     if not test_executions:
         return send_error(message_id=TEST_EXECUTION_NOT_EXIST)
 
@@ -170,19 +189,19 @@ def add_issue_links(test_execution_id):
 
     # get index
     map_test_executions: MapTestExec = MapTestExec.query.\
-        filter(MapTestExec.exec_id == test_execution_id).first()
+        filter(MapTestExec.exec_id == test_executions.id).first()
     if not map_test_executions:
         index = 1
     else:
         test_executions_index = db.session.query(func.max(MapTestExec.index).label('index')). \
-            filter(MapTestExec.exec_id == test_execution_id).first()
+            filter(MapTestExec.exec_id == test_executions.id).first()
         index = test_executions_index.index + 1
 
     for item in test_issue:
         new_maps_test_executions = MapTestExec()
         new_maps_test_executions.id = str(uuid.uuid4())
         new_maps_test_executions.test_id = item.id
-        new_maps_test_executions.exec_id = test_execution_id
+        new_maps_test_executions.exec_id = test_executions.id
         new_maps_test_executions.index = index
         new_maps_test_executions.status_id = DEFAULT_STATUS
         db.session.add(new_maps_test_executions)
@@ -235,6 +254,7 @@ def remove_issue_links(test_execution_id):
 
 
 @api.route('/<test_execution_id>', methods=['GET'])
+@jwt_required()
 def get_issue_by_exec_id(test_execution_id):
     """ This api get information of an enrollment_info.
 
@@ -243,8 +263,14 @@ def get_issue_by_exec_id(test_execution_id):
         Examples::
 
     """
+    token = get_jwt_identity()
+    cloud_id = token.get('cloudId')
+    params = request.args
+    issues_key = params.get("issueKey")
+    issues_name = params.get("issueName")
 
-    existed_exec = TestExecutions.query.filter(or_(TestExecutions.id == test_execution_id, TestExecutions.key == test_execution_id)).first()
+    existed_exec = TestExecutions.query.filter(TestExecutions.jira_id == test_execution_id,
+                                               TestExecutions.cloud_id == cloud_id).first()
     if not existed_exec:
         return send_error(data=[], message_id=TEST_EXECUTION_NOT_EXIST)
 

@@ -13,13 +13,23 @@ api = Blueprint('test_sets', __name__)
 
 @api.route("/<test_set_id>", methods=["GET"])
 def get_test_by_id(test_set_id):
-    results = TestSets.query.filter(or_(TestSets.key==test_set_id, TestSets.jira_id==test_set_id)).first()
+    token = get_jwt_identity()
+    cloud_id = token.get('cloudId')
+    results = TestSets.query.filter(
+        or_(
+            TestSets.key == test_set_id,
+            TestSets.jira_id == test_set_id,
+            TestSets.name == test_set_id),
+        TestSets.cloud_id == cloud_id
+    ).first()
     results = TestSetsSchema().dump(results)
     return send_result(data=results, message="OK")
 
 
 @api.route("", methods=["GET"])
 def get_test_sets():
-    results = TestSets.query.filter().all()
+    token = get_jwt_identity()
+    cloud_id = token.get('cloudId')
+    results = TestSets.query.filter(TestSets.cloud_id == cloud_id).all()
     results = TestSetsSchema(many=True).dump(results)
     return send_result(data=results, message="OK")

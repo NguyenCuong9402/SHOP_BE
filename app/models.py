@@ -33,6 +33,7 @@ class Test(db.Model):
     cucumber = db.Column(db.String(255), nullable=True)
     generic = db.Column(db.String(255), nullable=True)
     issue_id = db.Column(db.String(255), nullable=False)
+    cloud_id = db.Column(db.String(255), nullable=False)
     issue_jira_id = db.Column(db.String(255), nullable=True)
     key = db.Column(db.String(255), nullable=True)
     name = db.Column(db.String(255), nullable=True)
@@ -97,6 +98,7 @@ class TestStep(db.Model):
     id = db.Column(db.String(50), primary_key=True)
     data = db.Column(db.Text, nullable=True)
     result = db.Column(db.Text, nullable=True)
+    cloud_id = db.Column(db.String(255), nullable=True)
     customFields = db.Column(db.Text, nullable=True)
     attachments = db.Column(db.Text, nullable=True)
     index = db.Column(db.Integer, nullable=True)
@@ -113,6 +115,7 @@ class TestSets(db.Model):
     name = db.Column(db.String(255), nullable=True)
     key = db.Column(db.String(255), nullable=True)
     jira_id = db.Column(db.String(255), nullable=True)
+    cloud_id = db.Column(db.String(255), nullable=True)
 
 
 """
