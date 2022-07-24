@@ -31,8 +31,10 @@ def upload_file():
     for key, value in file.items():
         data = file[key]
         filename = secure_filename(data.filename)
-        data.save(os.path.join("app/files", filename))
-        return send_result(data={"filename": filename}, message="OK")
+        file_id = str(uuid.uuid4()).split('-')[0]
+        savename = f"{file_id}-{filename}"
+        data.save(os.path.join("app/files", savename))
+        return send_result(data={"filename": savename}, message="OK")
     return send_error()
 
 
