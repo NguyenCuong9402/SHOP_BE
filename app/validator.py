@@ -65,9 +65,11 @@ class TestStepValidator(BaseValidation):
 
 
 class TestSetsValidator(BaseValidation):
+    id = fields.String(required=False)
     name = fields.String(required=False)
     key = fields.String(required=False)
     define_message = {
+        "id": "",
         "name": "003",
         "key": "004",
     }

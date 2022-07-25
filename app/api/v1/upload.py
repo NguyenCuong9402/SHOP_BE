@@ -1,15 +1,11 @@
 import os
 import uuid
 
-from flask import Blueprint, request, url_for, send_from_directory, send_file
-from flask_jwt_extended import jwt_required, get_jwt_identity, create_access_token
-from sqlalchemy import or_
+from flask import Blueprint, request, send_file
+from flask_jwt_extended import jwt_required
 from werkzeug.utils import secure_filename
 
-from app.models import TestSets, Test, TestType, db
-from app.utils import send_result, send_error, data_preprocessing
-from app.validator import CreateTestValidator
-from app.parser import TestSchema, TestTypeSchema, TestSetsSchema
+from app.utils import send_result, send_error
 
 api = Blueprint('upload', __name__)
 
@@ -22,6 +18,7 @@ def allowed_file(filename):
 
 
 @api.route('', methods=['POST'])
+@jwt_required()
 def upload_file():
     # check if the post request has the file part
     file = request.files
