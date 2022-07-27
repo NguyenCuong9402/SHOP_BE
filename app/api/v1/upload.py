@@ -21,18 +21,17 @@ def allowed_file(filename):
 @jwt_required()
 def upload_file():
     # check if the post request has the file part
-    file = request.files
+    files = request.files
     # If the user does not select a file, the browser submits an
     # empty file without a filename.
     # if file:
-    for key, value in file.items():
-        data = file[key]
+    for key, data in files.items():
         filename = secure_filename(data.filename)
         file_id = str(uuid.uuid4()).split('-')[0]
         savename = f"{file_id}-{filename}"
         data.save(os.path.join("app/files", savename))
         return send_result(data={"filename": savename}, message="OK")
-    return send_error()
+    return send_error(message="File not found")
 
 
 @api.route('/<name>', methods=['GET'])

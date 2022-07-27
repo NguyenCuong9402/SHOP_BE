@@ -1,5 +1,6 @@
 from app.extensions import ma
-from app.models import Test, TestStep, TestType, TestField, TestSets, TestExecutions, MapTestExec, Defects
+from app.models import Test, TestStep, TestType, TestField, \
+    TestSets, TestExecutions, MapTestExec, Defects, TestEvidence
 
 
 class TestTypeSchema(ma.SQLAlchemyAutoSchema):
@@ -32,11 +33,11 @@ class TestFieldSchema(ma.SQLAlchemySchema):
         fields = ("key", "name")
 
 
-class TestStepSchema(ma.SQLAlchemySchema):
-    class Meta:
-        include_fk = True
-        model = TestType
-        fields = ("key", "name")
+# class TestTypeSchema(ma.SQLAlchemySchema):
+#     class Meta:
+#         include_fk = True
+#         model = TestType
+#         fields = ("key", "name")
 
 
 class TestSetsSchema(ma.SQLAlchemySchema):
@@ -77,12 +78,18 @@ class DefectsSchema(ma.SQLAlchemyAutoSchema):
         model = Defects
 
 
+class TestEvidenceSchema(ma.SQLAlchemyAutoSchema):
+    class Meta:
+        include_fk = True
+        model = TestEvidence
+
+
 class TestRunExecSchema(ma.SQLAlchemySchema):
     class Meta:
         include_fk = True
         model = MapTestExec
         fields = ("id", "test_id", "exec_id", "index", "status_id", "comment",
-                  "created_date", "modified_date", "tests", "total_seconds", "defects")
+                  "created_date", "modified_date", "tests", "total_seconds", "defects", "evidences")
 
     # test_id = db.Column(db.String(50), db.ForeignKey('tests.id'), nullable=True)
     # exec_id = db.Column(db.String(50), db.ForeignKey('test_executions.id'), nullable=True)
@@ -96,3 +103,4 @@ class TestRunExecSchema(ma.SQLAlchemySchema):
     id = ma.auto_field()
     tests = ma.Nested(TestInTestRunSchema())
     defects = ma.List(ma.Nested(DefectsSchema(only=("test_issue_id", "test_issue_key", "test_step_detail_id"))))
+    evidences = ma.List(ma.Nested(TestEvidenceSchema(only=("id", "name_file", "url_file", "created_date"))))

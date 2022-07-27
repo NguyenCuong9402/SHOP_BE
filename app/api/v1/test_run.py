@@ -563,3 +563,40 @@ def update_test_step_status(test_run_id, test_step_id):
     db.session.commit()
 
     return send_result(message="OK")
+
+
+@api.route("/<test_run_id>/evidences", methods=["POST"])
+@jwt_required()
+def create_testexec_evidence(test_run_id):
+    """
+    Author: phongnv
+    Create Date: 13/07/2022
+    Handle create step evidence
+    """
+    try:
+        json_req = request.get_json()
+    except Exception as ex:
+        return send_error(message="Request Body incorrect json format: " + str(ex), code=442)
+
+    # # logged input fields
+    # logged_input(json.dumps(json_req))
+
+    # validate request body
+    validator_input = EvidenceValidator()
+    is_not_validate = validator_input.validate(json_req)
+    if is_not_validate:
+        return send_error(data=is_not_validate, code=442)
+
+    _id = str(uuid.uuid1())
+
+    name_file = json_req.get("name_file")
+    url_file = json_req.get("url_file")
+
+    new_evidence = TestEvidence(id=_id,
+                                map_test_exec_id=test_run_id,
+                                name_file=name_file,
+                                url_file=url_file, created_date=get_timestamp_now())
+    db.session.add(new_evidence)
+    db.session.commit()
+
+    return send_result(message="OK")
