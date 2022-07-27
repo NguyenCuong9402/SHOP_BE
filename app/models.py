@@ -178,8 +178,12 @@ class MapTestExec(db.Model):
     comment = db.Column(db.Text, nullable=True)
     created_date = db.Column(db.Integer, default=0, index=True)
     modified_date = db.Column(db.Integer, default=0)
-    tests = db.relationship('Test', backref=db.backref('tests_test_exec', lazy=True))
     total_seconds = db.Column(db.Integer, default=0)
+    started_date = db.Column(db.Integer)
+    finished_date = db.Column(db.Integer)
+
+    tests = db.relationship('Test', backref=db.backref('tests_test_exec', lazy=True))
+    test_execution = db.relationship('TestExecutions', foreign_keys="MapTestExec.exec_id")
 
     @hybrid_property
     def steps(self):
@@ -303,6 +307,7 @@ class TestRepo(db.Model):
     create_date = db.Column(INTEGER(unsigned=True), default=0, index=True)
     project_id = db.Column(db.String(50))
     index = db.Column(db.Integer)
+    cloud_id = db.Column(db.String(255), nullable=True)
 
     @hybrid_property
     def map_test_repo(self):
