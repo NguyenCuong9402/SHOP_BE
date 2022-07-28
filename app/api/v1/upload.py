@@ -1,7 +1,7 @@
 import os
 import uuid
 
-from flask import Blueprint, request, send_file
+from flask import Blueprint, request, send_file, jsonify
 from flask_jwt_extended import jwt_required
 from werkzeug.utils import secure_filename
 
@@ -37,4 +37,4 @@ def upload_file():
 
 @api.route('/<name>', methods=['GET'])
 def download_file(name):
-    return send_file(os.path.join("files", name))
+    return send_file(os.path.join("files", name), as_attachment=True, download_name=name, attachment_filename=name)
