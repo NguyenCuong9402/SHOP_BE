@@ -329,3 +329,22 @@ class MapRepo(db.Model):
     index = db.Column(db.Integer)
 
     test_issue = db.relationship('Test', foreign_keys="MapRepo.test_id")
+
+
+class Setting(db.Model):
+    __tablename__ = 'setting'
+    id = db.Column(db.String(50), primary_key=True)
+    miscellaneous = db.Column(db.Text())
+    test_type = db.Column(db.Text())
+    test_environment = db.Column(db.Text())
+    test_step_field = db.Column(db.Text())
+    test_run_custom_field = db.Column(db.Text())
+    test_test_executions_status = db.Column(db.Text())
+    reindex = db.Column(db.Text())
+    index = db.Column(db.Integer)
+    project_id = db.Column(db.String(50))
+    project_key = db.Column(db.String(50))
+    index = db.Column(db.Integer)
+    cloud_id = db.Column(db.String(255), nullable=True)
+    site_url = db.Column(db.String(255), nullable=True)
+
