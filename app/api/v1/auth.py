@@ -1,6 +1,7 @@
 from flask import Blueprint
 from flask_jwt_extended import jwt_required, get_jwt_identity, create_access_token
 
+from app.gateway import authorization_require
 from app.utils import send_result
 
 api = Blueprint('auth', __name__)
@@ -33,7 +34,7 @@ def login():
 # Protect a route with jwt_required, which will kick out requests
 # without a valid JWT present.
 @api.route("/protected", methods=["GET"])
-@jwt_required()
+@authorization_require()
 def protected():
     # Access the identity of the current user with get_jwt_identity
     return send_result(data={"status": "OK"}, message="Logged in successfully!")

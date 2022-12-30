@@ -14,9 +14,15 @@
 1. push code
 2. go to jenkins build code
 
-# Migrate Database
-1. publish a new version, go to app folder and submit new version
-
+# Migrations Database
+```
+Note command line upgrate database
+Note link demo : https://flask-migrate.readthedocs.io/en/latest/
+ 
+- cd app folder
+- flask db migrate -m "<comment update database>"
+- flask db upgrade
+```
 `cd app && flask db migrate -m "New version here."`
 
 2. if you want to upgrade database

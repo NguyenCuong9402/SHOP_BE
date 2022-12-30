@@ -29,3 +29,4 @@ geoalchemy2
 psycopg2
 Flask-Marshmallow==0.14.0
 marshmallow-sqlalchemy==0.28.0
+python-benedict==0.27.1

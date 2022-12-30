@@ -373,7 +373,8 @@ class GetExecutionValidator(BaseValidation):
     Create Date: 11/07/2022
     Marshmallow Schema
     """
-    fields_column = fields.List(fields.String(validates=validate.OneOf(["defects", "comment", "status_id"]), required=True), required=False)
+    fields_column = fields.List(
+        fields.String(validates=validate.OneOf(["defects", "comment", "status_id"]), required=True), required=False)
     filters = fields.Nested(FiltersRepositoryValidator, required=False)
 
 
@@ -424,3 +425,21 @@ class TestExecutionSchema(Schema):
     name = fields.String()
     key = fields.String()
 
+
+class SettingSchema(Schema):
+    """
+    Author: trunghn
+    Create Date: 28/12/2022
+    Marshmallow Schema
+    """
+    id = fields.String()
+    miscellaneous = fields.String()
+    test_type = fields.String()
+    test_environment = fields.String()
+    test_step_field = fields.String()
+    test_run_custom_field = fields.String()
+    test_test_executions_status = fields.String()
+    project_id = fields.String()
+    project_key = fields.String()
+    cloud_id = fields.String()
+    site_url = fields.String()
