@@ -129,6 +129,7 @@ def update_miscellaneous_setting(project_id):
             return send_error(data='', message='Project is not configured.')
 
         miscellaneous = benedict(json.loads(project_setting.miscellaneous))
+        body_request['miscellaneous']['enabled'] = True
         miscellaneous.merge(body_request['miscellaneous'])
         project_setting.miscellaneous = json.dumps(miscellaneous)
         db.session.commit()
