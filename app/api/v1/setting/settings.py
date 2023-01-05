@@ -15,6 +15,21 @@ from app.parser import TestFieldSchema, TestStepSchema
 
 api = Blueprint('', __name__)
 
+DEFAULT_VALUES = {
+    "test_run": [
+        "edit_date",
+        "fail_all",
+        "track_time"
+    ],
+    "defect_link": [
+        "defect_with_test",
+        "defect_with_test_execution"
+    ],
+    "dissalow_test_case": [],
+    "dissalow_test_execution": [],
+    "enabled": False
+}
+
 
 @api.route("/<project_id>", methods=["GET"])
 @authorization_require()
@@ -60,13 +75,14 @@ def enable_miscellaneous_setting(project_id):
                 'enabled': enabled
             }
             miscellaneous = json.dumps(miscellaneous)
-            project_setting = Setting(id=str(uuid.uuid1()), miscellaneous=miscellaneous, project_id=project_id,
+            project_setting = Setting(id=str(uuid.uuid1()), miscellaneous=json.dumps(DEFAULT_VALUES),
+                                      project_id=project_id,
                                       cloud_id=cloud_id)
             db.session.add(project_setting)
             db.session.commit()
             #  Get body request
 
-        miscellaneous = benedict(json.loads(project_setting.miscellaneous))
+        miscellaneous = benedict(DEFAULT_VALUES)
         miscellaneous.merge({'enabled': body_request['enabled']})
         project_setting.miscellaneous = json.dumps(miscellaneous)
         db.session.commit()
@@ -79,6 +95,10 @@ def enable_miscellaneous_setting(project_id):
 @api.route("/miscellaneous/<project_id>", methods=["PUT"])
 @authorization_require()
 def update_miscellaneous_setting(project_id):
+    """
+    Update or create miscellaneous setting
+    """
+
     try:
         token = get_jwt_identity()
         cloud_id = token.get('cloudId')
