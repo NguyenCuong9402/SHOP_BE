@@ -348,3 +348,22 @@ class Setting(db.Model):
     cloud_id = db.Column(db.String(255), nullable=True)
     site_url = db.Column(db.String(255), nullable=True)
 
+
+class TestStepSetting(db.Model):
+    __tablename__ = 'test_step_setting'
+    id = db.Column(db.String(50), primary_key=True)
+    name = db.Column(db.String(250))
+    description = db.Column(db.String(250))
+    type_values\
+        = db.Column(db.Text())
+    type = db.Column(db.String(250))
+    required = db.Column(db.Boolean, default=0)
+    disabled = db.Column(db.Boolean, default=0)
+    native = db.Column(db.Boolean, default=0)
+    # Index order of list
+    order = db.Column(db.Boolean)
+    index = db.Column(db.Integer)
+    cloud_id = db.Column(db.String(50), nullable=True)
+    project_key = db.Column(db.String(50))
+    project_id = db.Column(db.String(50))
+    site_url = db.Column(db.String(255), nullable=True)
