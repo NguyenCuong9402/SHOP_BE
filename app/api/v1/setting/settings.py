@@ -13,7 +13,7 @@ from app.utils import send_result, send_error, data_preprocessing
 from app.validator import CreateTestValidator, SettingSchema
 from app.parser import TestFieldSchema, TestStepSchema
 
-api = Blueprint('', __name__)
+api = Blueprint('setting', __name__)
 
 DEFAULT_VALUES = {
     "test_run": [

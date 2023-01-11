@@ -443,3 +443,14 @@ class SettingSchema(Schema):
     project_key = fields.String()
     cloud_id = fields.String()
     site_url = fields.String()
+class TestStepFieldSchema(Schema):
+    id = fields.String()
+    name = fields.String()
+    description = fields.String()
+    field_type_values = fields.Raw()
+    type = fields.String()
+    is_required = fields.Boolean()
+    is_disabled = fields.Boolean()
+    is_native = fields.Boolean()
+    index = fields.Integer()
+
