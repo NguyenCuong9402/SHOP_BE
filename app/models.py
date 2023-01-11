@@ -1,4 +1,6 @@
 # coding: utf-8
+import json
+
 from sqlalchemy.orm import relationship
 from sqlalchemy import ForeignKey, TEXT, asc
 from app.extensions import db
@@ -99,12 +101,17 @@ class TestStep(db.Model):
     data = db.Column(db.Text, nullable=True)
     result = db.Column(db.Text, nullable=True)
     cloud_id = db.Column(db.String(255), nullable=True)
+    project_key = db.Column(db.String(50))
+    project_id = db.Column(db.String(50))
     customFields = db.Column(db.Text, nullable=True)
     attachments = db.Column(db.Text, nullable=True)
     index = db.Column(db.Integer, nullable=True)
     action = db.Column(db.Text, nullable=True)
     test_id = db.Column(db.String(50), db.ForeignKey('tests.id', ondelete='CASCADE', onupdate='CASCADE'),
                         nullable=False)
+    issue_id = db.Column(db.String(255), nullable=False)
+    created_date = db.Column(db.Integer, default=0)
+    modified_date = db.Column(db.Integer, default=0)
 
 
 class TestSets(db.Model):
@@ -214,6 +221,33 @@ class MapTestExec(db.Model):
         return list_activity
 
 
+class TestStepField(db.Model):
+    __tablename__ = 'test_step_fields'
+    id = db.Column(db.String(50), primary_key=True)
+    name = db.Column(db.String(250))
+    description = db.Column(db.String(250))
+    type_values \
+        = db.Column(db.Text())
+    type = db.Column(db.String(250))
+    is_required = db.Column(db.Boolean, default=0)
+    is_disabled = db.Column(db.Boolean, default=0)
+    is_native = db.Column(db.Boolean, default=0)
+    # Index order of list
+    index = db.Column(db.Integer)
+    cloud_id = db.Column(db.String(50), nullable=True)
+    project_key = db.Column(db.String(50))
+    project_id = db.Column(db.String(50))
+    site_url = db.Column(db.String(255), nullable=True)
+
+    @classmethod
+    def get_by_id(cls, _id):
+        return cls.query.get(_id)
+    @hybrid_property
+    def field_type_values(self):
+        _type_values = json.loads(self.type_values)
+        return _type_values
+
+
 class TestStepDetail(db.Model):
     __tablename__ = 'test_step_details'
     id = db.Column(db.String(50), primary_key=True)
@@ -225,6 +259,10 @@ class TestStepDetail(db.Model):
     map_test_exec_id = db.Column(db.String(50),
                                  db.ForeignKey('map_test_exec.id', ondelete='CASCADE', onupdate='CASCADE'),
                                  nullable=True)
+    test_step_field_id = db.Column(db.String(50),
+                                   db.ForeignKey('test_step_fields.id', ondelete='CASCADE', onupdate='CASCADE'),
+                                   nullable=True)
+    data = db.Column(db.Text, nullable=True)
     comment = db.Column(db.Text, nullable=True)
     created_date = db.Column(db.Integer, default=0, index=True)
     modified_date = db.Column(db.Integer, default=0)
@@ -346,24 +384,4 @@ class Setting(db.Model):
     project_key = db.Column(db.String(50))
     index = db.Column(db.Integer)
     cloud_id = db.Column(db.String(255), nullable=True)
-    site_url = db.Column(db.String(255), nullable=True)
-
-
-class TestStepSetting(db.Model):
-    __tablename__ = 'test_step_setting'
-    id = db.Column(db.String(50), primary_key=True)
-    name = db.Column(db.String(250))
-    description = db.Column(db.String(250))
-    type_values\
-        = db.Column(db.Text())
-    type = db.Column(db.String(250))
-    required = db.Column(db.Boolean, default=0)
-    disabled = db.Column(db.Boolean, default=0)
-    native = db.Column(db.Boolean, default=0)
-    # Index order of list
-    order = db.Column(db.Boolean)
-    index = db.Column(db.Integer)
-    cloud_id = db.Column(db.String(50), nullable=True)
-    project_key = db.Column(db.String(50))
-    project_id = db.Column(db.String(50))
     site_url = db.Column(db.String(255), nullable=True)

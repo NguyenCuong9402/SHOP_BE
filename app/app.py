@@ -141,3 +141,5 @@ def register_blueprints(app):
     app.register_blueprint(api_v1.test_run.api, url_prefix='/api/v1/test-run')
     app.register_blueprint(api_v1.manage_test_repo.api, url_prefix='/api/v1/test-repository')
     app.register_blueprint(api_v1.upload.api, url_prefix='/api/v1/upload')
+    app.register_blueprint(api_v1.test_step_field.api, url_prefix='/api/v1/test_step_field')
+

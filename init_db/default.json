@@ -1,9 +1,41 @@
 {
-    "users": [
-          {
-            "id": "457c17c8-7a74-11eb-9439-0242ac130002",
-            "username": "admin",
-            "password_hash": "pbkdf2:sha256:150000$VuKE7ySs$ced9ddc3a3ffddbf73f47af936797eb2b4c594e39e452456f9496f72ed7028ce"
-        }
-    ]
+  "users": [
+    {
+      "id": "457c17c8-7a74-11eb-9439-0242ac130002",
+      "username": "admin",
+      "password_hash": "pbkdf2:sha256:150000$VuKE7ySs$ced9ddc3a3ffddbf73f47af936797eb2b4c594e39e452456f9496f72ed7028ce"
+    }
+  ],
+  "test_step_fields": [
+    {
+      "name": "Data (data)",
+      "description": "Any data the related step requests (e.g., login credentials) to be used by the tester.",
+      "type": "Text",
+      "order": 1,
+      "is_native": true,
+      "is_required": true,
+      "is_disabled": false,
+      "type_values": []
+    },
+    {
+      "name": "Expected Result (result) ",
+      "description": "The behavior that the step should accomplish.",
+      "type": "Text",
+      "order": 2,
+      "is_native": true,
+      "is_required": true,
+      "is_disabled": false,
+      "type_values": []
+    },
+    {
+      "name": "Action (action)",
+      "description": "The action to be reproduced by the tester.",
+      "type": "Text",
+      "order": 3,
+      "is_native": true,
+      "is_required": true,
+      "is_disabled": false,
+      "type_values": []
+    }
+  ]
 }

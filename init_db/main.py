@@ -36,6 +36,12 @@ class Worker:
 
         db.session.commit()
 
+    def insert_default_test_step_fields(self):
+        step_fields = self.default_data.get('test_step_fields', {})
+
+
+
+
 
 if __name__ == '__main__':
     worker = Worker()
