@@ -76,7 +76,7 @@ def create_test_step(project_id):
         if test_step_fields_count >= 6:
             return send_error(code=200, data="",
                               message='Can not create this test step field because it has reached 3 non-native fields',
-                              show=False, is_dynamic=True)
+                              show=False)
 
         try:
             json_req = request.get_json()
@@ -101,7 +101,7 @@ def create_test_step(project_id):
         coincided = check_coincided_name(name=body_request.get('name'), cloud_id=cloud_id, project_id=project_id)
         if coincided is True:
             return send_error(code=200, data={"name": "Test Step Field already exists. Please try again"},
-                              message='Invalid request', show=False)
+                              message='Invalid request', show=False, is_dynamic=True)
 
         # Create new test step
         max_index = db.session.query(func.max(TestStepField.index)).scalar()
@@ -110,8 +110,8 @@ def create_test_step(project_id):
             id=str(uuid.uuid4()),
             project_id=project_id,
             cloud_id=cloud_id,
-            name=body_request['name'],
-            description=body_request['description'],
+            name=body_request.get('name'),
+            description=body_request.get('description', ''),
             is_required=body_request['is_required'],
             type=body_request['type'],
             type_values=json.dumps(body_request['field_type_values']),
@@ -140,7 +140,7 @@ def update_test_step(project_id, test_step_id):
         if test_step is None:
             return send_error(
                 message="Test Step Fields have been changed \n Please refresh the page to view the changes", code=200,
-                show=False, is_dynamic=True)
+                show=False)
 
         try:
             json_req = request.get_json()
@@ -167,7 +167,7 @@ def update_test_step(project_id, test_step_id):
                                          project_id=project_id)
         if coincided is True:
             return send_error(code=200, data={"name": "Test Step Field already exists. Please try again"},
-                              message='Invalid request', show=False)
+                              message='Invalid request', show=False, is_dynamic=True )
 
         # Update new test step
         if body_request.get('field_type_values') is not None:
@@ -211,10 +211,10 @@ def reorder(project_id):
             db.session.flush()
 
         db.session.commit()
-        return send_result(data="", message="OK")
+        return send_result(data="", message="Order has been changed successfully", show=True)
     except Exception as ex:
         db.session.rollback()
-        return send_error(data='', message="Something was wrong!")
+        return send_error(data='', message="Something was wrong!", show=True)
 
 
 @api.route("/<project_id>/<test_step_id>", methods=["DELETE"])
@@ -225,7 +225,7 @@ def delete(project_id, test_step_id):
         if test_step is None:
             return send_error(
                 message="Test Step Fields have been changed \n Please refresh the page to view the changes", code=200,
-                show=False, is_dynamic=True)
+                show=False)
         db.session.delete(test_step)
         db.session.commit()
         return send_result(data="", message="Test step field removed successfully", code=200, show=True)
@@ -253,30 +253,30 @@ DEFAULT_DATA = [
         "name": "Data (data)",
         "description": "Any data the related step requests (e.g., login credentials) to be used by the tester.",
         "type": "Text",
-        "index": 1,
+        "index": 2,
         "is_native": True,
-        "is_required": True,
-        "is_disabled": True,
+        "is_required": False,
+        "is_disabled": False,
         "type_values": "[]"
     },
     {
-        "name": "Expected Result (result) ",
+        "name": "Expected Result (result)",
         "description": "The behavior that the step should accomplish.",
         "type": "Text",
-        "index": 2,
+        "index": 3,
         "is_native": True,
         "is_required": True,
-        "is_disabled": True,
+        "is_disabled": False,
         "type_values": "[]"
     },
     {
         "name": "Action (action)",
         "description": "The action to be reproduced by the tester.",
         "type": "Text",
-        "index": 3,
+        "index": 1,
         "is_native": True,
         "is_required": True,
-        "is_disabled": True,
+        "is_disabled": False,
         "type_values": "[]"
     }
 ]
