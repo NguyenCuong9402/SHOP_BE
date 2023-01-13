@@ -10,7 +10,7 @@ from sqlalchemy import func, asc, and_
 from app.api.v1.setting.setting_validator import UpdateMiscellaneousRequest
 from app.api.v1.test_step_field.test_step_field_validator import CreateTestStepField, UpdateTestStepField
 from app.gateway import authorization_require
-from app.models import TestStep, Test, TestType, db, TestField, Setting, TestStepField
+from app.models import TestStep, Test, TestType, db, TestField, Setting, TestStepField, TestRunField
 from app.utils import send_result, send_error, data_preprocessing
 from app.validator import CreateTestValidator, SettingSchema, TestStepFieldSchema
 from app.parser import TestFieldSchema, TestStepSchema
@@ -167,7 +167,7 @@ def update_test_step(project_id, test_step_id):
                                          project_id=project_id)
         if coincided is True:
             return send_error(code=200, data={"name": "Test Step Field already exists. Please try again"},
-                              message='Invalid request', show=False, is_dynamic=True )
+                              message='Invalid request', show=False, is_dynamic=True)
 
         # Update new test step
         if body_request.get('field_type_values') is not None:
@@ -228,6 +228,19 @@ def delete(project_id, test_step_id):
                 show=False)
         db.session.delete(test_step)
         db.session.commit()
+        return send_result(data="", message="Test step field removed successfully", code=200, show=True)
+    except Exception as ex:
+        db.session.rollback()
+        return send_error(data='', message="Something was wrong!")
+
+
+@api.route("/test", methods=["GET"])
+def test():
+    try:
+        test2 = TestRunField.query.first()
+        test2.test_types.clear()
+        db.session.commit()
+
         return send_result(data="", message="Test step field removed successfully", code=200, show=True)
     except Exception as ex:
         db.session.rollback()
