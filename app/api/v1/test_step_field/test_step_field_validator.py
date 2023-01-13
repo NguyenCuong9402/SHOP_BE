@@ -15,7 +15,7 @@ class CreateTestStepField(Schema):
     Marshmallow Schema
     """
     name = fields.String(required=True, validate=[validate.Length(min=1, max=100)])
-    description = fields.String(required=False, validate=[validate.Length(min=0, max=250)])
+    description = fields.String(required=False, allow_none=True, validate=[validate.Length(min=0, max=250)])
     type = fields.String(required=True,
                          validate=validate.OneOf(
                              choices=["Toggle Switch", "Date Picker", "Radio Buttons", "Select List"]))
