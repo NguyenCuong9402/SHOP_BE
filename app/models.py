@@ -74,7 +74,7 @@ class TestType(db.Model):
     name = db.Column(db.String(255), nullable=False)
     kind = db.Column(db.String(255), nullable=True)
     order = db.Column(db.String(255), nullable=True)
-    default = db.Column(db.String(255), nullable=True)
+    is_default = db.Column(db.Boolean, nullable=True)
     project_setting_id = db.Column(db.String(50),
                                    db.ForeignKey('project_setting.id', ondelete='CASCADE', onupdate='CASCADE'),
                                    nullable=True)
@@ -101,12 +101,17 @@ class TestRunField(db.Model):
     project_key = db.Column(db.String(50))
     project_id = db.Column(db.String(50))
     site_url = db.Column(db.String(255), nullable=True)
-    test_types = db.relationship('TestType', secondary=test_type_test_run_fields, lazy='subquery',
+    test_types = db.relationship('TestType',order_by=TestType.name, secondary=test_type_test_run_fields, lazy='subquery',
                                  backref=db.backref('test_run_fields', lazy=True))
 
     @classmethod
     def get_by_id(cls, _id):
         return cls.query.get(_id)
+
+    @hybrid_property
+    def field_type_values(self):
+        _type_values = json.loads(self.type_values)
+        return _type_values
 
 
 class TestField(db.Model):
