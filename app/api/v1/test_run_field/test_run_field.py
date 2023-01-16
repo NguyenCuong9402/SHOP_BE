@@ -3,55 +3,28 @@ import uuid
 from operator import or_
 
 from flask import Blueprint, request
-from flask_jwt_extended import jwt_required, get_jwt_identity, create_access_token
-from benedict import benedict
+from flask_jwt_extended import get_jwt_identity
 from sqlalchemy import func, asc, and_
 
-from app.api.v1.setting.setting_validator import UpdateMiscellaneousRequest
-from app.api.v1.test_step_field.test_step_field_validator import CreateTestStepField, UpdateTestStepField
+from app.api.v1.test_run_field.test_run_field_validator import CreateTestRunField, UpdateTestRunField
 from app.gateway import authorization_require
-from app.models import TestStep, Test, TestType, db, TestField, Setting, TestStepField, TestRunField
-from app.utils import send_result, send_error, data_preprocessing
-from app.validator import CreateTestValidator, SettingSchema, TestStepFieldSchema
-from app.parser import TestFieldSchema, TestStepSchema
+from app.models import TestType, db, TestRunField
+from app.utils import send_result, send_error
+from app.validator import TestRunFieldSchema
 
-api = Blueprint('test_step_field', __name__)
+api = Blueprint('test_run_field', __name__)
 
 
 @api.route("/<project_id>", methods=["GET"])
 @authorization_require()
-def get_test_step_field(project_id):
+def get_test_run_field(project_id):
     try:
         token = get_jwt_identity()
         cloud_id = token.get('cloudId')
-        test_step_fields_count = db.session.query(TestStepField).filter(
-            or_(TestStepField.project_id == project_id, TestStepField.project_key == project_id),
-            TestStepField.cloud_id == cloud_id).count()
-        if test_step_fields_count == 0:
-            """
-            Create default test step field   
-            """
-            for test_step_field in DEFAULT_DATA:
-                test_step = TestStepField(
-                    id=str(uuid.uuid4()),
-                    name=test_step_field['name'],
-                    description=test_step_field['description'],
-                    type=test_step_field['type'],
-                    is_required=test_step_field['is_required'],
-                    is_disabled=test_step_field['is_disabled'],
-                    is_native=test_step_field['is_native'],
-                    index=test_step_field['index'],
-                    type_values=test_step_field['type_values'],
-                    project_id=project_id,
-                    cloud_id=cloud_id,
-                )
-                db.session.add(test_step)
-        db.session.commit()
-
-        test_step_fields = db.session.query(TestStepField).filter(
-            or_(TestStepField.project_id == project_id, TestStepField.project_key == project_id),
-            TestStepField.cloud_id == cloud_id).order_by(asc(TestStepField.index)).all()
-        result = TestStepFieldSchema(many=True).dump(test_step_fields)
+        test_run_fields = db.session.query(TestRunField).filter(
+            or_(TestRunField.project_id == project_id, TestRunField.project_key == project_id),
+            TestRunField.cloud_id == cloud_id).order_by(asc(TestRunField.index)).all()
+        result = TestRunFieldSchema(many=True).dump(test_run_fields)
         return send_result(data=result, message="OK")
     except Exception as ex:
         db.session.rollback()
@@ -70,14 +43,6 @@ def create_test_step(project_id):
         cloud_id = token.get('cloudId')
 
         # Check if test field is creatable
-        test_step_fields_count = db.session.query(TestStepField).filter(
-            or_(TestStepField.project_id == project_id, TestStepField.project_key == project_id),
-            TestStepField.cloud_id == cloud_id).count()
-        if test_step_fields_count >= 6:
-            return send_error(code=200, data="",
-                              message='Can not create this test step field because it has reached 3 non-native fields',
-                              show=False)
-
         try:
             json_req = request.get_json()
         except Exception as ex:
@@ -92,21 +57,23 @@ def create_test_step(project_id):
                 body_request.setdefault(key, value)
 
         # Validate body request
-        input_validation = CreateTestStepField()
+        input_validation = CreateTestRunField()
         is_not_validate = input_validation.validate(body_request)
         if is_not_validate:
-            return send_error(code=400, data=is_not_validate, message='Invalid request')
+            return send_error(code=200, data=is_not_validate, message='Invalid request')
 
         # Check coincided name
         coincided = check_coincided_name(name=body_request.get('name'), cloud_id=cloud_id, project_id=project_id)
         if coincided is True:
-            return send_error(code=200, data={"name": "Test Step Field already exists. Please try again"},
+            return send_error(code=200, data={"name": "Test Run Custom Field already exists. Please try again"},
                               message='Invalid request', show=False, is_dynamic=True)
 
         # Create new test step
-        max_index = db.session.query(func.max(TestStepField.index)).scalar()
+        max_index = db.session.query(func.max(TestRunField.index)).scalar()
+        if max_index is None:
+            max_index = 0
         max_index = max_index + 1
-        test_step_field = TestStepField(
+        test_run_field = TestRunField(
             id=str(uuid.uuid4()),
             project_id=project_id,
             cloud_id=cloud_id,
@@ -117,18 +84,23 @@ def create_test_step(project_id):
             type_values=json.dumps(body_request['field_type_values']),
             index=max_index
         )
-        db.session.add(test_step_field)
+        db.session.add(test_run_field)
+        db.session.flush()
+
+        # Add test type
+        test_type_ids = body_request.get('test_types', [])
+        test_run_field.test_types = TestType.query.filter(TestType.id.in_(test_type_ids)).all()
         db.session.commit()
-        return send_result(data=TestStepFieldSchema().dump(test_step_field), message="Test Step Field created",
+        return send_result(data=TestRunFieldSchema().dump(test_run_field), message="Test Run Custom Field created",
                            show=True)
     except Exception as ex:
         db.session.rollback()
         return send_error(data='', message="Something was wrong!")
 
 
-@api.route("/<project_id>/<test_step_id>", methods=["PUT"])
+@api.route("/<project_id>/<test_run_field_id>", methods=["PUT"])
 @authorization_require()
-def update_test_step(project_id, test_step_id):
+def update_test_step(project_id, test_run_field_id):
     """
     Update or create miscellaneous setting
     """
@@ -136,10 +108,11 @@ def update_test_step(project_id, test_step_id):
     try:
         token = get_jwt_identity()
         cloud_id = token.get('cloudId')
-        test_step = TestStepField.get_by_id(test_step_id)
-        if test_step is None:
+        test_run_field = TestRunField.get_by_id(test_run_field_id)
+        if test_run_field is None:
             return send_error(
-                message="Test Step Fields have been changed \n Please refresh the page to view the changes", code=200,
+                message="Test Run Custom Field have been changed \n Please refresh the page to view the changes",
+                code=200,
                 show=False)
 
         try:
@@ -157,16 +130,16 @@ def update_test_step(project_id, test_step_id):
 
         # Validate body request
 
-        input_validation = UpdateTestStepField()
+        input_validation = UpdateTestRunField()
         is_not_validate = input_validation.validate(body_request)
         if is_not_validate:
             return send_error(code=400, data=is_not_validate, message='Invalid request')
 
         # Check coincided name
-        coincided = check_coincided_name(name=body_request.get('name'), self_id=test_step_id, cloud_id=cloud_id,
+        coincided = check_coincided_name(name=body_request.get('name'), self_id=test_run_field_id, cloud_id=cloud_id,
                                          project_id=project_id)
         if coincided is True:
-            return send_error(code=200, data={"name": "Test Step Field already exists. Please try again"},
+            return send_error(code=200, data={"name": "Test Run Custom Field already exists. Please try again"},
                               message='Invalid request', show=False, is_dynamic=True)
 
         # Update new test step
@@ -174,12 +147,20 @@ def update_test_step(project_id, test_step_id):
             body_request['type_values'] = json.dumps(body_request.get('field_type_values'))
             del body_request['field_type_values']
 
+        # Update test type
+        if body_request.get('test_types') is not None:
+            test_type_ids = body_request['test_types']
+            test_run_field.test_types.clear()
+            test_run_field.test_types = TestType.query.filter(TestType.id.in_(test_type_ids)).all()
+            del body_request['test_types']
+
+        # Update other props
         update_data = body_request.items()
         for key, value in update_data:
-            setattr(test_step, key, value)
+            setattr(test_run_field, key, value)
         db.session.commit()
-        return send_result(data=TestStepFieldSchema().dump(test_step),
-                           message="Test Step Fields were saved successfully", show=True)
+        return send_result(data=TestRunFieldSchema().dump(test_run_field),
+                           message="Test Run Custom Fields were saved successfully", show=True)
     except Exception as ex:
         db.session.rollback()
         return send_error(data='', message="Something was wrong!")
@@ -206,7 +187,7 @@ def reorder(project_id):
         ids = body_request['ids']
         for _id in ids:
             index = ids.index(_id)
-            test_step = TestStepField.get_by_id(_id)
+            test_step = TestRunField.get_by_id(_id)
             test_step.index = index + 1
             db.session.flush()
 
@@ -217,18 +198,19 @@ def reorder(project_id):
         return send_error(data='', message="Something was wrong!", show=True)
 
 
-@api.route("/<project_id>/<test_step_id>", methods=["DELETE"])
+@api.route("/<project_id>/<test_run_field_id>", methods=["DELETE"])
 @authorization_require()
-def delete(project_id, test_step_id):
+def delete(project_id, test_run_field_id):
     try:
-        test_step = TestStepField.get_by_id(test_step_id)
-        if test_step is None:
+        test_run_field = TestRunField.get_by_id(test_run_field_id)
+        if test_run_field is None:
             return send_error(
-                message="Test Step Fields have been changed \n Please refresh the page to view the changes", code=200,
+                message="Test Run Custom Field have been changed \n Please refresh the page to view the changes",
+                code=200,
                 show=False)
-        db.session.delete(test_step)
+        db.session.delete(test_run_field)
         db.session.commit()
-        return send_result(data="", message="Test step field removed successfully", code=200, show=True)
+        return send_result(data="", message="Test Run Custom field removed successfully", code=200, show=True)
     except Exception as ex:
         db.session.rollback()
         return send_error(data='', message="Something was wrong!")
@@ -237,10 +219,11 @@ def delete(project_id, test_step_id):
 @api.route("/test", methods=["GET"])
 def test():
     try:
+        ids = ["0a05579a-07f9-11ed-ae0f-00e04b1830a6", "0a3572aa-0cf3-11ed-a60f-0242ac130002"]
+        test_type = TestType.query.filter(TestType.id.in_(ids)).all()
         test2 = TestRunField.query.first()
-        test2.test_types.clear()
+        test2.test_types.extend(test_type)
         db.session.commit()
-
         return send_result(data="", message="Test step field removed successfully", code=200, show=True)
     except Exception as ex:
         db.session.rollback()
@@ -253,43 +236,10 @@ Helper function
 
 
 def check_coincided_name(name='', self_id=None, project_id='', cloud_id=''):
-    existed_test_step = TestStepField.query.filter(
-        and_(TestStepField.name == name, TestStepField.id != self_id, TestStepField.cloud_id == cloud_id,
-             TestStepField.project_id == project_id)).first()
+    existed_test_step = TestRunField.query.filter(
+        and_(TestRunField.name == name, TestRunField.id != self_id, TestRunField.cloud_id == cloud_id,
+             TestRunField.project_id == project_id)).first()
     if existed_test_step is None:
         return False
     return True
 
-
-DEFAULT_DATA = [
-    {
-        "name": "Data (data)",
-        "description": "Any data the related step requests (e.g., login credentials) to be used by the tester.",
-        "type": "Text",
-        "index": 2,
-        "is_native": True,
-        "is_required": False,
-        "is_disabled": False,
-        "type_values": "[]"
-    },
-    {
-        "name": "Expected Result (result)",
-        "description": "The behavior that the step should accomplish.",
-        "type": "Text",
-        "index": 3,
-        "is_native": True,
-        "is_required": True,
-        "is_disabled": False,
-        "type_values": "[]"
-    },
-    {
-        "name": "Action (action)",
-        "description": "The action to be reproduced by the tester.",
-        "type": "Text",
-        "index": 1,
-        "is_native": True,
-        "is_required": True,
-        "is_disabled": False,
-        "type_values": "[]"
-    }
-]

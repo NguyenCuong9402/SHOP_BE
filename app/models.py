@@ -58,6 +58,14 @@ class ProjectSetting(db.Model):
     project_id = db.Column(db.String(255), nullable=False)
 
 
+test_type_test_run_fields = db.Table('test_type_test_run_fields',
+                                     db.Column('test_type_id', db.String(50), db.ForeignKey('test_type.id'),
+                                               primary_key=True),
+                                     db.Column('test_run_field_id', db.String(50), db.ForeignKey('test_run_fields.id'),
+                                               primary_key=True)
+                                     )
+
+
 class TestType(db.Model):
     __tablename__ = 'test_type'
 
@@ -66,10 +74,44 @@ class TestType(db.Model):
     name = db.Column(db.String(255), nullable=False)
     kind = db.Column(db.String(255), nullable=True)
     order = db.Column(db.String(255), nullable=True)
-    default = db.Column(db.String(255), nullable=True)
+    is_default = db.Column(db.Boolean, nullable=True)
     project_setting_id = db.Column(db.String(50),
                                    db.ForeignKey('project_setting.id', ondelete='CASCADE', onupdate='CASCADE'),
                                    nullable=True)
+    cloud_id = db.Column(db.String(255), nullable=True)
+    project_key = db.Column(db.String(50))
+    project_id = db.Column(db.String(50))
+    index = db.Column(db.Integer, nullable=True)
+
+
+class TestRunField(db.Model):
+    __tablename__ = 'test_run_fields'
+    id = db.Column(db.String(50), primary_key=True)
+    name = db.Column(db.String(250))
+    description = db.Column(db.String(250))
+    type_values \
+        = db.Column(db.Text())
+    type = db.Column(db.String(250))
+    is_required = db.Column(db.Boolean, default=0)
+    is_disabled = db.Column(db.Boolean, default=0)
+    is_native = db.Column(db.Boolean, default=0)
+    # Index order of list
+    index = db.Column(db.Integer)
+    cloud_id = db.Column(db.String(50), nullable=True)
+    project_key = db.Column(db.String(50))
+    project_id = db.Column(db.String(50))
+    site_url = db.Column(db.String(255), nullable=True)
+    test_types = db.relationship('TestType',order_by=TestType.name, secondary=test_type_test_run_fields, lazy='subquery',
+                                 backref=db.backref('test_run_fields', lazy=True))
+
+    @classmethod
+    def get_by_id(cls, _id):
+        return cls.query.get(_id)
+
+    @hybrid_property
+    def field_type_values(self):
+        _type_values = json.loads(self.type_values)
+        return _type_values
 
 
 class TestField(db.Model):
@@ -242,6 +284,7 @@ class TestStepField(db.Model):
     @classmethod
     def get_by_id(cls, _id):
         return cls.query.get(_id)
+
     @hybrid_property
     def field_type_values(self):
         _type_values = json.loads(self.type_values)

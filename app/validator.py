@@ -443,6 +443,8 @@ class SettingSchema(Schema):
     project_key = fields.String()
     cloud_id = fields.String()
     site_url = fields.String()
+
+
 class TestStepFieldSchema(Schema):
     id = fields.String()
     name = fields.String()
@@ -454,3 +456,24 @@ class TestStepFieldSchema(Schema):
     is_native = fields.Boolean()
     index = fields.Integer()
 
+
+class TestTypeSchema(Schema):
+    id = fields.String()
+    name = fields.String()
+    kind = fields.String()
+    index = fields.Integer()
+    order = fields.Integer()
+    is_default = fields.Boolean()
+
+
+class TestRunFieldSchema(Schema):
+    id = fields.String()
+    name = fields.String()
+    description = fields.String()
+    field_type_values = fields.Raw()
+    type = fields.String()
+    is_required = fields.Boolean()
+    is_disabled = fields.Boolean()
+    is_native = fields.Boolean()
+    index = fields.Integer()
+    test_types = fields.List(fields.Nested(TestTypeSchema))

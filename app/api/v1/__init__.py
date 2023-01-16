@@ -7,3 +7,6 @@ from app.api.v1 import test_run
 from app.api.v1 import manage_test_repo
 from app.api.v1 import upload
 from app.api.v1.test_step_field import test_step_field
+from app.api.v1.test_run_field import test_run_field
+from app.api.v1.test_type import test_type
+
