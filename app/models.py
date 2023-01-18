@@ -47,6 +47,8 @@ class Test(db.Model):
     test_type = db.relationship('TestType', backref='test_types', lazy=True)
     test_sets = db.relationship('TestSets', secondary=test_testsets, lazy='subquery',
                                 backref=db.backref('test_sets', lazy=True), viewonly=True)
+    created_date = db.Column(db.Integer, default=0)
+    modified_date = db.Column(db.Integer, default=0)
 
 
 class ProjectSetting(db.Model):
@@ -82,6 +84,16 @@ class TestType(db.Model):
     project_key = db.Column(db.String(50))
     project_id = db.Column(db.String(50))
     index = db.Column(db.Integer, nullable=True)
+    created_date = db.Column(db.Integer, default=0)
+    modified_date = db.Column(db.Integer, default=0)
+
+    @classmethod
+    def get_by_id(cls, _id):
+        return cls.query.get(_id)
+    @hybrid_property
+    def number_of_tests(self):
+        count = Test.query.filter(Test.test_type_id == self.id).count()
+        return count
 
 
 class TestRunField(db.Model):
@@ -101,8 +113,11 @@ class TestRunField(db.Model):
     project_key = db.Column(db.String(50))
     project_id = db.Column(db.String(50))
     site_url = db.Column(db.String(255), nullable=True)
-    test_types = db.relationship('TestType',order_by=TestType.name, secondary=test_type_test_run_fields, lazy='subquery',
+    test_types = db.relationship('TestType', order_by=TestType.created_date, secondary=test_type_test_run_fields,
+                                 lazy='subquery',
                                  backref=db.backref('test_run_fields', lazy=True))
+    created_date = db.Column(db.Integer, default=0)
+    modified_date = db.Column(db.Integer, default=0)
 
     @classmethod
     def get_by_id(cls, _id):
@@ -123,6 +138,8 @@ class TestField(db.Model):
     project_setting_id = db.Column(db.String(50),
                                    db.ForeignKey('project_setting.id', ondelete='CASCADE', onupdate='CASCADE'),
                                    nullable=True)
+    created_date = db.Column(db.Integer, default=0)
+    modified_date = db.Column(db.Integer, default=0)
 
 
 class TestStepsConfig(db.Model):
@@ -134,6 +151,8 @@ class TestStepsConfig(db.Model):
     project_setting_id = db.Column(db.String(50),
                                    db.ForeignKey('project_setting.id', ondelete='CASCADE', onupdate='CASCADE'),
                                    nullable=True)
+    created_date = db.Column(db.Integer, default=0)
+    modified_date = db.Column(db.Integer, default=0)
 
 
 class TestStep(db.Model):
@@ -165,6 +184,8 @@ class TestSets(db.Model):
     key = db.Column(db.String(255), nullable=True)
     jira_id = db.Column(db.String(255), nullable=True)
     cloud_id = db.Column(db.String(255), nullable=True)
+    created_date = db.Column(db.Integer, default=0)
+    modified_date = db.Column(db.Integer, default=0)
 
 
 """
@@ -189,6 +210,8 @@ class TestExecutions(db.Model):
                             backref=db.backref('test_execution_tests', lazy=True))
     name = db.Column(db.String(255), nullable=True)
     key = db.Column(db.String(255), nullable=True)
+    created_date = db.Column(db.Integer, default=0)
+    modified_date = db.Column(db.Integer, default=0)
 
 
 class Message(db.Model):
@@ -280,6 +303,8 @@ class TestStepField(db.Model):
     project_key = db.Column(db.String(50))
     project_id = db.Column(db.String(50))
     site_url = db.Column(db.String(255), nullable=True)
+    created_date = db.Column(db.Integer, default=0)
+    modified_date = db.Column(db.Integer, default=0)
 
     @classmethod
     def get_by_id(cls, _id):
@@ -389,6 +414,8 @@ class TestRepo(db.Model):
     project_id = db.Column(db.String(50))
     index = db.Column(db.Integer)
     cloud_id = db.Column(db.String(255), nullable=True)
+    created_date = db.Column(db.Integer, default=0)
+    modified_date = db.Column(db.Integer, default=0)
 
     @hybrid_property
     def map_test_repo(self):
@@ -428,3 +455,5 @@ class Setting(db.Model):
     index = db.Column(db.Integer)
     cloud_id = db.Column(db.String(255), nullable=True)
     site_url = db.Column(db.String(255), nullable=True)
+    created_date = db.Column(db.Integer, default=0)
+    modified_date = db.Column(db.Integer, default=0)

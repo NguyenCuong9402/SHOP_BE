@@ -9,7 +9,7 @@ from sqlalchemy import func, asc, and_
 from app.api.v1.test_run_field.test_run_field_validator import CreateTestRunField, UpdateTestRunField
 from app.gateway import authorization_require
 from app.models import TestType, db, TestRunField
-from app.utils import send_result, send_error
+from app.utils import send_result, send_error, validate_request
 from app.validator import TestRunFieldSchema
 
 api = Blueprint('test_run_field', __name__)
@@ -33,7 +33,7 @@ def get_test_run_field(project_id):
 
 @api.route("/<project_id>", methods=["POST"])
 @authorization_require()
-def create_test_step(project_id):
+def create_test_run_field(project_id):
     """
     Update or create miscellaneous setting
     """
@@ -42,25 +42,10 @@ def create_test_step(project_id):
         token = get_jwt_identity()
         cloud_id = token.get('cloudId')
 
-        # Check if test field is creatable
-        try:
-            json_req = request.get_json()
-        except Exception as ex:
-            return send_error(message="Request Body incorrect json format: " + str(ex), code=442)
+        is_valid, data, body_request = validate_request(CreateTestRunField(), request)
 
-            # Strip body request
-        body_request = {}
-        for key, value in json_req.items():
-            if isinstance(value, str):
-                body_request.setdefault(key, value.strip())
-            else:
-                body_request.setdefault(key, value)
-
-        # Validate body request
-        input_validation = CreateTestRunField()
-        is_not_validate = input_validation.validate(body_request)
-        if is_not_validate:
-            return send_error(code=200, data=is_not_validate, message='Invalid request')
+        if not is_valid:
+            return send_error(data=data, code=200, is_dynamic=True)
 
         # Check coincided name
         coincided = check_coincided_name(name=body_request.get('name'), cloud_id=cloud_id, project_id=project_id)
@@ -100,7 +85,7 @@ def create_test_step(project_id):
 
 @api.route("/<project_id>/<test_run_field_id>", methods=["PUT"])
 @authorization_require()
-def update_test_step(project_id, test_run_field_id):
+def update_test_run_field(project_id, test_run_field_id):
     """
     Update or create miscellaneous setting
     """
@@ -120,20 +105,17 @@ def update_test_step(project_id, test_run_field_id):
         except Exception as ex:
             return send_error(message="Request Body incorrect json format: " + str(ex), code=442)
 
-            # Strip body request
-        body_request = {}
+        is_valid, data, body_request = validate_request(UpdateTestRunField(), request)
+
+        if not is_valid:
+            return send_error(data=data, code=200, is_dynamic=True)
+
+        # Strip body request
         for key, value in json_req.items():
             if isinstance(value, str):
                 body_request.setdefault(key, value.strip())
             else:
                 body_request.setdefault(key, value)
-
-        # Validate body request
-
-        input_validation = UpdateTestRunField()
-        is_not_validate = input_validation.validate(body_request)
-        if is_not_validate:
-            return send_error(code=400, data=is_not_validate, message='Invalid request')
 
         # Check coincided name
         coincided = check_coincided_name(name=body_request.get('name'), self_id=test_run_field_id, cloud_id=cloud_id,
@@ -242,4 +224,3 @@ def check_coincided_name(name='', self_id=None, project_id='', cloud_id=''):
     if existed_test_step is None:
         return False
     return True
-

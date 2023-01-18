@@ -462,8 +462,8 @@ class TestTypeSchema(Schema):
     name = fields.String()
     kind = fields.String()
     index = fields.Integer()
-    order = fields.Integer()
     is_default = fields.Boolean()
+    number_of_tests = fields.Integer()
 
 
 class TestRunFieldSchema(Schema):
