@@ -134,3 +134,25 @@ def data_preprocessing(cls_validator, input_json: dict):
         if isinstance(value, str):
             input_json[key] = value.strip()
     return cls_validator().custom_validate(input_json)
+
+
+def validate_request(validator, request):
+    try:
+        json_req = request.get_json()
+    except Exception as ex:
+        return send_error(message="Request Body incorrect json format: " + str(ex), code=442)
+
+        # Strip body request
+    body_request = {}
+    for key, value in json_req.items():
+        if isinstance(value, str):
+            body_request.setdefault(key, value.strip())
+        else:
+            body_request.setdefault(key, value)
+
+    # Validate body request
+    is_not_validate = validator.validate(body_request)
+    if is_not_validate:
+        return False, is_not_validate, body_request
+    else:
+        return True, {}, body_request
