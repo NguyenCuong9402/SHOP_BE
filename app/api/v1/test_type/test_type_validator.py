@@ -17,14 +17,23 @@ class CreateTestType(Schema):
     name = fields.String(required=True, validate=[validate.Length(min=1, max=100)])
 
 
-class UpdateTestRunField(Schema):
+class UpdateTestType(Schema):
     """
     Author: trunghn
     Create Date: 28/12/2022
     Marshmallow Schema
     """
-    name = fields.String(required=False, validate=[validate.Length(min=1, max=100)])
-    is_default = fields.Boolean(required=False)
+    is_default = fields.Boolean(required=True)
+
+
+class DeleteTestType(Schema):
+    """
+    Author: trunghn
+    Create Date: 28/12/2022
+    Marshmallow Schema
+    """
+    new_test_type_id = fields.String(required=True, validate=[validate.Length(min=1, max=100)])
+
 
 
 

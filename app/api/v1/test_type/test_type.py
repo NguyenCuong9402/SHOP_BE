@@ -7,7 +7,7 @@ from flask_jwt_extended import get_jwt_identity
 
 from sqlalchemy import func, asc, and_
 
-from app.api.v1.test_type.test_type_validator import CreateTestType
+from app.api.v1.test_type.test_type_validator import CreateTestType, UpdateTestType
 from app.gateway import authorization_require
 from app.models import TestType, db
 from app.utils import send_result, send_error, validate_request, get_timestamp_now
@@ -88,7 +88,7 @@ def delete(project_id, test_type_id):
     try:
         test_type = TestType.get_by_id(test_type_id)
         test_type_name = test_type.name
-        if test_type is None:
+        if test_type is None or test_type.is_default:
             return send_error(
                 message="Test Type have been changed \n Please refresh the page to view the changes",
                 code=200,
@@ -96,6 +96,28 @@ def delete(project_id, test_type_id):
         db.session.delete(test_type)
         db.session.commit()
         return send_result(data="", message=f"Test Type {test_type_name} removed", code=200, show=True)
+    except Exception as ex:
+        db.session.rollback()
+        return send_error(data='', message="Something was wrong!")
+
+
+@api.route("/<project_id>/<test_type_id>", methods=["PUT"])
+@authorization_require()
+def update(project_id, test_type_id):
+    try:
+        test_type = TestType.get_by_id(test_type_id)
+        if test_type is None:
+            return send_error(
+                message="Test Type have been changed \n Please refresh the page to view the changes",
+                code=200,
+                show=False)
+        is_valid, data, body_request = validate_request(UpdateTestType(), request)
+        if not is_valid:
+            return send_error(data=data, code=200, is_dynamic=True)
+        for key, value in body_request:
+            setattr(test_type, key, value)
+        db.session.commit()
+        return send_result(data="", message="Project Test Type settings saved", code=200, show=True)
     except Exception as ex:
         db.session.rollback()
         return send_error(data='', message="Something was wrong!")
