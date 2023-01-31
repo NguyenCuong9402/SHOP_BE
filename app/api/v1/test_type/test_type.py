@@ -28,10 +28,10 @@ def get_test_type(project_id):
         if test_types_count == 0:
             test_type = TestType(
                 id=str(uuid.uuid4()),
-                name=DEFAUT_DATA['name'],
-                kind=DEFAUT_DATA['kind'],
-                is_default=DEFAUT_DATA['is_default'],
-                index=DEFAUT_DATA['index'],
+                name=DEFAULT_DATA['name'],
+                kind=DEFAULT_DATA['kind'],
+                is_default=DEFAULT_DATA['is_default'],
+                index=DEFAULT_DATA['index'],
                 project_id=project_id,
                 cloud_id=cloud_id,
                 created_date=get_timestamp_now()
@@ -148,7 +148,7 @@ def check_coincided_name(name='', self_id=None, project_id='', cloud_id=''):
     return True
 
 
-DEFAUT_DATA = {
+DEFAULT_DATA = {
     "name": "Manual",
     "kind": "Steps",
     "is_default": True,

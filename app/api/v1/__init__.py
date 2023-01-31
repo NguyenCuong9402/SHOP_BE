@@ -9,4 +9,5 @@ from app.api.v1 import upload
 from app.api.v1.test_step_field import test_step_field
 from app.api.v1.test_run_field import test_run_field
 from app.api.v1.test_type import test_type
+from app.api.v1.test_status import test_status
 

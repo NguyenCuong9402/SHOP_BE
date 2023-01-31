@@ -45,6 +45,15 @@ def get_project_setting(project_id):
 @api.route("/miscellaneous/enable/<project_id>", methods=["POST"])
 @authorization_require()
 def enable_miscellaneous_setting(project_id):
+    """
+    Enable/Disable  miscellaneous setting
+    Args:
+        project_id:
+
+    Returns:
+
+    """
+
     token = get_jwt_identity()
     cloud_id = token.get('cloudId')
 
@@ -139,52 +148,40 @@ def update_miscellaneous_setting(project_id):
         return send_error(data='', message="Something was wrong!")
 
 
-@api.route("/<project_id>/fields", methods=["GET"])
-def get_test_types_by_project(project_id):
-    # test = TestField.query.filter_by().all()
-    # test = TestFieldSchema().dump(test)
-    data_mock = [
-        {
-            "name": "Issue ID",
-            "key": "btest_field_01"
-        },
-        {
-            "name": "Test Type",
-            "key": "btest_field_02"
-        },
-        {
-            "name": "Test Set Name",
-            "key": "btest_field_03"
-        },
-        {
-            "name": "Test Repository Folder",
-            "key": "btest_field_04"
-        }
-    ]
-    return send_result(data=data_mock, message="OK")
+@api.route("/test_type/enable/<project_id>", methods=["POST"])
+@authorization_require()
+def enable_test_type(project_id):
+    """
+       Enable/Disable  miscellaneous setting
+       Args:
+           project_id:
 
+       Returns:
 
-@api.route("/<project_id>/test-steps", methods=["GET"])
-def get_test_steps_by_project(project_id):
-    data_mock = [
-        {
-            "name": "Action",
-            "key": "btest_step_field_01"
-        },
-        {
-            "name": "Expected Result",
-            "key": "btest_step_field_02"
-        }
-    ]
-    return send_result(data=data_mock, message="OK")
+       """
+    try:
+        json_req = request.get_json()
+    except Exception as ex:
+        return send_error(message="Request Body incorrect json format: " + str(ex), code=442)
 
+    if json_req.get('enabled') is None:
+        return send_error(message="Missing required data.")
 
-@api.route("/<project_id>/testexec", methods=["GET"])
-def get_test_execution_by_project(project_id):
-    data_mock = [
-        {
-            "filters": ["statuses", "test_sets", "test_issue_ids"],
-            "fields_column": ["defects", "comment", "status_id"]
-        }
-    ]
-    return send_result(data=data_mock, message="OK")
+    token = get_jwt_identity()
+    cloud_id = token.get('cloudId')
+
+    # Get cloud information:
+    project_id = project_id
+    cloud_id = cloud_id
+
+    enabled = json_req['enabled']
+    project_setting = Setting.query.filter(
+        Setting.project_id == project_id, Setting.cloud_id == cloud_id).first()
+    if project_setting is None:
+        return send_error(data='', message='Project is not configured.', code=200)
+
+    project_setting.test_type = enabled
+    db.session.commit()
+
+    return send_result(data=SettingSchema().dump(project_setting), message="Project Test Type settings saved",
+                       show=True)

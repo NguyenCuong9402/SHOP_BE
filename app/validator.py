@@ -477,3 +477,12 @@ class TestRunFieldSchema(Schema):
     is_native = fields.Boolean()
     index = fields.Integer()
     test_types = fields.List(fields.Nested(TestTypeSchema))
+
+
+class TestStatusSchema(Schema):
+    id = fields.String()
+    name = fields.String()
+    description = fields.String()
+    color = fields.String()
+    is_show = fields.Boolean()
+    is_default = fields.Boolean()

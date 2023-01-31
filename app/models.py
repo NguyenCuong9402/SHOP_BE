@@ -90,6 +90,7 @@ class TestType(db.Model):
     @classmethod
     def get_by_id(cls, _id):
         return cls.query.get(_id)
+
     @hybrid_property
     def number_of_tests(self):
         count = Test.query.filter(Test.test_type_id == self.id).count()
@@ -227,17 +228,24 @@ class Message(db.Model):
     object = db.Column(db.String(255))
 
 
-"""
-Define table for handle run test execution
-"""
-
-
 class TestStatus(db.Model):
     __tablename__ = 'test_status'
     id = db.Column(db.String(50), primary_key=True)
-    value = db.Column(db.String(255))
-    type = db.Column(db.String(255))
-    project_setting_id = db.Column(db.String(255), nullable=True)
+    name = db.Column(db.String(255))
+    description = db.Column(db.String(255))
+    color = db.Column(db.String(255))
+    is_show = db.Column(db.Boolean, nullable=True)
+    is_default = db.Column(db.Boolean, nullable=True)
+    cloud_id = db.Column(db.String(50), nullable=True)
+    project_key = db.Column(db.String(50))
+    project_id = db.Column(db.String(50))
+    site_url = db.Column(db.String(255), nullable=True)
+    created_date = db.Column(db.Integer, default=0)
+    modified_date = db.Column(db.Integer, default=0)
+
+    @classmethod
+    def get_by_id(cls, _id):
+        return cls.query.get(_id)
 
 
 class MapTestExec(db.Model):

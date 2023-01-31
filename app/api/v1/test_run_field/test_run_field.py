@@ -86,9 +86,6 @@ def create_test_run_field(project_id):
 @api.route("/<project_id>/<test_run_field_id>", methods=["PUT"])
 @authorization_require()
 def update_test_run_field(project_id, test_run_field_id):
-    """
-    Update or create miscellaneous setting
-    """
 
     try:
         token = get_jwt_identity()
