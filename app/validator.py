@@ -486,3 +486,10 @@ class TestStatusSchema(Schema):
     color = fields.String()
     is_show = fields.Boolean()
     is_default = fields.Boolean()
+
+
+class TestEnvironmentSchema(Schema):
+    id = fields.String()
+    name = fields.String()
+    description = fields.String()
+    url = fields.String()

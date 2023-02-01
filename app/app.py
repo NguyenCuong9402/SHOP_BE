@@ -145,6 +145,8 @@ def register_blueprints(app):
     app.register_blueprint(api_v1.test_run_field.api, url_prefix='/api/v1/test_run_field')
     app.register_blueprint(api_v1.test_type.api, url_prefix='/api/v1/test_type')
     app.register_blueprint(api_v1.test_status.api, url_prefix='/api/v1/test_status')
+    app.register_blueprint(api_v1.test_environment.api, url_prefix='/api/v1/test_environment')
+
 
 
 

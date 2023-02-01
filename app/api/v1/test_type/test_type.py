@@ -90,9 +90,16 @@ def delete(project_id, test_type_id):
         test_type_name = test_type.name
         if test_type is None or test_type.is_default:
             return send_error(
-                message="Test Type have been changed \n Please refresh the page to view the changes",
+                message="Test Type has been changed \n Please refresh the page to view the changes",
                 code=200,
                 show=False)
+
+        if test_type_name == DEFAULT_DATA['name']:
+            return send_error(
+                message="You can not delete the default test type \n Please refresh the page to view the changes",
+                code=200,
+                show=False)
+
         db.session.delete(test_type)
         db.session.commit()
         return send_result(data="", message=f"Test Type {test_type_name} removed", code=200, show=True)
@@ -105,22 +112,32 @@ def delete(project_id, test_type_id):
 @authorization_require()
 def update(project_id, test_type_id):
     try:
+        token = get_jwt_identity()
+        cloud_id = token.get('cloudId')
         test_type = TestType.get_by_id(test_type_id)
         if test_type is None:
             return send_error(
-                message="Test Type have been changed \n Please refresh the page to view the changes",
+                message="Test Type has been changed \n Please refresh the page to view the changes",
                 code=200,
                 show=False)
         is_valid, data, body_request = validate_request(UpdateTestType(), request)
         if not is_valid:
             return send_error(data=data, code=200, is_dynamic=True)
-        for key, value in body_request:
-            setattr(test_type, key, value)
+
+        # Set other test type to no_default
+        db.session.query(TestType).filter(
+            or_(TestType.project_id == project_id, TestType.project_key == project_id),
+            TestType.id != test_type_id,
+            TestType.cloud_id == cloud_id).update({TestType.is_default: False})
+
+        # Set this test type is default
+        test_type.is_default = True
         db.session.commit()
         return send_result(data="", message="Project Test Type settings saved", code=200, show=True)
     except Exception as ex:
         db.session.rollback()
         return send_error(data='', message="Something was wrong!")
+
 
 # @api.route("/tests/<project_id>", methods=["POST"])
 # @authorization_require()
@@ -131,7 +148,6 @@ def update(project_id, test_type_id):
 #     except Exception as ex:
 #         db.session.rollback()
 #         return send_error(message="Something wrong!", code=200, show=False)
-
 
 
 """

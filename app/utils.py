@@ -156,3 +156,17 @@ def validate_request(validator, request):
         return False, is_not_validate, body_request
     else:
         return True, {}, body_request
+
+
+def escape_wildcard(search):
+    """
+    :param search:
+    :return:
+    """
+    search1 = str.replace(search, '\\', r'\\')
+    search2 = str.replace(search1, r'%', r'\%')
+    search3 = str.replace(search2, r'_', r'\_')
+    search4 = str.replace(search3, r'[', r'\[')
+    search5 = str.replace(search4, r'"', r'\"')
+    search6 = str.replace(search5, r"'", r"\'")
+    return search6
