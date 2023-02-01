@@ -93,7 +93,7 @@ def update_test_run_field(project_id, test_run_field_id):
         test_run_field = TestRunField.get_by_id(test_run_field_id)
         if test_run_field is None:
             return send_error(
-                message="Test Run Custom Field have been changed \n Please refresh the page to view the changes",
+                message="Test Run Custom Fields have been changed \n Please refresh the page to view the changes",
                 code=200,
                 show=False)
 
@@ -184,7 +184,7 @@ def delete(project_id, test_run_field_id):
         test_run_field = TestRunField.get_by_id(test_run_field_id)
         if test_run_field is None:
             return send_error(
-                message="Test Run Custom Field have been changed \n Please refresh the page to view the changes",
+                message="Test Run Custom Fields have been changed \n Please refresh the page to view the changes",
                 code=200,
                 show=False)
         db.session.delete(test_run_field)

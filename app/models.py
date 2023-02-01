@@ -465,3 +465,20 @@ class Setting(db.Model):
     site_url = db.Column(db.String(255), nullable=True)
     created_date = db.Column(db.Integer, default=0)
     modified_date = db.Column(db.Integer, default=0)
+
+
+class TestEnvironment(db.Model):
+    __tablename__ = 'test_environments'
+    id = db.Column(db.String(50), primary_key=True)
+    parent_id = db.Column(db.String(50), nullable=True, default=None)
+    name = db.Column(db.String(250))
+    description = db.Column(db.String(250))
+    url = db.Column(db.String(250))
+    cloud_id = db.Column(db.String(50), nullable=True)
+    project_id = db.Column(db.String(50))
+    created_date = db.Column(db.Integer, default=0)
+    modified_date = db.Column(db.Integer, default=0)
+
+    @classmethod
+    def get_by_id(cls, _id):
+        return cls.query.get(_id)
