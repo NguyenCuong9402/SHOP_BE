@@ -178,7 +178,11 @@ def enable_test_type(project_id):
     project_setting = Setting.query.filter(
         Setting.project_id == project_id, Setting.cloud_id == cloud_id).first()
     if project_setting is None:
-        return send_error(data='', message='Project is not configured.', code=200)
+        project_setting = Setting(id=str(uuid.uuid1()), miscellaneous=json.dumps(DEFAULT_VALUES),
+                                  project_id=project_id,
+                                  cloud_id=cloud_id)
+        db.session.add(project_setting)
+        db.session.commit()
 
     project_setting.test_type = enabled
     db.session.commit()
