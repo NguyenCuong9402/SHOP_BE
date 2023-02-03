@@ -72,9 +72,9 @@ def create_test():
     if not exist_type:
         # create new test type
         map_test_type = {
-           "Manual": "Steps",
-           "Generic": "Unstructured",
-           "Cucumber": "Gherkin",
+            "Manual": "Steps",
+            "Generic": "Unstructured",
+            "Cucumber": "Gherkin",
         }
         exist_type = TestType(project_setting_id=project_setting.id, name=test_type, kind=map_test_type[test_type])
         exist_type.id = str(uuid.uuid1())
@@ -97,7 +97,7 @@ def create_test():
         test_set_name = test_set.get("name", "")
         test_set_key = test_set.get("key", "")
         # if test_set_key and test_set_name:
-            # check test set existed
+        # check test set existed
         test_set_instance = TestSets.query.filter_by(name=test_set_name, key=test_set_key, cloud_id=cloud_id).first()
         if not test_set_instance:
             test_set_instance = TestSets(
@@ -125,7 +125,8 @@ def create_test():
             attachments=test_step.get("attachments", ""),
             action=test_step.get("action", ""),
             test_id=test_instance.id,
-            cloud_id=cloud_id
+            cloud_id=cloud_id,
+            issue_id=test_instance.id
         )
         db.session.add(new_instance)
 
