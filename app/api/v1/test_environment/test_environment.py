@@ -6,7 +6,8 @@ from flask import Blueprint, request
 from flask_jwt_extended import get_jwt_identity
 from sqlalchemy import func, asc, and_, desc
 
-from app.api.v1.test_environment.test_environment_validator import CreateTestEnvironment, DeleteTestEnvironment
+from app.api.v1.test_environment.test_environment_validator import CreateTestEnvironment, DeleteTestEnvironment, \
+    UpdateTestEnvironment
 from app.gateway import authorization_require
 from app.models import TestType, db, TestEnvironment
 from app.utils import send_result, send_error, validate_request, escape_wildcard
@@ -153,6 +154,9 @@ def delete_test_environments(project_id):
         db.session.query(TestEnvironment).filter(TestEnvironment.parent_id.in_(ids_to_delete)).update(
             {TestEnvironment.parent_id: None})
 
+        """
+        1. Delete all test_environments by id
+        """
         for id_to_delete in ids_to_delete:
             test_environment = TestEnvironment.get_by_id(id_to_delete)
             if test_environment is None:
@@ -164,6 +168,35 @@ def delete_test_environments(project_id):
 
         db.session.commit()
         return send_result(data="", message=f"{len(ids_to_delete)} Test Environment(s) removed", code=200, show=True)
+    except Exception as ex:
+        db.session.rollback()
+        return send_error(data='', message="Something was wrong!")
+
+
+@api.route("/<project_id>/<test_environment_id>", methods=["PUT"])
+@authorization_require()
+def update_test_environment(project_id, test_environment_id):
+    try:
+
+        test_environment = TestEnvironment.get_by_id(test_environment_id)
+        if test_environment is None:
+            return send_error(
+                message="Test Environment has been changed \n Please refresh the page to view the changes",
+                code=200,
+                show=False)
+
+        is_valid, data, body_request = validate_request(UpdateTestEnvironment(), request)
+        if not is_valid:
+            return send_error(data=data, code=200, is_dynamic=True)
+
+        # Update model
+        update_data = body_request.items()
+        for key, value in update_data:
+            setattr(test_environment, key, value)
+        db.session.commit()
+        return send_result(data=TestEnvironmentSchema().dump(test_environment),
+                           message="The Test Environments were saved successfully", show=True)
+
     except Exception as ex:
         db.session.rollback()
         return send_error(data='', message="Something was wrong!")
