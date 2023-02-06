@@ -150,13 +150,13 @@ def update_test_status(project_id, test_status_id):
         errors = {}
         # Check coincided name
         coincided = check_coincided(keyword=body_request.get('name'), field_name='name', cloud_id=cloud_id,
-                                    self_id=True,
+                                    self_id=test_status_id,
                                     project_id=project_id)
         if coincided is True:
             errors['name'] = 'Execution Status already exists. Please try again'
 
         # Check coincided color
-        coincided = check_coincided(keyword=body_request.get('color'), self_id=True, field_name='color',
+        coincided = check_coincided(keyword=body_request.get('color'), self_id=test_status_id, field_name='color',
                                     cloud_id=cloud_id,
                                     project_id=project_id)
         if coincided is True:
