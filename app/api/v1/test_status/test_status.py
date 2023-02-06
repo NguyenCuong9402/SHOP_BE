@@ -125,6 +125,53 @@ class UpdateTestStatusField:
     pass
 
 
+@api.route("/<project_id>/validation", methods=["POST"])
+@authorization_require()
+def validation_update(project_id, test_status_id):
+    """
+    Update test status
+    """
+    try:
+        token = get_jwt_identity()
+        cloud_id = token.get('cloudId')
+        test_status = TestStatus.get_by_id(test_status_id)
+        if test_status is None:
+            return send_error(
+                message="Execution Status has been changed \n Please refresh the page to view the changes",
+                code=200,
+                show=False)
+
+        is_valid, data, body_request = validate_request(UpdateTestStatus(), request)
+
+        if not is_valid:
+            return send_error(data=data, code=200, is_dynamic=True)
+
+        errors = {}
+        # Check coincided name
+        coincided = check_coincided(keyword=body_request.get('name'), field_name='name', cloud_id=cloud_id,
+                                    self_id=test_status_id,
+                                    project_id=project_id)
+        if coincided is True:
+            errors['name'] = 'Execution Status already exists. Please try again'
+
+        # Check coincided color
+        coincided = check_coincided(keyword=body_request.get('color'), self_id=test_status_id, field_name='color',
+                                    cloud_id=cloud_id,
+                                    project_id=project_id)
+        if coincided is True:
+            errors['color'] = 'This color already exists. Please try again'
+
+        if errors != {}:
+            return send_error(code=200, data=errors,
+                              message='Invalid request', show=False, is_dynamic=True)
+
+        return send_result(data=TestStatusSchema().dump(test_status),
+                           message="Validate", show=True)
+    except Exception as ex:
+        db.session.rollback()
+        return send_error(data='', message="Something was wrong!")
+
+
 @api.route("/<project_id>/<test_status_id>", methods=["PUT"])
 @authorization_require()
 def update_test_status(project_id, test_status_id):
@@ -166,12 +213,9 @@ def update_test_status(project_id, test_status_id):
             return send_error(code=200, data=errors,
                               message='Invalid request', show=False, is_dynamic=True)
 
-        if (body_request.get('name') is not None or body_request.get('color') is not None or body_request.get(
-                'is_show') is not None) and test_status.is_default:
-            return send_error(
-                message="You can not edit default Execution statuses \n Please refresh the page to view the changes",
-                code=200,
-                show=False)
+        # Only update description if is default status
+        if test_status.is_default:
+            body_request = {"description": body_request.get('description')}
 
         # Update test status
         update_data = body_request.items()
