@@ -493,3 +493,8 @@ class TestEnvironmentSchema(Schema):
     name = fields.String()
     description = fields.String()
     url = fields.String()
+
+
+class TestCaseSchema(Schema):
+    id = fields.String()
+    issue_id = fields.String()

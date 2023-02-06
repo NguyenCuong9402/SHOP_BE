@@ -10,8 +10,8 @@ from sqlalchemy import func, asc, and_
 from app.api.v1.setting.setting_validator import UpdateMiscellaneousRequest
 from app.api.v1.test_step_field.test_step_field_validator import CreateTestStepField, UpdateTestStepField
 from app.gateway import authorization_require
-from app.models import TestStep, Test, TestType, db, TestField, Setting, TestStepField, TestRunField
-from app.utils import send_result, send_error, data_preprocessing,validate_request
+from app.models import TestStep, TestType, db, TestField, Setting, TestStepField, TestRunField
+from app.utils import send_result, send_error, data_preprocessing, validate_request
 from app.validator import CreateTestValidator, SettingSchema, TestStepFieldSchema
 from app.parser import TestFieldSchema, TestStepSchema
 

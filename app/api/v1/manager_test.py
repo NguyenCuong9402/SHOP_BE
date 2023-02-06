@@ -4,7 +4,7 @@ from flask import Blueprint, request
 from flask_jwt_extended import jwt_required, get_jwt_identity, create_access_token
 from sqlalchemy import or_
 
-from app.models import TestStep, Test, TestType, db, TestSets, ProjectSetting
+from app.models import TestStep, TestCase, TestType, db, TestSet, ProjectSetting
 from app.utils import send_result, send_error, data_preprocessing
 from app.validator import CreateTestValidator, UpdateTestValidator
 from app.parser import TestSchema, TestTypeSchema
@@ -82,7 +82,7 @@ def create_test():
         db.session.commit()
 
     # Create an instance for new test
-    test_instance = Test(
+    test_instance = TestCase(
         id=str(uuid.uuid1()),
         issue_id=json_req.get("issue_id", ""),
         issue_jira_id=json_req.get("issue_jira_id", ""),
@@ -98,9 +98,9 @@ def create_test():
         test_set_key = test_set.get("key", "")
         # if test_set_key and test_set_name:
         # check test set existed
-        test_set_instance = TestSets.query.filter_by(name=test_set_name, key=test_set_key, cloud_id=cloud_id).first()
+        test_set_instance = TestSet.query.filter_by(name=test_set_name, key=test_set_key, cloud_id=cloud_id).first()
         if not test_set_instance:
-            test_set_instance = TestSets(
+            test_set_instance = TestSet(
                 id=str(uuid.uuid1()),
                 name=test_set_name,
                 key=test_set_key,
@@ -140,7 +140,7 @@ def create_test():
 def update_test(test_id):
     token = get_jwt_identity()
     cloud_id = token.get('cloudId')
-    existed = Test.query.filter_by(id=test_id, cloud_id=cloud_id).first()
+    existed = TestCase.query.filter_by(id=test_id, cloud_id=cloud_id).first()
     if not existed:
         return send_error(message="Not found existed test")
 
@@ -165,7 +165,7 @@ def update_test(test_id):
 
 @api.route("/<test_id>", methods=["DELETE"])
 def delete_test(test_id):
-    Test.query.filter_by().delete()
+    TestCase.query.filter_by().delete()
     return send_result(message="OK")
 
 
@@ -174,7 +174,7 @@ def delete_test(test_id):
 def get_test_by_id(test_id):
     token = get_jwt_identity()
     cloud_id = token.get('cloudId')
-    test = Test.query.filter_by(or_(id=test_id, key=test_id, name=test_id, issue_jira_id=test_id),
+    test = TestCase.query.filter_by(or_(id=test_id, key=test_id, name=test_id, issue_jira_id=test_id),
                                 cloud_id=cloud_id).first()
     test = TestSchema().dump(test)
     return send_result(data=test, message="OK")
@@ -185,6 +185,6 @@ def get_test_by_id(test_id):
 def get_tests():
     token = get_jwt_identity()
     cloud_id = token.get('cloudId')
-    test = Test.query.filter_by(cloud_id=cloud_id).all()
+    test = TestCase.query.filter_by(cloud_id=cloud_id).all()
     test = TestSchema(many=True).dump(test)
     return send_result(data=test, message="OK")

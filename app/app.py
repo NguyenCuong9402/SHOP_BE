@@ -138,7 +138,6 @@ def register_blueprints(app):
     app.register_blueprint(api_v1.settings.api, url_prefix='/api/v1/setting')
     app.register_blueprint(api_v1.btest_execution.api, url_prefix='/api/v1/testexec')
     app.register_blueprint(api_v1.test_sets.api, url_prefix='/api/v1/test-sets')
-    app.register_blueprint(api_v1.test_run.api, url_prefix='/api/v1/test-run')
     app.register_blueprint(api_v1.manage_test_repo.api, url_prefix='/api/v1/test-repository')
     app.register_blueprint(api_v1.upload.api, url_prefix='/api/v1/upload')
     app.register_blueprint(api_v1.test_step_field.api, url_prefix='/api/v1/test_step_field')
@@ -146,7 +145,8 @@ def register_blueprints(app):
     app.register_blueprint(api_v1.test_type.api, url_prefix='/api/v1/test_type')
     app.register_blueprint(api_v1.test_status.api, url_prefix='/api/v1/test_status')
     app.register_blueprint(api_v1.test_environment.api, url_prefix='/api/v1/test_environment')
-
+    app.register_blueprint(api_v1.test_case.api, url_prefix='/api/v1/test_case')
+    app.register_blueprint(api_v1.test_run.api, url_prefix='/api/v1/test_run')
 
 
 
