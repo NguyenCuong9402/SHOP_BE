@@ -3,7 +3,7 @@ import uuid
 from flask import Blueprint, request
 from flask_jwt_extended import jwt_required, get_jwt_identity, create_access_token
 from sqlalchemy import or_
-from app.models import TestSets, Test, TestType, db
+from app.models import TestSet, TestCase, TestType, db
 from app.utils import send_result, send_error, data_preprocessing
 from app.validator import CreateTestValidator, TestSetsValidator
 from app.parser import TestSchema, TestTypeSchema, TestSetsSchema

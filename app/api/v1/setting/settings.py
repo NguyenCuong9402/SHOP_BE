@@ -8,7 +8,7 @@ from benedict import benedict
 
 from app.api.v1.setting.setting_validator import UpdateMiscellaneousRequest
 from app.gateway import authorization_require
-from app.models import TestStep, Test, TestType, db, TestField, Setting
+from app.models import TestStep, TestCase, TestType, db, TestField, Setting
 from app.utils import send_result, send_error, data_preprocessing
 from app.validator import CreateTestValidator, SettingSchema
 from app.parser import TestFieldSchema, TestStepSchema

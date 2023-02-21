@@ -9,7 +9,7 @@ import uuid
 from flask import Blueprint, request
 from marshmallow import ValidationError
 from app.extensions import logger, db
-from app.models import test_test_executions, TestExecutions, MapTestExec, Test, TestRepo, MapRepo
+from app.models import TestExecution, TestEnvironment, TestCase, Repository, Test_Repository
 from app.utils import send_error, send_result
 from app.validator import RepoValidator, MoveRepoValidator, RepositoryAddIssueValidator, \
     GetRepositoryValidator, RepositorySchema

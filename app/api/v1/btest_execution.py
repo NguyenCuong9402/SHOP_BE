@@ -11,12 +11,12 @@ from marshmallow import ValidationError
 from sqlalchemy import or_
 
 from app.extensions import logger, db
-from app.models import test_test_executions, TestExecutions, MapTestExec, Test, TestStatus, TestSets
+from app.models import  TestExecution, TestRun, TestCase, TestStatus, TestSet
 from app.gateway import authorization_require
 from app.parser import TestExecSchema
 from app.utils import send_error, send_result
 from app.validator import IssueIDSchema, IssueIDValidator, TestExecValidator, \
-    GetExecutionValidator, TestRunSchema, TestExecutionSchema
+    GetExecutionValidator, Schema, TestExecutionSchema
 from sqlalchemy.sql import func
 from flask_jwt_extended import get_jwt_identity, jwt_required
 
@@ -80,7 +80,7 @@ def create_test_exec():
     return send_result(data=test_exec_data, message_id=CREATE_TEST_EXECUTION)
 
 
-@api.route('/<test_execution_id>/testruns', methods=['POST'])
+@api.route('/<test_execution_id>/s', methods=['POST'])
 @authorization_require()
 def get_issue_links(test_execution_id):
     """ This api get information of an enrollment_info.
@@ -144,9 +144,9 @@ def get_issue_links(test_execution_id):
     test_run = query.filter(MapTestExec.exec_id == existed_exec.id).all()
 
     if fields is not None:
-        test_run_dump = TestRunSchema(many=True, only=fields).dump(test_run)
+        test_run_dump = Schema(many=True, only=fields).dump(test_run)
     else:
-        test_run_dump = TestRunSchema(many=True).dump(test_run)
+        test_run_dump = Schema(many=True).dump(test_run)
     return send_result(data=test_run_dump, message="OK")
 
 

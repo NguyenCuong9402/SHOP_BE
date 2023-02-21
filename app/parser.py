@@ -1,6 +1,6 @@
 from app.extensions import ma
-from app.models import Test, TestStep, TestType, TestField, \
-    TestSets, TestExecutions, MapTestExec, Defects, TestEvidence
+from app.models import TestCase, TestStep, TestType, TestField, \
+    TestSet, TestExecution, Defects, TestEvidence, TestRun
 
 
 class TestTypeSchema(ma.SQLAlchemyAutoSchema):
@@ -18,8 +18,9 @@ class TestStepSchema(ma.SQLAlchemyAutoSchema):
 class TestSchema(ma.SQLAlchemySchema):
     class Meta:
         include_fk = True
-        model = Test
-        fields = ("id", "issue_id", "test_repo", "project_id", "test_steps", "test_type", "issue_jira_id", "key", "name")
+        model = TestCase
+        fields = (
+        "id", "issue_id", "test_repo", "project_id", "test_steps", "test_type", "issue_jira_id", "key", "name")
 
     id = ma.auto_field()
     test_steps = ma.List(ma.Nested(TestStepSchema))
@@ -43,7 +44,7 @@ class TestFieldSchema(ma.SQLAlchemySchema):
 class TestSetsSchema(ma.SQLAlchemySchema):
     class Meta:
         include_fk = True
-        model = TestSets
+        model = TestSet
         fields = ("id", "name", "key", "jira_id", "tests")
 
     id = ma.auto_field()
@@ -53,7 +54,7 @@ class TestSetsSchema(ma.SQLAlchemySchema):
 class TestExecSchema(ma.SQLAlchemySchema):
     class Meta:
         include_fk = True
-        model = TestExecutions
+        model = TestExecution
         fields = ("id", "name", "key", "tests")
 
     id = ma.auto_field()
@@ -63,7 +64,7 @@ class TestExecSchema(ma.SQLAlchemySchema):
 class TestInTestRunSchema(ma.SQLAlchemySchema):
     class Meta:
         include_fk = True
-        model = Test
+        model = TestCase
         fields = ("id", "issue_id", "cloud_id", "issue_jira_id", "key",
                   "name", "self", "test_repo", "project_id", "test_steps", "test_type")
 
@@ -87,7 +88,7 @@ class TestEvidenceSchema(ma.SQLAlchemyAutoSchema):
 class TestRunExecSchema(ma.SQLAlchemySchema):
     class Meta:
         include_fk = True
-        model = MapTestExec
+        model = TestRun
         fields = ("id", "test_id", "exec_id", "index", "status_id", "comment",
                   "created_date", "modified_date", "tests", "total_seconds", "defects", "evidences")
 

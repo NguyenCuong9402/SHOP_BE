@@ -3,8 +3,8 @@ import uuid
 from flask import Blueprint, request
 from flask_jwt_extended import jwt_required, get_jwt_identity, create_access_token
 
-from app.models import TestStep, Test, TestType, db, MapTestExec, TestTimer, Defects, TestEvidence, TestStepDetail, \
-    TestStatus, TestActivity, TestExecutions
+from app.models import TestStep, TestCase, TestType, db, TestRun, TestTimer, Defects, TestEvidence, TestStepDetail, \
+    TestStatus, TestActivity, TestExecution
 from app.parser import TestExecSchema, TestRunExecSchema
 from app.utils import send_result, send_error, data_preprocessing, get_timestamp_now
 from app.validator import TestRunSchema, DefectsValidator, EvidenceValidator, CommentValidator, TestStatusValidator, \
