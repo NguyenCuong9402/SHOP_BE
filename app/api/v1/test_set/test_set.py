@@ -10,10 +10,11 @@ from sqlalchemy.orm import joinedload
 from app.api.v1.test_run.schema import TestRunSchema
 from app.gateway import authorization_require
 from app.models import TestStep, TestCase, TestType, db, TestField, Setting, TestRun, TestExecution, \
-    test_cases_test_executions, TestStatus, TestStepDetail
+    test_cases_test_executions, TestStatus, TestStepDetail, TestSet
 from app.utils import send_result, send_error, data_preprocessing, get_timestamp_now
+from app.validator import TestSetSchema
 
-api = Blueprint('test_case', __name__)
+api = Blueprint('test_set', __name__)
 
 
 @api.route("/<test_case_id>", methods=["GET"])
@@ -174,17 +175,17 @@ def create_test_case():
         issue_id = token.get('issueId')
         project_id = token.get('projectId')
 
-        test_case = TestCase(
+        test_set = TestSet(
             id=str(uuid.uuid4()),
             issue_id=issue_id,
             project_id=project_id,
             cloud_id=cloud_id,
             created_date=get_timestamp_now()
         )
-        db.session.add(test_case)
+        db.session.add(test_set)
         db.session.flush()
 
-        return send_result(data='Done', message="OK")
+        return send_result(TestSetSchema().dump(test_set), message="OK")
 
     except Exception as ex:
         print(ex)

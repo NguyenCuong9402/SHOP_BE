@@ -445,7 +445,7 @@ class TestCase(db.Model):
     issue_key = db.Column(db.String(50))
     meta_data = db.Text()
 
-    test_steps = relationship("TestStep", primaryjoin='TestStep.test_case_id == TestCase.id', lazy="joined",
+    test_steps = relationship("TestStep", primaryjoin='TestStep.test_case_id == TestCase.id', lazy="noload",
                               order_by="asc(TestStep.index)")
 
     created_date = db.Column(db.Integer, default=0)
@@ -560,6 +560,8 @@ class TestStep(db.Model):
 
     test_case_id = db.Column(db.String(50), db.ForeignKey('test_case.id', ondelete='CASCADE', onupdate='CASCADE'),
                              nullable=False)
+
+    test_details = relationship("TestStepDetail", primaryjoin='TestStepDetail.test_step_id == TestStep.id', lazy='noload')
 
     created_date = db.Column(db.Integer, default=0)
     modified_date = db.Column(db.Integer, default=0)

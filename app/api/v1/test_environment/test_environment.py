@@ -131,8 +131,6 @@ def create_test_environment(project_id):
         return send_error(data='', message="Something was wrong!")
 
 
-
-
 @api.route("/<project_id>", methods=["DELETE"])
 @authorization_require()
 def delete_test_environments(project_id):

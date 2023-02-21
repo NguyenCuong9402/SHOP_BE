@@ -13,3 +13,6 @@ from app.api.v1.test_status import test_status
 from app.api.v1.test_environment import test_environment
 from app.api.v1.test_case import test_case
 from app.api.v1.test_run import test_run
+from app.api.v1.test_execution import test_execution
+from app.api.v1.test_set import test_set
+
