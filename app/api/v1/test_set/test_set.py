@@ -5,14 +5,18 @@ from operator import or_
 from flask import Blueprint, request
 from flask_jwt_extended import jwt_required, get_jwt_identity, create_access_token
 from benedict import benedict
+from marshmallow import ValidationError
 from sqlalchemy.orm import joinedload
 
 from app.api.v1.test_run.schema import TestRunSchema
+from app.extensions import logger
 from app.gateway import authorization_require
 from app.models import TestStep, TestCase, TestType, db, TestField, Setting, TestRun, TestExecution, \
-    test_cases_test_executions, TestStatus, TestStepDetail, TestSet
+    test_cases_test_executions, TestStatus, TestStepDetail, TestSet, test_cases_test_sets
 from app.utils import send_result, send_error, data_preprocessing, get_timestamp_now
-from app.validator import TestSetSchema
+from app.validator import TestSetSchema, DeleteTestValidator
+
+INVALID_PARAMETERS_ERROR = 'g1'
 
 api = Blueprint('test_set', __name__)
 
@@ -189,3 +193,30 @@ def create_test_case():
 
     except Exception as ex:
         print(ex)
+
+
+@api.route("/<test_set_id>/tests", methods=['DELETE'])
+@authorization_require()
+def delete_tests(test_set_id):
+    try:
+        try:
+            body = request.get_json()
+            params = DeleteTestValidator().load(body) if body else dict()
+        except ValidationError as err:
+            logger.error(json.dumps({
+                "message": err.messages,
+                "data": err.valid_data
+            }))
+            return send_error(message_id=INVALID_PARAMETERS_ERROR, data=err.messages)
+
+        test_ids = params.get('test_ids', [])
+
+        tests_case = TestCase.query.filter(TestCase.id.is_(test_ids)).count()
+        if tests_case != len(test_ids):
+            return send_error()
+
+        test_cases_test_sets.query.filter(test_cases_test_sets.test_set_id == test_set_id).delete()
+        db.session.commit()
+    except Exception as ex:
+        db.session.rollback()
+        return send_error(message=str(ex))

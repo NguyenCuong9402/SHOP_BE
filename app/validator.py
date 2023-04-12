@@ -222,6 +222,10 @@ class CommentValidator(Schema):
     content = fields.String(required=False, validates=[validate.Length(min=0, max=500)])
 
 
+class DeleteTestValidator(Schema):
+    test_ids = fields.List()
+
+
 class TestStepRunSchema(Schema):
     """
     Author: phongnv
@@ -544,3 +548,4 @@ class TestRunSchema(Schema):
     is_updated = fields.Boolean()
     start_date = fields.Integer()
     end_date = fields.Integer()
+
