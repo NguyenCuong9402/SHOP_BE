@@ -7,6 +7,8 @@ from app.extensions import db
 from sqlalchemy.dialects.mysql import INTEGER
 from sqlalchemy.ext.hybrid import hybrid_property
 
+# from app.utils import get_timestamp_now
+
 
 class User(db.Model):
     __tablename__ = 'users'
@@ -577,3 +579,12 @@ class Attachment(db.Model):
     created_date = db.Column(db.Integer, default=0)
     modified_date = db.Column(db.Integer, default=0)
     deleted_date = db.Column(db.Integer, default=0)
+
+
+class UserSetting(db.Model):
+    __tablename__ = 'user_setting'
+    id = db.Column(db.String(50), primary_key=True)
+    user_id = db.Column(db.String(50), index=True)
+    display_column = db.Column(db.Text)
+    created_date = db.Column(INTEGER(unsigned=True))
+    modified_date = db.Column(INTEGER(unsigned=True))
