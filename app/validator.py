@@ -222,8 +222,9 @@ class CommentValidator(Schema):
     content = fields.String(required=False, validates=[validate.Length(min=0, max=500)])
 
 
-class DeleteTestValidator(Schema):
-    test_ids = fields.List(fields.String())
+class TestCaseValidator(Schema):
+    ids = fields.List(fields.String(), required=True)
+    is_delete_all = fields.Boolean()
 
 
 class TestStepRunSchema(Schema):

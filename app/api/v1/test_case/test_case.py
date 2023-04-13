@@ -5,13 +5,20 @@ from operator import or_
 from flask import Blueprint, request
 from flask_jwt_extended import jwt_required, get_jwt_identity, create_access_token
 from benedict import benedict
+from marshmallow import ValidationError
 from sqlalchemy.orm import joinedload
 
 from app.api.v1.test_run.schema import TestRunSchema
+from app.enums import INVALID_PARAMETERS_ERROR
+from app.extensions import logger
 from app.gateway import authorization_require
 from app.models import TestStep, TestCase, TestType, db, TestField, Setting, TestRun, TestExecution, \
-    test_cases_test_executions, TestStatus, TestStepDetail
+    test_cases_test_executions, TestStatus, TestStepDetail, test_cases_test_sets
 from app.utils import send_result, send_error, data_preprocessing, get_timestamp_now
+from app.validator import TestCaseValidator
+
+DELETE_SUCCESS = 13
+ADD_SUCCESS = 16
 
 api = Blueprint('test_case', __name__)
 
@@ -188,3 +195,68 @@ def create_test_case():
 
     except Exception as ex:
         print(ex)
+
+
+@api.route("/test-sets/<test_case_id>", methods=['DELETE'])
+@authorization_require()
+def delete_tests_set_from_testcase(test_case_id):
+    try:
+        try:
+            body = request.get_json()
+            params = TestCaseValidator().load(body) if body else dict()
+        except ValidationError as err:
+            logger.error(json.dumps({
+                "message": err.messages,
+                "data": err.valid_data
+            }))
+            return send_error(message_id=INVALID_PARAMETERS_ERROR, data=err.messages)
+
+        ids = params.get('ids', [])
+        is_delete_all = params.get('is_delete_all', True)
+
+        if is_delete_all:
+            test_cases_test_sets.query.filter(test_cases_test_sets.test_set_id.notin_(ids),
+                                              test_cases_test_sets.test_case_id == test_case_id).delete()
+            number_test_set = test_cases_test_sets.query.filter(test_cases_test_sets.test_case_id == test_case_id) \
+                .count()
+        else:
+            test_cases_test_sets.query.filter(test_cases_test_sets.test_set_id.in_(ids),
+                                              test_cases_test_sets.test_case_id == test_case_id).delete()
+            number_test_set = len(ids)
+        db.session.commit()
+        message = f'{number_test_set} Test Set(s) removed from the Test'
+        return send_result(message_id=DELETE_SUCCESS, message=message)
+    except Exception as ex:
+        db.session.rollback()
+        return send_error(message=str(ex))
+
+
+@api.route("/test-sets/<test_case_id>", methods=['POST'])
+@authorization_require()
+def add_tests_set_for_testcase(test_case_id):
+    try:
+        try:
+            body = request.get_json()
+            params = TestCaseValidator().load(body) if body else dict()
+        except ValidationError as err:
+            logger.error(json.dumps({
+                "message": err.messages,
+                "data": err.valid_data
+            }))
+            return send_error(message_id=INVALID_PARAMETERS_ERROR, data=err.messages)
+
+        ids = params.get('ids', [])
+
+        for index, test_set_id in enumerate(ids):
+            new_item = test_cases_test_sets(id=str(uuid.uuid4()),
+                                            test_set_id=test_set_id,
+                                            test_case_id=test_case_id,
+                                            index=index)
+            db.session.add(new_item)
+
+        db.session.commit()
+        message = f'{len(ids)} Test Set(s) added to the Test'
+        return send_result(message_id=ADD_SUCCESS, message=message)
+    except Exception as ex:
+        db.session.rollback()
+        return send_error(message=str(ex))

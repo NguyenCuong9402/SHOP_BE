@@ -1,3 +1,4 @@
 # coding=utf-8
 
 SUPER_ADMIN_ID = ""
+INVALID_PARAMETERS_ERROR = 'g1'
