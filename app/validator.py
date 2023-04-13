@@ -223,7 +223,7 @@ class CommentValidator(Schema):
 
 
 class DeleteTestValidator(Schema):
-    test_ids = fields.List()
+    test_ids = fields.List(fields.String())
 
 
 class TestStepRunSchema(Schema):
