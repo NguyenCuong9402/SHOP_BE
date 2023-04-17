@@ -8,7 +8,7 @@ from sqlalchemy.orm import joinedload
 from app.api.v1.test_run.schema import TestRunSchema
 from app.gateway import authorization_require
 from app.models import TestStep, TestCase, db, TestRun, TestExecution, \
-    TestStatus, TestStepDetail, TestSet, test_cases_test_sets
+    TestStatus, TestStepDetail, TestSet
 from app.utils import send_result, send_error, data_preprocessing, get_timestamp_now
 from app.validator import TestSetSchema
 
@@ -50,66 +50,6 @@ def get_test_run(issue_id):
 
     except Exception as ex:
         print(ex)
-
-
-@api.route("/add_to_test_set", methods=["POST"])
-@authorization_require()
-def add_test_to_test_set():
-    try:
-        body_request = request.get_json()
-        token = get_jwt_identity()
-        cloud_id = token.get('cloudId')
-        project_id = token.get('projectId')
-        test_set_id = body_request.get("test_set_id")
-        test_cases_id = body_request.get("test_cases_id")
-        # check Test Set
-        check_test_set = TestSet.query.filter(TestSet.id == test_set_id).first()
-        if not check_test_set:
-            return send_error(message='TEST SET DOES NOT EXIST', status=404, show=False)
-        for test_case_id in test_cases_id:
-            # check Test Case
-
-            if not TestCase.query.filter(TestCase.id == test_case_id).first():
-                return send_error(message='TEST CASE DOES NOT EXIST', status=404, show=False)
-
-            new_record = {'test_case_id': test_case_id, 'test_set_id': test_set_id}
-            stmt = test_cases_test_sets.insert().values(**new_record)
-            db.session.execute(stmt)
-        db.session.commit()
-        return send_result(message='Add test case to test set successfully', status=201, show=True)
-
-    except Exception as ex:
-        db.session.rollback()
-        return send_error(message=str(ex))
-
-
-@api.route("/remove_to_test_set", methods=["DELETE"])
-@authorization_require()
-def remove_test_to_test_set():
-    try:
-        body_request = request.get_json()
-        token = get_jwt_identity()
-        cloud_id = token.get('cloudId')
-        project_id = token.get('projectId')
-        test_set_id = body_request.get("test_set_id")
-        test_cases_id = body_request.get("test_cases_id")
-        # check Test Set
-        check_test_set = TestSet.query.filter(TestSet.id == test_set_id).first()
-        if not check_test_set:
-            return send_error(message='TEST SET DOES NOT EXIST', status=404, show=False)
-        for test_case_id in test_cases_id:
-            # check Test Case
-            if TestCase.query.filter(TestCase.id == test_case_id).first():
-                # query in table and delete
-                query = test_cases_test_sets.delete().where(
-                    test_cases_test_sets.c.test_case_id == test_case_id)
-                db.session.execute(query)
-        db.session.commit()
-        return send_result(message='remove test case to test set successfully', status=201, show=True)
-
-    except Exception as ex:
-        db.session.rollback()
-        return send_error(message=str(ex))
 
 
 @api.route("/<test_issue_id>/test_execution", methods=["POST"])
