@@ -52,15 +52,14 @@ def get_test_run(issue_id):
         print(ex)
 
 
-@api.route("/add_to_test_set", methods=["POST"])
+@api.route("/add_to_test_set/<test_set_id>", methods=["POST"])
 @authorization_require()
-def add_test_to_test_set():
+def add_test_to_test_set(test_set_id):
     try:
         body_request = request.get_json()
         token = get_jwt_identity()
         cloud_id = token.get('cloudId')
         project_id = token.get('projectId')
-        test_set_id = body_request.get("test_set_id")
         test_cases_id = body_request.get("test_cases_id")
         # check Test Set
         check_test_set = TestSet.query.filter(TestSet.id == test_set_id).first()
@@ -83,15 +82,14 @@ def add_test_to_test_set():
         return send_error(message=str(ex))
 
 
-@api.route("/remove_to_test_set", methods=["DELETE"])
+@api.route("/remove_from_test_set/<test_set_id>", methods=["DELETE"])
 @authorization_require()
-def remove_test_to_test_set():
+def remove_test_to_test_set(test_set_id):
     try:
         body_request = request.get_json()
         token = get_jwt_identity()
         cloud_id = token.get('cloudId')
         project_id = token.get('projectId')
-        test_set_id = body_request.get("test_set_id")
         test_cases_id = body_request.get("test_cases_id")
         # check Test Set
         check_test_set = TestSet.query.filter(TestSet.id == test_set_id).first()
