@@ -10,7 +10,7 @@ from app.gateway import authorization_require
 from app.models import TestStep, TestCase, db, TestRun, TestExecution, \
     TestStatus, TestStepDetail, TestSet, test_cases_test_sets
 from app.utils import send_result, send_error, data_preprocessing, get_timestamp_now
-from app.validator import TestSetSchema
+from app.validator import TestSetSchema, TestCaseSchema
 
 INVALID_PARAMETERS_ERROR = 'g1'
 
@@ -23,7 +23,7 @@ def get_test_case(test_case_id):
     token = get_jwt_identity()
     cloud_id = token.get('cloudId')
     test_case = TestCase.get_by_id(test_case_id)
-    return send_result(data=json.dumps(test_case), message="OK")
+    return send_result(data=TestCaseSchema().dumps(test_case), message="OK")
 
 
 @api.route("/<issue_id>/test_run", methods=["GET"])
@@ -105,6 +105,66 @@ def remove_test_to_test_set(test_set_id):
         db.session.commit()
         return send_result(message='remove test case to test set successfully', status=201, show=True)
 
+    except Exception as ex:
+        db.session.rollback()
+        return send_error(message=str(ex))
+
+
+@api.route("/change_rank_test_case/<test_set_id>", methods=["PUT"])
+@authorization_require()
+def change_rank_case_in_test_set(test_set_id):
+    try:
+        token = get_jwt_identity()
+        cloud_id = token.get('cloudId')
+        json_req = request.get_json()
+
+        query = test_cases_test_sets.select().where(test_cases_test_sets.c.test_set_id == test_set_id)
+        # tạo bản ghi
+        result = db.session.execute(query)
+        index_drag = json_req['index_drag']
+        index_drop = json_req['index_drop']
+        if index_drag > index_drop:
+            # Lấy vị trí drag
+            query = test_cases_test_sets.select().where(test_cases_test_sets.c.test_set_id == test_set_id) \
+                .where(test_cases_test_sets.c.index == index_drag)
+            result = db.session.execute(query)
+            # Lấy thông tin
+            data = [{'test_case_id': row[0], 'test_set_id': row[1], 'index': row[2]} for row in result]
+
+            # Cập nhật vị trí của các test case ở giữa giá trị drop-1 và giá trị drag
+            pos = test_cases_test_sets.update().where(
+                (test_cases_test_sets.c.test_set_id == test_set_id) &
+                (test_cases_test_sets.c.index > index_drop - 1) &
+                (test_cases_test_sets.c.index < index_drag)).values(index=test_cases_test_sets.c.index + 1)
+            db.session.execute(pos)
+            # Gán đến vị trí drop
+            pos1 = test_cases_test_sets.update().where(
+                (test_cases_test_sets.c.test_set_id == test_set_id) &
+                (test_cases_test_sets.c.test_case_id == data[0]['test_case_id']) &
+                (test_cases_test_sets.c.index == data[0]['index'])).values(index=index_drop)
+            db.session.execute(pos1)
+            db.session.commit()
+            return send_result(message='Update test case to test set successfully', status=201, show=True)
+        else:
+            query = test_cases_test_sets.select().where(test_cases_test_sets.c.test_set_id == test_set_id) \
+                .where(test_cases_test_sets.c.index == index_drag)
+            result = db.session.execute(query)
+            # Lấy thông tin
+            data = [{'test_case_id': row[0], 'test_set_id': row[1], 'index': row[2]} for row in result]
+            # Cập nhật vị trí của các test case ở giữa giá trị drop và drag
+            pos = test_cases_test_sets.update().where(
+                (test_cases_test_sets.c.test_set_id == test_set_id) &
+                (test_cases_test_sets.c.index > index_drag) &
+                (test_cases_test_sets.c.index < index_drop+1)).values(index=test_cases_test_sets.c.index - 1)
+            db.session.execute(pos)
+            # Gán đến vị trí drop
+            pos1 = test_cases_test_sets.update().where(
+                (test_cases_test_sets.c.test_set_id == test_set_id) &
+                (test_cases_test_sets.c.test_case_id == data[0]['test_case_id']) &
+                (test_cases_test_sets.c.index == data[0]['index'])).values(index=index_drop)
+            db.session.execute(pos1)
+            db.session.commit()
+            return send_result(message='Update test case to test set successfully', status=201, show=True)
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
