@@ -126,7 +126,7 @@ def create_test_step(project_id):
         return send_error(data='', message="Something was wrong!")
 
 
-@api.route("/change_rank/<project_id>", methods=["PUT"])
+@api.route("/<project_id>/change_rank", methods=["PUT"])
 @authorization_require()
 def change_rank_test_step(project_id):
     try:
