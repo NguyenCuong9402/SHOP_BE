@@ -588,3 +588,15 @@ class UserSetting(db.Model):
     display_column = db.Column(db.Text)
     created_date = db.Column(INTEGER(unsigned=True))
     modified_date = db.Column(INTEGER(unsigned=True))
+
+
+class FileDetail(db.Model):
+    __tablename__ = "file_detail"
+
+    id = db.Column(db.String(50), primary_key=True)
+    attached_file = db.Column(db.Text(), nullable=True)
+    file_name = db.Column(db.String(500), nullable=True)
+    extension = db.Column(db.Text(), nullable=True)
+    prefix = db.Column(db.Text(), nullable=True)
+    created_date = db.Column(INTEGER(unsigned=True), default=0)
+    modified_date = db.Column(INTEGER(unsigned=True), default=0)

@@ -550,3 +550,16 @@ class TestRunSchema(Schema):
     start_date = fields.Integer()
     end_date = fields.Integer()
 
+
+class UploadValidation(Schema):
+    """
+    Validator
+    Ex:
+    {
+        "file_name": "default_avatars.png",
+        "prefix": "avatars"
+    }
+    """
+    file_name = fields.String(required=False, validate=validate.Length(min=1, max=50))
+    prefix = fields.String(required=True,
+                           validate=validate.OneOf(choices=["test-case"], error="Prefix must be 'test-case'."))
