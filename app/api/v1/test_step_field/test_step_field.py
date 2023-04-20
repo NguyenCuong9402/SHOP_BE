@@ -126,6 +126,37 @@ def create_test_step(project_id):
         return send_error(data='', message="Something was wrong!")
 
 
+@api.route("/change_rank/<project_id>", methods=["PUT"])
+@authorization_require()
+def change_rank_test_step(project_id):
+    try:
+        query = TestStepField.query.filter(TestStepField.project_id == project_id).first()
+        if not query:
+            return send_error(message='PROJECT DOES NOT EXIST', status=404, show=False)
+
+        json_req = request.get_json()
+        index_drag = json_req['index_drag']
+        index_drop = json_req['index_drop']
+        # vị trí drag to drop
+        index_drag_to_drop = TestStepField.query.filter(TestStepField.project_id == project_id)\
+            .filter(TestStepField.index == index_drag).first()
+        if index_drag > index_drop:
+            TestStepField.query.filter(TestStepField.project_id == project_id)\
+                .filter(TestStepField.index > index_drop-1, TestStepField.index < index_drag)\
+                .update(dict(index=TestStepField.index+1))
+            index_drag_to_drop.index = index_drop
+        else:
+            TestStepField.query.filter(TestStepField.project_id == project_id) \
+                .filter(TestStepField.index < index_drop + 1, TestStepField.index > index_drag) \
+                .update(dict(index=TestStepField.index - 1))
+            index_drag_to_drop.index = index_drop
+        db.session.commit()
+        return send_result(message='Update rank test step successfully', status=201, show=True)
+    except Exception as ex:
+        db.session.rollback()
+        return send_error(message=str(ex))
+
+
 @api.route("/<project_id>/<test_step_id>", methods=["PUT"])
 @authorization_require()
 def update_test_step(project_id, test_step_id):
