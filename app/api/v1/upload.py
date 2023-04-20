@@ -16,7 +16,7 @@ api = Blueprint('upload', __name__)
 
 # ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 
-# os.makedirs("app/files", exist_ok=True)
+os.makedirs("app/files", exist_ok=True)
 
 
 # def allowed_file(filename):
