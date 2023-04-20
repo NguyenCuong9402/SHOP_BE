@@ -1,5 +1,6 @@
 import os
 import uuid
+from marshmallow import Schema, fields, validate, ValidationError, types, validates_schema, post_dump
 
 from flask import Blueprint, request, send_file, jsonify
 from flask_jwt_extended import jwt_required
@@ -89,6 +90,23 @@ def upload_file():
 
     return send_result(data=dt, message="Ok")
 
+
+@api.route('', methods=['GET'])
+def get_file():
+    attached_files = request.args.getlist('attached_files[]', None)
+    files = FileDetail.query.filter(FileDetail.attached_file.in_(attached_files)).all()
+
+    files = FileDetailSchema(many=True).dump(files)
+
+    return send_result(data=files, message="ok")
+
+
+class FileDetailSchema(Schema):
+    name = fields.String()
+    attached_file = fields.String()
+    file_name = fields.String()
+    extension = fields.String()
+    prefix = fields.String()
 
 
 # @api.route('/<name>', methods=['GET'])
