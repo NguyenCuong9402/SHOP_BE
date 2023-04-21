@@ -563,3 +563,12 @@ class UploadValidation(Schema):
     file_name = fields.String(required=False, validate=validate.Length(min=1, max=50))
     prefix = fields.String(required=True,
                            validate=validate.OneOf(choices=["test-case"], error="Prefix must be 'test-case'."))
+
+
+class HistorySchema(Schema):
+    user_id = fields.String()
+    activities = fields.String()
+    action_name = fields.String()
+    detail_of_action = fields.List(fields.String)
+    created_date = fields.Integer()
+
