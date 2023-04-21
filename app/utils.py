@@ -3,7 +3,8 @@ from time import time
 from flask import jsonify
 
 from werkzeug.security import generate_password_hash
-
+from pytz import timezone
+import datetime
 from app.models import Message
 from app.settings import Config
 
@@ -121,6 +122,24 @@ def get_timestamp_now():
             current time in timestamp
     """
     return int(time())
+
+
+def get_datetime_now() -> datetime:
+    """
+        Returns:
+            current datetime
+    """
+    time_zon_sg = timezone('Asia/Ho_Chi_Minh')
+    return datetime.datetime.now(time_zon_sg)
+
+
+def get_timestamp_now_2() -> int:
+    """
+        Returns:
+            current time in timestamp
+    """
+    time_zon_sg = timezone('Asia/Ho_Chi_Minh')
+    return int(datetime.datetime.now(time_zon_sg).timestamp())
 
 
 def data_preprocessing(cls_validator, input_json: dict):
