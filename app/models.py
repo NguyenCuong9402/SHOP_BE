@@ -1,11 +1,13 @@
 # coding: utf-8
 import json
+from typing import List
 
 from sqlalchemy.orm import relationship
-from sqlalchemy import ForeignKey, TEXT, asc
+from sqlalchemy import ForeignKey, TEXT, asc, CheckConstraint
 from app.extensions import db
 from sqlalchemy.dialects.mysql import INTEGER
 from sqlalchemy.ext.hybrid import hybrid_property
+
 
 # from app.utils import get_timestamp_now
 
@@ -563,7 +565,8 @@ class TestStep(db.Model):
     test_case_id = db.Column(db.String(50), db.ForeignKey('test_case.id', ondelete='CASCADE', onupdate='CASCADE'),
                              nullable=False)
 
-    test_details = relationship("TestStepDetail", primaryjoin='TestStepDetail.test_step_id == TestStep.id', lazy='noload')
+    test_details = relationship("TestStepDetail", primaryjoin='TestStepDetail.test_step_id == TestStep.id',
+                                lazy='noload')
 
     created_date = db.Column(db.Integer, default=0)
     modified_date = db.Column(db.Integer, default=0)
@@ -600,3 +603,17 @@ class FileDetail(db.Model):
     prefix = db.Column(db.Text(), nullable=True)
     created_date = db.Column(INTEGER(unsigned=True), default=0)
     modified_date = db.Column(INTEGER(unsigned=True), default=0)
+
+
+class HistoryTestSet(db.Model):
+    __tablename__ = "history_test_set"
+    id = db.Column(db.String(50), primary_key=True)
+    user_id = db.Column(db.String(50), nullable=False)
+    activities = db.Column(db.String(50), nullable=False)
+    action_name = db.Column(db.String(50), nullable=False)
+    detail_of_action = db.Column(db.JSON, nullable=False)
+    created_date = db.Column(db.Integer, default=0, index=True)
+    test_set_id = db.Column(db.String(50), nullable=False, index=True)
+
+
+
