@@ -22,7 +22,6 @@ def upgrade():
     sa.Column('id', sa.String(length=50), nullable=False),
     sa.Column('user_id', sa.String(length=50), nullable=False),
     sa.Column('activities', sa.String(length=50), nullable=False),
-    sa.Column('subject', sa.String(length=50), nullable=False),
     sa.Column('action_name', sa.String(length=50), nullable=False),
     sa.Column('detail_of_action', sa.Text(), nullable=False),
     sa.Column('created_date', sa.Integer(), nullable=True),

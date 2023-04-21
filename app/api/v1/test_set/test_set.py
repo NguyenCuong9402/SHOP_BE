@@ -193,10 +193,10 @@ def change_rank_case_in_test_set(test_set_id):
         return send_error(message=str(ex))
 
 
-def save_history(test_set_id: str, user_id: str, action: int, btest_id: list, change_rank: list):
+def save_history(test_set_id: str, user_id: str, action: int, btest_ids: list, change_rank: list):
     # 1: add   2: remove  3:change rank
     if action == 1:
-        query = TestCase.query.filter(TestCase.id.in_(btest_id)).all()
+        query = TestCase.query.filter(TestCase.id.in_(btest_ids)).all()
         test_case_keys = [item.issue_key for item in query]
         new_history = HistoryTestSet(
             test_set_id=test_set_id,
@@ -209,7 +209,7 @@ def save_history(test_set_id: str, user_id: str, action: int, btest_id: list, ch
         db.session.add(new_history)
 
     elif action == 2:
-        query = TestCase.query.filter(TestCase.id.in_(btest_id)).all()
+        query = TestCase.query.filter(TestCase.id.in_(btest_ids)).all()
         test_case_keys = [item.issue_key for item in query]
         new_history = HistoryTestSet(
             test_set_id=test_set_id,
@@ -222,7 +222,7 @@ def save_history(test_set_id: str, user_id: str, action: int, btest_id: list, ch
         db.session.add(new_history)
 
     elif action == 3:
-        query = TestCase.query.filter(TestCase.id == btest_id[0]).first()
+        query = TestCase.query.filter(TestCase.id == btest_ids[0]).first()
         new_history = HistoryTestSet(
             test_set_id=test_set_id,
             user_id=user_id,
