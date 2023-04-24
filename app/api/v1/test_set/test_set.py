@@ -90,6 +90,7 @@ def add_test_to_test_set(test_set_id):
             record.append(new_record)
         stmt = test_cases_test_sets.insert().values(record)
         db.session.execute(stmt)
+        db.session.flush()
         db.session.commit()
         # save history
         save_history(test_set_id, user_id, 1, test_cases_id, [])
@@ -133,6 +134,7 @@ def remove_test_to_test_set(test_set_id):
                 .values(index=new_index)
             db.session.execute(stmt)
             new_index += 1
+        db.session.flush()
         db.session.commit()
         # save history
         save_history(test_set_id, user_id, 2, test_cases_id, [])
@@ -183,6 +185,7 @@ def change_rank_case_in_test_set(test_set_id):
                 (test_cases_test_sets.c.test_case_id == data[0]['test_case_id']) &
                 (test_cases_test_sets.c.index == data[0]['index'])).values(index=index_drop)
         db.session.execute(pos1)
+        db.session.flush()
         db.session.commit()
         # save history
         save_history(test_set_id, user_id, 3, [data[0]['test_case_id']], [index_drag, index_drop])
