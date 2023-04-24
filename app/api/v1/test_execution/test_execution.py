@@ -103,7 +103,7 @@ def add_test_execution(test_issue_id):
             if exist_test_case is None:
                 """
                   Add this test case to test execution
-                  """
+                """
                 test_execution.test_cases.append(test_case)
 
             """
@@ -133,6 +133,32 @@ def add_test_execution(test_issue_id):
         return send_result(data='', message='Add test execution to test case successfully', show=True)
     except Exception as ex:
         db.session.rollback()
+        return send_error(message=str(ex))
+
+
+@api.route("/<test_issue_id>/test_execution", methods=["DELETE"])
+@authorization_require()
+def remove_test_execution(test_issue_id):
+    try:
+        body_request = request.get_json()
+        test_execution_issue_ids = body_request.get('test_execution_issue_ids')
+        test_case = TestCase.query.filter(TestCase.issue_id == test_issue_id).first()
+        if test_case is None:
+            return send_error(message='TEST CASE DOES NOT EXIST ', status=404, show=False)
+
+        for id_test_exec in test_execution_issue_ids:
+            test_execution_to_delete = TestExecution.query.filter(TestExecution.id == id_test_exec).first()
+            test_run_to_delete = TestRun.query.filter(TestRun.test_execution_id == id_test_exec).first()
+            if test_execution_to_delete is None:
+                return send_error(message='TEST DOES NOT EXIST ', status=404, show=False)
+            db.session.delete(test_run_to_delete)
+            db.session.delete(test_execution_to_delete)
+        db.session.commit()
+        return send_result(data='', message='Remove test execution to test case successfully', show=True)
+
+    except Exception as ex:
+        db.session.rollback()
+        return send_error(message=str(ex))
 
 
 @api.route("/<test_case_id>/test_run_id", methods=["GET"])
