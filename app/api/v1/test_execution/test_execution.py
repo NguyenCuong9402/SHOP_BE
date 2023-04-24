@@ -153,7 +153,7 @@ def remove_test_execution(test_issue_id):
                 return send_error(message='TEST DOES NOT EXIST ', status=404, show=False)
             db.session.delete(test_run_to_delete)
             db.session.delete(test_execution_to_delete)
-            db.session.flush()
+        db.session.flush()
         db.session.commit()
         return send_result(data='', message='Remove test execution to test case successfully', show=True)
 

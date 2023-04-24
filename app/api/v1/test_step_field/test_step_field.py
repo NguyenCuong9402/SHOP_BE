@@ -150,6 +150,7 @@ def change_rank_test_step(project_id):
                 .filter(TestStepField.index < index_drop + 1, TestStepField.index > index_drag) \
                 .update(dict(index=TestStepField.index - 1))
             index_drag_to_drop.index = index_drop
+        db.session.flush()
         db.session.commit()
         return send_result(message='Update rank test step successfully', status=201, show=True)
     except Exception as ex:
