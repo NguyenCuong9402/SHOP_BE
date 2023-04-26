@@ -557,14 +557,14 @@ class TestStep(db.Model):
     action = db.Column(db.Text, nullable=True)
     data = db.Column(db.Text, nullable=True)
     result = db.Column(db.Text, nullable=True)
-    custom_fields = db.Column(db.Text, nullable=True)
+    custom_fields = db.Column(db.JSON, nullable=True)
 
     attachments = db.Column(db.Text, nullable=True)
     index = db.Column(db.Integer, nullable=True)
 
     test_case_id = db.Column(db.String(50), db.ForeignKey('test_case.id', ondelete='CASCADE', onupdate='CASCADE'),
                              nullable=False)
-
+    test_case_id_reference = db.Column(db.String(50), nullable=True)
     test_details = relationship("TestStepDetail", primaryjoin='TestStepDetail.test_step_id == TestStep.id',
                                 lazy='noload')
 

@@ -16,4 +16,5 @@ from app.api.v1.test_run import test_run
 from app.api.v1.test_execution import test_execution
 from app.api.v1.test_set import test_set
 from app.api.v1.user_setting import user_setting
+from app.api.v1.test_step import test_step
 
