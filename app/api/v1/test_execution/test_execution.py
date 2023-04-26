@@ -57,7 +57,6 @@ def get_test_run(issue_id):
 def add_test_execution(test_issue_id):
     try:
         body_request = request.get_json()
-
         token = get_jwt_identity()
         cloud_id = token.get('cloudId')
         project_id = token.get('projectId')
@@ -140,23 +139,25 @@ def add_test_execution(test_issue_id):
 @authorization_require()
 def remove_test_execution(test_issue_id):
     try:
+        token = get_jwt_identity()
         body_request = request.get_json()
-        test_execution_issue_ids = body_request.get('test_execution_issue_ids')
-        test_case = TestCase.query.filter(TestCase.issue_id == test_issue_id).first()
+        cloud_id = token.get('cloudId')
+        project_id = token.get('projectId')
+        test_execution_ids = body_request.get('test_execution_issue_ids')
+        test_case = TestCase.query.filter(TestCase.issue_id == test_issue_id,
+                                          TestCase.cloud_id == cloud_id,
+                                          TestExecution.project_id == project_id).first()
         if test_case is None:
             return send_error(message='TEST CASE DOES NOT EXIST ', status=404, show=False)
         # xóa test run
-        TestRun.query.filter(TestRun.test_execution_id.in_(test_execution_issue_ids)).delete()
+        TestRun.query.filter(TestRun.test_case_id == test_case.id)\
+            .filter(TestRun.test_execution_id.in_(test_execution_ids)).delete()
         # xóa test_cases_test_executions
         remove_test_case_test_executions = test_cases_test_executions.delete().where(
-            test_cases_test_executions.c.test_execution_id.in_(test_execution_issue_ids))
+            test_cases_test_executions.c.test_execution_id.in_(test_execution_ids))\
+            .where(test_cases_test_executions.c.test_case_id == test_case.id)
         db.session.execute(remove_test_case_test_executions)
-        # Xóa test environment
-        remove_test_executions_test_environments = test_executions_test_environments.delete().where(
-            test_executions_test_environments.c.test_execution_id.in_(test_execution_issue_ids))
-        db.session.execute(remove_test_executions_test_environments)
-        # xóa test execution
-        TestExecution.query.filter(TestExecution.id.in_(test_execution_issue_ids)).delete()
+
         db.session.flush()
         db.session.commit()
         return send_result(data='', message='Remove test execution to test case successfully', show=True)
