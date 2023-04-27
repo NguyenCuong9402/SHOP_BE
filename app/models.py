@@ -605,15 +605,16 @@ class FileDetail(db.Model):
     modified_date = db.Column(INTEGER(unsigned=True), default=0)
 
 
-class HistoryTestSet(db.Model):
-    __tablename__ = "history_test_set"
+class HistoryTest(db.Model):
+    __tablename__ = "history_test"
     id = db.Column(db.String(50), primary_key=True)
     user_id = db.Column(db.String(50), nullable=False)
+    history_category = db.Column(db.Integer, default=1, index=True) # test  set : 1    # test case -  test set:2  /test run:3   test
     activities = db.Column(db.String(50), nullable=False)
     action_name = db.Column(db.String(50), nullable=False)
     detail_of_action = db.Column(db.JSON, nullable=False)
     created_date = db.Column(db.Integer, default=0, index=True)
-    test_set_id = db.Column(db.String(50), nullable=False, index=True)
+    id_reference = db.Column(db.String(50), nullable=False)
 
 
 

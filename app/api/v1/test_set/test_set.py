@@ -9,7 +9,7 @@ from sqlalchemy.orm import joinedload
 from app.api.v1.test_run.schema import TestRunSchema
 from app.gateway import authorization_require
 from app.models import TestStep, TestCase, db, TestRun, TestExecution, \
-    TestStatus, TestStepDetail, TestSet, test_cases_test_sets, HistoryTestSet
+    TestStatus, TestStepDetail, TestSet, test_cases_test_sets, HistoryTest
 from app.utils import send_result, send_error, data_preprocessing, get_timestamp_now, get_timestamp_now_2
 from app.validator import TestSetSchema, TestCaseSchema, HistorySchema
 
@@ -201,7 +201,7 @@ def save_history(test_set_id: str, user_id: str, action: int, btest_ids: list, c
     if action == 1:
         query = TestCase.query.filter(TestCase.id.in_(btest_ids)).all()
         test_case_keys = [item.issue_key for item in query]
-        new_history = HistoryTestSet(
+        new_history = HistoryTest(
             test_set_id=test_set_id,
             user_id=user_id,
             id=str(uuid.uuid4()),
@@ -214,7 +214,7 @@ def save_history(test_set_id: str, user_id: str, action: int, btest_ids: list, c
     elif action == 2:
         query = TestCase.query.filter(TestCase.id.in_(btest_ids)).all()
         test_case_keys = [item.issue_key for item in query]
-        new_history = HistoryTestSet(
+        new_history = HistoryTest(
             test_set_id=test_set_id,
             user_id=user_id,
             id=str(uuid.uuid4()),
@@ -226,7 +226,7 @@ def save_history(test_set_id: str, user_id: str, action: int, btest_ids: list, c
 
     elif action == 3:
         query = TestCase.query.filter(TestCase.id == btest_ids[0]).first()
-        new_history = HistoryTestSet(
+        new_history = HistoryTest(
             test_set_id=test_set_id,
             user_id=user_id,
             id=str(uuid.uuid4()),
@@ -244,7 +244,7 @@ def get_history(test_set_id):
     try:
         token = get_jwt_identity()
         user_id = token.get("userId")
-        query = HistoryTestSet.query.filter(HistoryTestSet.test_set_id == test_set_id).all()
+        query = HistoryTest.query.filter(HistoryTest.test_set_id == test_set_id).all()
         return send_result(data=HistorySchema(many=True).dump(query), message="OK")
     except Exception as ex:
         return send_error(message=str(ex))
