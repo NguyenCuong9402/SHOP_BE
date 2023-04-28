@@ -8,13 +8,14 @@ from benedict import benedict
 from marshmallow import ValidationError
 from sqlalchemy.orm import joinedload
 
+from app.api.v1.history_test import save_history_test_case
 from app.api.v1.test_run.schema import TestRunSchema
 from app.enums import INVALID_PARAMETERS_ERROR
 from app.extensions import logger
 from app.gateway import authorization_require
 from app.models import TestStep, TestCase, TestType, db, TestField, Setting, TestRun, TestExecution, \
-    test_cases_test_executions, TestStatus, TestStepDetail, test_cases_test_sets
-from app.utils import send_result, send_error, data_preprocessing, get_timestamp_now
+    test_cases_test_executions, TestStatus, TestStepDetail, test_cases_test_sets, HistoryTest, TestSet
+from app.utils import send_result, send_error, data_preprocessing, get_timestamp_now, get_timestamp_now_2
 from app.validator import TestCaseValidator
 
 DELETE_SUCCESS = 13
@@ -56,6 +57,32 @@ def get_test_run(issue_id):
 
     except Exception as ex:
         print(ex)
+
+
+@api.route("/<test_case_id>/<test_type_id>", methods=["PUT"])
+@authorization_require()
+def change_test_type(test_case_id, test_type_id):
+    try:
+        token = get_jwt_identity()
+        cloud_id = token.get('cloudId')
+        project_id = token.get('projectId')
+        user_id = token.get('userId')
+        test_case = TestCase.query.filter(TestCase.id == test_case_id).first()
+        new_type = TestType.query.filter(TestType.id == test_type_id).first()
+        if new_type is None:
+            return send_error(message="Error changing test type. '[new test type name]' no longer exists",
+                              status="success", show=False)
+        old_type = TestType.query.filter(TestType.id == test_case.test_type_id).first()
+        old_type_name = old_type.name
+        test_case.test_type_id = new_type.id
+        db.session.flush()
+        db.session.commit()
+        save_history_test_case(test_case_id, user_id, 2, [old_type_name,new_type.name])
+        return send_result(message="success")
+
+    except Exception as ex:
+        db.session.rollback()
+        return send_error(message=str(ex))
 
 
 @api.route("/<test_issue_id>/test_execution", methods=["POST"])
@@ -201,6 +228,8 @@ def create_test_case():
 @authorization_require()
 def delete_tests_set_from_testcase(test_case_id):
     try:
+        token = get_jwt_identity()
+        user_id = token.get('userId')
         try:
             body = request.get_json()
             params = TestCaseValidator().load(body) if body else dict()
@@ -225,6 +254,8 @@ def delete_tests_set_from_testcase(test_case_id):
             number_test_set = len(ids)
         db.session.commit()
         message = f'{number_test_set} Test Set(s) removed from the Test'
+        # save history
+        save_history_test_case(test_case_id, user_id, 2, 2, ids, [])
         return send_result(message_id=DELETE_SUCCESS, message=message)
     except Exception as ex:
         db.session.rollback()
@@ -235,6 +266,8 @@ def delete_tests_set_from_testcase(test_case_id):
 @authorization_require()
 def add_tests_set_for_testcase(test_case_id):
     try:
+        token = get_jwt_identity()
+        user_id = token.get('userId')
         try:
             body = request.get_json()
             params = TestCaseValidator().load(body) if body else dict()
@@ -255,6 +288,8 @@ def add_tests_set_for_testcase(test_case_id):
             db.session.add(new_item)
 
         db.session.commit()
+        # save history
+        save_history_test_case(test_case_id, user_id, 3, 2, ids, [])
         message = f'{len(ids)} Test Set(s) added to the Test'
         return send_result(message_id=ADD_SUCCESS, message=message)
     except Exception as ex:
