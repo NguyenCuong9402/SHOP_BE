@@ -79,6 +79,7 @@ def upload_file():
         file_detail = FileDetail(id=str(uuid.uuid4()), attached_file=file_url, file_name=real_name,
                                  created_date=get_timestamp_now())
         db.session.add(file_detail)
+        db.session.flush()
         db.session.commit()
     except Exception as ex:
         db.session.rollback()

@@ -326,7 +326,7 @@ def add_tests_set_for_testcase(test_case_id):
                                          test_case_id=test_case_id,
                                          index=index_max+1+index)
             db.session.add(new_item)
-
+            db.session.flush()
         db.session.commit()
         # save history
         save_history_test_case(test_case_id, user_id, 2, 2, ids, [])
