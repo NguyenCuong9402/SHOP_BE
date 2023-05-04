@@ -9,9 +9,10 @@ from app.api.v1.history_test import save_history_test_set
 from app.api.v1.test_run.schema import TestRunSchema
 from app.gateway import authorization_require
 from app.models import TestStep, TestCase, db, TestRun, TestExecution, \
-    TestStatus, TestStepDetail, TestSet, test_cases_test_sets, HistoryTest
-from app.utils import send_result, send_error, data_preprocessing, get_timestamp_now, get_timestamp_now_2
+    TestStatus, TestStepDetail, TestSet, TestCasesTestSets, HistoryTest
+from app.utils import send_result, send_error, data_preprocessing, get_timestamp_now
 from app.validator import TestSetSchema, TestCaseSchema, HistorySchema
+from operator import or_
 
 INVALID_PARAMETERS_ERROR = 'g1'
 
@@ -53,48 +54,73 @@ def get_test_run(issue_id):
         print(ex)
 
 
-@api.route("/add_to_test_set/<test_set_id>", methods=["POST"])
+@api.route("/<test_set_issue_id>/test_case", methods=["POST"])
 @authorization_require()
-def add_test_to_test_set(test_set_id):
+def add_test_to_test_set(test_set_issue_id):
     try:
         token = get_jwt_identity()
+        project_id = token.get('projectId')
+        cloud_id = token.get('cloudId')
         user_id = token.get('userId')
         body_request = request.get_json()
-        test_cases_id = body_request.get("test_cases_id")
-        # check Test Set
-        check_test_set = TestSet.query.filter(TestSet.id == test_set_id).first()
-        if not check_test_set:
-            return send_error(message='TEST SET DOES NOT EXIST', status=404, show=False)
-        # Query max index
-        query = test_cases_test_sets.select().where(test_cases_test_sets.c.test_set_id == test_set_id) \
-            .order_by(desc(test_cases_test_sets.columns.index)).limit(1)
-        result = db.session.execute(query)
-        index_max = [{'test_case_id': row[0], 'test_set_id': row[1], 'index': row[2]} for row in result]
+        test_set_issue_key = body_request.get("test_set_issue_key")
+        test_cases = body_request.get("test_cases")
+        test_set = TestSet.query.filter(TestSet.issue_id == test_set_issue_id,
+                                        TestSet.cloud_id == cloud_id,
+                                        TestSet.project_id == project_id).first()
 
-        record = []
-        for test_case_id in test_cases_id:
-            # check Test Case
-            check_test_case = TestCase.query.filter(TestCase.id == test_case_id).first()
-            if not check_test_case:
-                return send_error(message='TEST CASE DOES NOT EXIST', status=404, show=False)
-            if not index_max:
-                new_record = {'test_case_id': test_case_id,
-                              'test_set_id': test_set_id,
-                              'index': 1 + test_cases_id.index(test_case_id)
-                              }
-            else:
-                new_record = {'test_case_id': test_case_id,
-                              'test_set_id': test_set_id,
-                              'index': index_max[0]['index'] + 1 + test_cases_id.index(test_case_id)
-                              }
-            record.append(new_record)
-        stmt = test_cases_test_sets.insert().values(record)
-        db.session.execute(stmt)
-        db.session.flush()
+        if test_set is None:
+            test_set = TestSet(
+                id=str(uuid.uuid4()),
+                issue_id=test_set_issue_id,
+                issue_key=test_set_issue_key,
+                project_id=project_id,
+                cloud_id=cloud_id,
+                created_date=get_timestamp_now()
+            )
+            db.session.add(test_set)
+            db.session.flush()
+        test_case_ids = []
+        index_max = TestCasesTestSets.query.filter(TestCasesTestSets.test_set_id == test_set.id).count()
+        i = 1
+        for test_case_issue_id, test_case_issue_key in test_cases.items():
+            """
+               Get test case, create new if not exist
+            """
+            test_case = TestCase.query.filter(TestCase.issue_id == test_case_issue_id,
+                                              TestCase.cloud_id == cloud_id,
+                                              TestCase.project_id == project_id).first()
+            if test_case is None:
+                test_case = TestCase(
+                    id=str(uuid.uuid4()),
+                    issue_id=test_set_issue_id,
+                    issue_key=test_case_issue_key,
+                    project_id=project_id,
+                    cloud_id=cloud_id,
+                    created_date=get_timestamp_now()
+                )
+                db.session.add(test_case)
+                db.session.flush()
+            exist_test_case = TestCasesTestSets \
+                .query.filter(TestCasesTestSets.test_case_id == test_case.id,
+                              TestCasesTestSets.test_set_id == test_set.id).first()
+            if exist_test_case is None:
+                """
+                  Add this test case to test set
+                  """
+                test_set_test_case = TestCasesTestSets(
+                    test_case_id=test_case.id,
+                    test_set_id=test_set.id,
+                    index=index_max+i
+                )
+                test_case_ids.append(test_case.id)
+                i += 1
+                db.session.add(test_set_test_case)
+                db.session.flush()
         db.session.commit()
         # save history
-        save_history_test_set(test_set_id, user_id, 1, 1, test_cases_id, [])
-        message = f'{len(test_cases_id)} Test case(s) add to the Test Set'
+        save_history_test_set(test_set.id, user_id, 1, 1, test_case_ids, [])
+        message = f'{len(test_case_ids)} Test case(s) add to the Test Set'
         return send_result(message=message)
 
     except Exception as ex:
@@ -102,53 +128,39 @@ def add_test_to_test_set(test_set_id):
         return send_error(message=str(ex))
 
 
-@api.route("/remove_from_test_set/<test_set_id>", methods=["DELETE"])
+@api.route("/<test_set_id>/test_case", methods=["DELETE"])
 @authorization_require()
 def remove_test_to_test_set(test_set_id):
     try:
         token = get_jwt_identity()
         user_id = token.get('userId')
         body_request = request.get_json()
-        test_cases_id = body_request.get("test_cases_id")
-        # check Test Set
-        check_test_set = TestSet.query.filter(TestSet.id == test_set_id).first()
-        if not check_test_set:
-            return send_error(message='TEST SET DOES NOT EXIST', status=404, show=False)
-        # check Test Case
-        for test_case_id in test_cases_id:
-            check_test_case = TestCase.query.filter(TestCase.id == test_case_id).first()
-            if not check_test_case:
-                return send_error(message='TEST CASE DOES NOT EXIST ', status=404, show=False)
-        # remove
-        remove_query = test_cases_test_sets.delete().where(
-            test_cases_test_sets.c.test_case_id.in_(test_cases_id))
-        db.session.execute(remove_query)
+        test_case_ids = body_request.get("test_cases_id")
+        TestCasesTestSets.query.filter(TestCasesTestSets.test_set_id == test_set_id,
+                                       TestCasesTestSets.test_case_id.in_(test_case_ids)).delete()
+        db.session.flush()
         # Lấy ra tất cả các record trong bảng
-        query_all = test_cases_test_sets.select().order_by(asc(test_cases_test_sets.c.index))
-        rows = db.session.execute(query_all)
+        query_all = TestCasesTestSets.query.filter(TestCasesTestSets.test_set_id == test_set_id)\
+            .order_by(TestCasesTestSets.index.asc())
         # Cập nhật lại giá trị của cột "index"
         new_index = 1
-        for row in rows:
-            stmt = test_cases_test_sets.update() \
-                .where(test_cases_test_sets.c.test_case_id == row.test_case_id) \
-                .where(test_cases_test_sets.c.test_set_id == row.test_set_id) \
-                .values(index=new_index)
-            db.session.execute(stmt)
+        for query in query_all:
+            query.index = new_index
             new_index += 1
         db.session.flush()
         db.session.commit()
-        message = f'{len(test_cases_id)} Test case(s) remove to the Test Set'
+        message = f'{len(test_case_ids)} Test case(s) remove to the Test Set'
         # save history
-        save_history_test_set(test_set_id, user_id, 2, 1, test_cases_id, [])
+        save_history_test_set(test_set_id, user_id, 2, 1, test_case_ids, [])
         return send_result(message=message)
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
 
 
-@api.route("/change_rank_test_case/<test_set_id>", methods=["PUT"])
+@api.route("/<test_set_id>/test_case", methods=["PUT"])
 @authorization_require()
-def change_rank_case_in_test_set(test_set_id):
+def change_rank_test_case_in_test_set(test_set_id):
     try:
         token = get_jwt_identity()
         user_id = token.get("userId")
@@ -156,43 +168,29 @@ def change_rank_case_in_test_set(test_set_id):
         index_drag = json_req['index_drag']
         index_drop = json_req['index_drop']
         # lấy index_drag
-        query = test_cases_test_sets.select().where(test_cases_test_sets.c.test_set_id == test_set_id) \
-            .where(test_cases_test_sets.c.index == index_drag)
-        result = db.session.execute(query)
-        data = [{'test_case_id': row[0], 'test_set_id': row[1], 'index': row[2]} for row in result]
-
+        index_max = db.session.query(TestCasesTestSets).filter(TestCasesTestSets.test_set_id == test_set_id).count()
+        query = TestCasesTestSets.query.filter(TestCasesTestSets.test_set_id == test_set_id) \
+            .filter(TestCasesTestSets.index == index_drag).first()
         if index_drag > index_drop:
-            # Cập nhật vị trí của các test case ở giữa giá trị drop-1 và giá trị drag
-            pos = test_cases_test_sets.update().where(
-                (test_cases_test_sets.c.test_set_id == test_set_id) &
-                (test_cases_test_sets.c.index > index_drop - 1) &
-                (test_cases_test_sets.c.index < index_drag)).values(index=test_cases_test_sets.c.index + 1)
-            db.session.execute(pos)
-            # Gán đến vị trí drop
-            pos1 = test_cases_test_sets.update().where(
-                (test_cases_test_sets.c.test_set_id == test_set_id) &
-                (test_cases_test_sets.c.test_case_id == data[0]['test_case_id']) &
-                (test_cases_test_sets.c.index == data[0]['index'])).values(index=index_drop)
+            if index_drop < 1:
+                return send_error(message=f'Must be a value between 1 and {index_max}')
+            TestCasesTestSets.query.filter(TestCasesTestSets.test_set_id == test_set_id)\
+                .filter(TestCasesTestSets.index > index_drop - 1).filter(TestCasesTestSets.c.index < index_drag)\
+                .update(dict(index=TestCasesTestSets.index + 1))
+            query.index = index_drop
+            db.session.flush()
         else:
-
-            # Cập nhật vị trí của các test case ở giữa giá trị drag và drop+1
-            pos = test_cases_test_sets.update().where(
-                (test_cases_test_sets.c.test_set_id == test_set_id) &
-                (test_cases_test_sets.c.index > index_drag) &
-                (test_cases_test_sets.c.index < index_drop + 1)).values(index=test_cases_test_sets.c.index - 1)
-            db.session.execute(pos)
-            # Gán đến vị trí drop
-            pos1 = test_cases_test_sets.update().where(
-                (test_cases_test_sets.c.test_set_id == test_set_id) &
-                (test_cases_test_sets.c.test_case_id == data[0]['test_case_id']) &
-                (test_cases_test_sets.c.index == data[0]['index'])).values(index=index_drop)
-        db.session.execute(pos1)
-        db.session.flush()
+            if index_drop > index_max:
+                return send_error(message=f'Must be a value between 1 and {index_max}')
+            TestCasesTestSets.query.filter(TestCasesTestSets.test_set_id == test_set_id)\
+                .filter(TestCasesTestSets.index > index_drag).filter(TestCasesTestSets.index < index_drop + 1)\
+                .update(dict(index=TestCasesTestSets.index - 1))
+            query.index = index_drop
+            db.session.flush()
         db.session.commit()
         # save history
-        save_history_test_set(test_set_id, user_id, 3, 1, [data[0]['test_case_id']], [index_drag, index_drop])
-
-        return send_result(message='Update test case to test set successfully', status=201, show=True)
+        save_history_test_set(test_set_id, user_id, 3, 1, [query.test_case_id], [index_drag, index_drop])
+        return send_result(message='Update successfully')
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))

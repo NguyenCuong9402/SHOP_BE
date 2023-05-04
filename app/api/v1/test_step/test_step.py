@@ -9,7 +9,7 @@ from app.api.v1.history_test import save_history_test_step
 from app.gateway import authorization_require
 from app.models import TestStep, db, TestStepField, TestRunField, TestCase, TestStepDetail, HistoryTest
 from app.parser import TestStepSchema
-from app.utils import send_result, send_error, data_preprocessing, get_timestamp_now, get_timestamp_now_2
+from app.utils import send_result, send_error, data_preprocessing, get_timestamp_now
 from app.api.v1.test_step_field.test_step_field import DEFAULT_DATA
 
 api = Blueprint('test_step', __name__)
@@ -51,7 +51,7 @@ def add_test_step(test_case_id):
             custom_fields=body_request.get('custom_fields'),
             index=count_index + 1,
             test_case_id=test_case_id,
-            created_date=get_timestamp_now_2()
+            created_date=get_timestamp_now()
         )
         db.session.add(test_step)
         db.session.flush()
@@ -88,7 +88,7 @@ def add_test_step(test_case_id):
                     id=str(uuid.uuid4()),
                     test_step_id=test_step_id,
                     test_step_field_id=id_field,
-                    created_date=get_timestamp_now_2()
+                    created_date=get_timestamp_now()
                 )
                 db.session.add(test_step_detail)
                 db.session.flush()
@@ -101,17 +101,18 @@ def add_test_step(test_case_id):
                     id=str(uuid.uuid4()),
                     test_step_id=test_step_id,
                     test_step_field_id=test_step_field.id,
-                    created_date=get_timestamp_now_2()
+                    created_date=get_timestamp_now()
                 )
                 db.session.add(test_step_detail)
                 db.session.flush()
             # create detail_of_action
             field_name = [item.name for item in test_step_fields]
-            detail_of_action[field_name[0]] = test_step.action
-            detail_of_action[field_name[1]] = test_step.data
-            detail_of_action[field_name[2]] = test_step.result
+            detail_of_action['Action'] = test_step.action
+            detail_of_action['Data'] = test_step.data
+            detail_of_action['Expected Result'] = test_step.result
             for i, name in enumerate(test_step.custom_fields):
                 detail_of_action[field_name[3+i]] = name
+            db.session.flush()
         db.session.commit()
         # Save history
         save_history_test_step(test_case_id, user_id, 1, 2, detail_of_action, [count_index+1])
@@ -140,9 +141,9 @@ def remove_test_step(test_step_id, test_case_id):
             or_(TestStepField.project_id == project_id, TestStepField.project_key == project_id),
             TestStepField.cloud_id == cloud_id).order_by(TestStepField.index.asc())
         field_name = [item.name for item in test_step_fields]
-        detail_of_action[field_name[0]] = test_step.action
-        detail_of_action[field_name[1]] = test_step.data
-        detail_of_action[field_name[2]] = test_step.result
+        detail_of_action['Action'] = test_step.action
+        detail_of_action['Data'] = test_step.data
+        detail_of_action['Expected Result'] = test_step.result
         for i, name in enumerate(test_step.custom_fields):
             detail_of_action[field_name[3+i]] = name
         index = test_step.index
@@ -234,7 +235,7 @@ def call_test_case(test_case_id, test_case_id_reference):
             index=count_index + 1,
             test_case_id=test_case_id,
             test_case_id_reference=test_case_id_reference,
-            created_date=get_timestamp_now_2()
+            created_date=get_timestamp_now()
         )
         db.session.add(test_step)
         db.session.flush()
@@ -278,7 +279,7 @@ def clone_test_step(test_case_id, test_step_id):
             custom_fields=test_step.custom_fields,
             index=test_step.index + 1,
             test_case_id=test_case_id,
-            created_date=get_timestamp_now_2()
+            created_date=get_timestamp_now()
         )
         db.session.add(test_step_clone)
         db.session.flush()
@@ -290,7 +291,7 @@ def clone_test_step(test_case_id, test_step_id):
                 id=str(uuid.uuid4()),
                 test_step_id=clone_test_step_id,
                 test_step_field_id=test_step_field.id,
-                created_date=get_timestamp_now_2()
+                created_date=get_timestamp_now()
             )
             db.session.add(test_step_detail)
             db.session.flush()
@@ -298,9 +299,9 @@ def clone_test_step(test_case_id, test_step_id):
         # Create detail_of_action and Save history
         detail_of_action = {}
         field_name = [item.name for item in test_step_fields]
-        detail_of_action[field_name[0]] = test_step.action
-        detail_of_action[field_name[1]] = test_step.data
-        detail_of_action[field_name[2]] = test_step.result
+        detail_of_action['Action'] = test_step.action
+        detail_of_action['Data'] = test_step.data
+        detail_of_action['Expected Result'] = test_step.result
         for i, name in enumerate(test_step.custom_fields):
             detail_of_action[field_name[3+i]] = name
         save_history_test_step(test_case_id, user_id, 4, 2, detail_of_action, [test_step.index + 1])

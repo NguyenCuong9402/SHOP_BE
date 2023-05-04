@@ -263,7 +263,7 @@ def check_coincided_name(name='', self_id=None, project_id='', cloud_id=''):
 
 DEFAULT_DATA = [
     {
-        "name": "Data",
+        "name": "Data (data)",
         "description": "Any data the related step requests (e.g., login credentials) to be used by the tester.",
         "type": "Text",
         "index": 2,
@@ -273,7 +273,7 @@ DEFAULT_DATA = [
         "type_values": "[]"
     },
     {
-        "name": "Expected Result",
+        "name": "Expected Result (result)",
         "description": "The behavior that the step should accomplish.",
         "type": "Text",
         "index": 3,
@@ -283,7 +283,7 @@ DEFAULT_DATA = [
         "type_values": "[]"
     },
     {
-        "name": "Action",
+        "name": "Action  (action)",
         "description": "The action to be reproduced by the tester.",
         "type": "Text",
         "index": 1,

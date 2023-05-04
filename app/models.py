@@ -52,12 +52,18 @@ class ProjectSetting(db.Model):
     project_id = db.Column(db.String(255), nullable=False)
 
 
-test_type_test_run_field = db.Table('test_type_test_run_field',
-                                    db.Column('test_type_id', db.String(50), db.ForeignKey('test_type.id'),
-                                              primary_key=True),
-                                    db.Column('test_run_field_id', db.String(50), db.ForeignKey('test_run_field.id'),
-                                              primary_key=True)
-                                    )
+# test_type_test_run_field = db.Table('test_type_test_run_field',
+#                                     db.Column('test_type_id', db.String(50), db.ForeignKey('test_type.id'),
+#                                               primary_key=True),
+#                                     db.Column('test_run_field_id', db.String(50), db.ForeignKey('test_run_field.id'),
+#                                               primary_key=True)
+#                                     )
+
+
+class TestTypeTestRunField(db.Model):
+    __tablename__ = 'test_type_test_run_field'
+    test_type_id = db.Column(db.String(50), db.ForeignKey('test_type.id'), primary_key=True, nullable=False)
+    test_run_field_id = db.Column(db.String(50), db.ForeignKey('test_run_field.id'), primary_key=True, nullable=False)
 
 
 class TestType(db.Model):
@@ -106,7 +112,7 @@ class TestRunField(db.Model):
     project_key = db.Column(db.String(50))
     project_id = db.Column(db.String(50))
     site_url = db.Column(db.String(255), nullable=True)
-    test_types = db.relationship('TestType', order_by=TestType.created_date, secondary=test_type_test_run_field,
+    test_types = db.relationship('TestType', order_by=TestType.created_date, secondary="test_type_test_run_field",
                                  lazy='subquery',
                                  backref=db.backref('test_run_fields', lazy=True))
     created_date = db.Column(db.Integer, default=0)
@@ -393,50 +399,79 @@ New Design
 Many to many relationship
 Test Executions and Test Case
 """
-test_cases_test_executions = db.Table('test_cases_test_executions',
-                                      db.Column('test_case_id', db.String(50), db.ForeignKey('test_case.id'),
-                                                primary_key=True),
-                                      db.Column('test_execution_id', db.String(50), db.ForeignKey('test_execution.id'),
-                                                primary_key=True),
-                                      db.Column('index', db.Integer, nullable=True)
-                                      )
+# test_cases_test_executions = db.Table('test_cases_test_executions',
+#                                       db.Column('test_case_id', db.String(50), db.ForeignKey('test_case.id'),
+#                                                 primary_key=True),
+#                                       db.Column('test_execution_id', db.String(50), db.ForeignKey('test_execution.id'),
+#                                                 primary_key=True),
+#                                       db.Column('index', db.Integer, nullable=True)
+#                                       )
+
+
+class TestCasesTestExecutions(db.Model):
+    __tablename__ = 'test_cases_test_executions'
+    test_case_id = db.Column(db.String(50), db.ForeignKey('test_case.id'), primary_key=True, nullable=False)
+    test_execution_id = db.Column(db.String(50), db.ForeignKey('test_execution.id'), primary_key=True, nullable=False)
+    index = db.Column(db.Integer)
 
 """
 Many to many relationship
 Test Set and Test Case
 """
-test_cases_test_sets = db.Table('test_cases_test_sets',
-                                db.Column('test_case_id', db.String(50), db.ForeignKey('test_case.id'),
-                                          primary_key=True),
-                                db.Column('test_set_id', db.String(50), db.ForeignKey('test_set.id'),
-                                          primary_key=True),
-                                db.Column('index', db.Integer, nullable=True)
-                                )
+# test_cases_test_sets = db.Table('test_cases_test_sets',
+#                                 db.Column('test_case_id', db.String(50), db.ForeignKey('test_case.id'),
+#                                           primary_key=True),
+#                                 db.Column('test_set_id', db.String(50), db.ForeignKey('test_set.id'),
+#                                           primary_key=True),
+#                                 db.Column('index', db.Integer, nullable=True)
+#                                 )
+
+
+class TestCasesTestSets(db.Model):
+    __tablename__ = 'test_cases_test_sets'
+    test_case_id = db.Column(db.String(50), db.ForeignKey('test_case.id'), primary_key=True)
+    test_set_id = db.Column(db.String(50), db.ForeignKey('test_set.id'), primary_key=True)
+    index = db.Column(db.Integer)
+
 
 """
 Many to many relationship
 Test Step and Test Case
 """
-test_cases_test_steps = db.Table('test_cases_test_steps',
-                                 db.Column('test_case_id', db.String(50), db.ForeignKey('test_case.id'),
-                                           primary_key=True),
-                                 db.Column('test_step_id', db.String(50), db.ForeignKey('test_step.id'),
-                                           primary_key=True),
-                                 db.Column('index', db.Integer, nullable=True)
-                                 )
+# test_cases_test_steps = db.Table('test_cases_test_steps',
+#                                  db.Column('test_case_id', db.String(50), db.ForeignKey('test_case.id'),
+#                                            primary_key=True),
+#                                  db.Column('test_step_id', db.String(50), db.ForeignKey('test_step.id'),
+#                                            primary_key=True),
+#                                  db.Column('index', db.Integer, nullable=True)
+#                                  )
+
+
+class TestCasesTestSteps(db.Model):
+    __tablename__ = 'test_cases_test_steps'
+    test_case_id = db.Column(db.String(50), db.ForeignKey('test_case.id'), primary_key=True)
+    test_step_id = db.Column(db.String(50), db.ForeignKey('test_step.id'), primary_key=True)
+    index = db.Column(db.Integer)
+
 
 """
 Many to many relationship
 Test Executions and Test Environments
 """
-test_executions_test_environments = db.Table('test_executions_test_environments',
-                                             db.Column('test_execution_id', db.String(50),
-                                                       db.ForeignKey('test_execution.id'),
-                                                       primary_key=True),
-                                             db.Column('test_environment_id', db.String(50),
-                                                       db.ForeignKey('test_environment.id'),
-                                                       primary_key=True),
-                                             )
+# test_executions_test_environments = db.Table('test_executions_test_environments',
+#                                              db.Column('test_execution_id', db.String(50),
+#                                                        db.ForeignKey('test_execution.id'),
+#                                                        primary_key=True),
+#                                              db.Column('test_environment_id', db.String(50),
+#                                                        db.ForeignKey('test_environment.id'),
+#                                                        primary_key=True),
+#                                              )
+
+
+class TestExecutionsTestEnvironments(db.Model):
+    __tablename__ = 'test_executions_test_environments'
+    test_execution_id = db.Column(db.String(50), db.ForeignKey('test_execution.id'), primary_key=True)
+    test_environment_id = db.Column(db.String(50), db.ForeignKey('test_environment.id'), primary_key=True)
 
 
 class TestCase(db.Model):
@@ -451,7 +486,8 @@ class TestCase(db.Model):
     test_type_id = db.Column(db.String(50))
     test_steps = relationship("TestStep", primaryjoin='TestStep.test_case_id == TestCase.id', lazy="noload",
                               order_by="asc(TestStep.index)")
-
+    test_executions = db.relationship("TestExecution", back_populates="test_cases",
+                                      secondary="test_cases_test_executions", cascade="all, delete")
     created_date = db.Column(db.Integer, default=0)
     modified_date = db.Column(db.Integer, default=0)
     deleted_date = db.Column(db.Integer, default=0)
@@ -471,7 +507,7 @@ class TestSet(db.Model):
     issue_key = db.Column(db.String(50))
     meta_data = db.Text()
 
-    test_cases = db.relationship('TestCase', secondary=test_cases_test_sets,
+    test_cases = db.relationship('TestCase', secondary="test_cases_test_sets",
                                  backref=db.backref('test_set', lazy='dynamic'))
 
     created_date = db.Column(db.Integer, default=0)
@@ -489,13 +525,13 @@ class TestExecution(db.Model):
     issue_key = db.Column(db.String(50))
     meta_data = db.Text()
 
-    test_cases = db.relationship('TestCase', secondary=test_cases_test_executions, lazy='dynamic',
-                                 backref=db.backref('test_execution'))
+    test_cases = db.relationship("TestCase", back_populates="test_executions",
+                                 secondary="test_cases_test_executions", cascade="all, delete")
 
     test_runs = db.relationship('TestRun', primaryjoin='TestExecution.id == TestRun.test_execution_id',
                                 backref=db.backref('test_execution'))
 
-    test_environments = db.relationship('TestEnvironment', secondary=test_executions_test_environments,
+    test_environments = db.relationship('TestEnvironment', secondary="test_executions_test_environments",
                                         backref=db.backref('test_cases', lazy='dynamic'))
 
     created_date = db.Column(db.Integer, default=0)
@@ -609,7 +645,7 @@ class HistoryTest(db.Model):
     __tablename__ = "history_test"
     id = db.Column(db.String(50), primary_key=True)
     user_id = db.Column(db.String(50), nullable=False)
-    history_category = db.Column(db.Integer, default=1, index=True)  # 1:Test Set , 2: Test Case
+    history_category = db.Column(db.Integer, default=1, index=True)  # 1:Test Set , 2: Test Case , 3: Test Execution
     activities = db.Column(db.String(50), nullable=False)
     action_name = db.Column(db.String(50), nullable=False)
     detail_of_action = db.Column(db.JSON, nullable=False)
