@@ -6,7 +6,7 @@ from flask import Blueprint, request, send_file, jsonify
 from flask_jwt_extended import jwt_required
 from werkzeug.utils import secure_filename
 from app.validator import UploadValidation
-from app.utils import send_result, send_error, get_timestamp_now_2
+from app.utils import send_result, send_error, get_timestamp_now
 from app.enums import FILE_PATH, URL_SERVER
 from app.models import FileDetail
 from app.extensions import db
@@ -77,8 +77,9 @@ def upload_file():
 
         # Store file information such as name,path
         file_detail = FileDetail(id=str(uuid.uuid4()), attached_file=file_url, file_name=real_name,
-                                 created_date=get_timestamp_now_2())
+                                 created_date=get_timestamp_now())
         db.session.add(file_detail)
+        db.session.flush()
         db.session.commit()
     except Exception as ex:
         db.session.rollback()

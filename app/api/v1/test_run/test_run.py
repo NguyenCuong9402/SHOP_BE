@@ -10,7 +10,7 @@ from app.api.v1.setting.setting_validator import UpdateMiscellaneousRequest
 from app.api.v1.test_run.schema import TestRunSchema, CombineSchema
 from app.gateway import authorization_require
 from app.models import TestStep, TestCase, TestType, db, TestField, Setting, TestRun, TestExecution, \
-    test_cases_test_executions, TestStatus
+    TestCasesTestExecutions, TestStatus
 from app.utils import send_result, send_error, data_preprocessing, get_timestamp_now
 from app.validator import CreateTestValidator, SettingSchema
 from app.parser import TestFieldSchema, TestStepSchema

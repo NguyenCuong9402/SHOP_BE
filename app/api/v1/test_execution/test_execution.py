@@ -10,7 +10,7 @@ from app.api.v1.history_test import save_history_test_execution
 from app.api.v1.test_run.schema import TestRunSchema
 from app.gateway import authorization_require
 from app.models import TestStep, TestCase, TestType, db, TestField, Setting, TestRun, TestExecution, \
-    test_cases_test_executions, TestStatus, TestStepDetail, test_executions_test_environments
+    TestCasesTestExecutions, TestStatus, TestStepDetail, TestExecutionsTestEnvironments
 from app.utils import send_result, send_error, data_preprocessing, get_timestamp_now
 from app.validator import TestExecutionSchema
 
@@ -52,9 +52,9 @@ def get_test_run(issue_id):
         print(ex)
 
 
-@api.route("/<test_issue_id>/test_execution", methods=["POST"])
+@api.route("/<test_execution_issue_id>", methods=["POST"])
 @authorization_require()
-def add_test_execution(test_issue_id):
+def add_test_to_test_execution(test_execution_issue_id):
     try:
         body_request = request.get_json()
         token = get_jwt_identity()
@@ -62,49 +62,59 @@ def add_test_execution(test_issue_id):
         cloud_id = token.get('cloudId')
         project_id = token.get('projectId')
 
-        test_execution_issue_ids = body_request.get('test_execution_issue_ids')
+        test_cases = body_request.get('test_cases')
+        test_execution_issue_key = body_request.get('test_execution_issue_key')
 
         """
-            Get test case, create new if not exist
+            Get test execution, create new if not exist
         """
-        test_case = TestCase.query.filter(TestCase.issue_id == test_issue_id,
-                                          TestCase.cloud_id == cloud_id,
-                                          TestExecution.project_id == project_id).first()
-        if test_case is None:
-            test_case = TestCase(
+        test_execution = TestExecution.query.filter(TestExecution.issue_id == test_execution_issue_id,
+                                                    TestExecution.cloud_id == cloud_id,
+                                                    TestExecution.project_id == project_id).first()
+        if test_execution is None:
+            test_execution = TestExecution(
                 id=str(uuid.uuid4()),
-                issue_id=test_issue_id,
+                issue_id=test_execution_issue_id,
+                issue_key=test_execution_issue_key,
                 project_id=project_id,
                 cloud_id=cloud_id,
                 created_date=get_timestamp_now()
             )
-            db.session.add(test_case)
+            db.session.add(test_execution)
             db.session.flush()
-
-        for test_execution_issue_id in test_execution_issue_ids:
+        test_case_ids = []
+        for test_case_issue_id, test_case_issue_key in test_cases.items():
             """
                Get test execution, create new if not exist
             """
-            test_execution = TestExecution.query.filter(TestExecution.id == test_execution_issue_id,
-                                                        TestExecution.cloud_id == cloud_id,
-                                                        TestExecution.project_id == project_id).first()
-            if test_execution is None:
-                test_execution = TestExecution(
+            test_case = TestCase.query.filter(TestCase.issue_id == test_case_issue_id,
+                                              TestCase.cloud_id == cloud_id,
+                                              TestCase.project_id == project_id).first()
+            if test_case is None:
+                test_case = TestCase(
                     id=str(uuid.uuid4()),
-                    issue_id=test_execution_issue_id,
+                    issue_id=test_case_issue_id,
+                    issue_key=test_case_issue_key,
                     project_id=project_id,
                     cloud_id=cloud_id,
                     created_date=get_timestamp_now()
                 )
-                db.session.add(test_execution)
+                db.session.add(test_case)
                 db.session.flush()
-
-            exist_test_case = test_execution.test_cases.filter(TestCase.id == test_case.id).first()
+            exist_test_case = TestCasesTestExecutions\
+                .query.filter(TestCasesTestExecutions.test_case_id == test_case.id,
+                              TestCasesTestExecutions.test_execution_id == test_execution.id).first()
             if exist_test_case is None:
                 """
                   Add this test case to test execution
                 """
-                test_execution.test_cases.append(test_case)
+                test_case_test_execution = TestCasesTestExecutions(
+                    test_case_id=test_case.id,
+                    test_execution_id=test_execution.id,
+                )
+                db.session.add(test_case_test_execution)
+                db.session.flush()
+                test_case_ids.append(test_case.id)
 
             """
             Generate test run
@@ -126,43 +136,39 @@ def add_test_execution(test_issue_id):
                 db.session.add(test_run)
                 db.session.flush()
             else:
-                return send_error(message='Some Test Executions were already associated with the Test',
+                return send_error(message='Test Executions were already associated with the Test',
                                   status=200, show=False)
         db.session.commit()
-        save_history_test_execution(test_case, user_id, 1, 2, test_execution_issue_ids)
-        return send_result(message=f'Add {len(test_execution_issue_ids)} test execution to test case successfully')
+        save_history_test_execution(test_execution.id, user_id, 1, 3, test_case_ids)
+        return send_result(message=f'Add {len(test_case_ids)} test case to execution case successfully')
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
 
 
-@api.route("/<test_issue_id>/test_execution", methods=["DELETE"])
+@api.route("/<test_execution_id>", methods=["DELETE"])
 @authorization_require()
-def remove_test_execution(test_issue_id):
+def remove_test_to_test_execution(test_execution_id):
     try:
         token = get_jwt_identity()
         user_id = token.get('userId')
         body_request = request.get_json()
         cloud_id = token.get('cloudId')
         project_id = token.get('projectId')
-        test_execution_ids = body_request.get('test_execution_issue_ids')
-        test_case = TestCase.query.filter(TestCase.issue_id == test_issue_id,
-                                          TestCase.cloud_id == cloud_id,
-                                          TestExecution.project_id == project_id).first()
-        if test_case is None:
-            return send_error(message='TEST CASE DOES NOT EXIST ', status=404, show=False)
+        test_case_ids = body_request.get('test_case_ids')
         # xóa test run
-        TestRun.query.filter(TestRun.test_case_id == test_case.id)\
-            .filter(TestRun.test_execution_id.in_(test_execution_ids)).delete()
+        TestRun.query.filter(TestRun.test_execution_id == test_execution_id)\
+            .filter(TestRun.test_case_id.in_(test_case_ids))\
+            .delete()
+        db.session.flush()
         # xóa test_cases_test_executions
-        remove_test_case_test_executions = test_cases_test_executions.delete().where(
-            test_cases_test_executions.c.test_execution_id.in_(test_execution_ids))\
-            .where(test_cases_test_executions.c.test_case_id == test_case.id)
-        db.session.execute(remove_test_case_test_executions)
+        TestCasesTestExecutions.query.filter(
+            TestCasesTestExecutions.test_execution_id == test_execution_id) \
+            .filter(TestCasesTestExecutions.test_case_id.in_(test_case_ids)).delete()
         db.session.flush()
         db.session.commit()
-        save_history_test_execution(test_case, user_id, 2, 2, test_execution_ids)
-        return send_result(message=f'Remove {len(test_execution_ids)} test execution to test case successfully')
+        save_history_test_execution(test_execution_id, user_id, 2, 3, test_case_ids)
+        return send_result(message=f'Remove {len(test_case_ids)} test to test case execution successfully')
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
