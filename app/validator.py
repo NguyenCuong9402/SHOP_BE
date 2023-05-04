@@ -568,7 +568,8 @@ class UploadValidation(Schema):
 class HistorySchema(Schema):
     user_id = fields.String()
     activities = fields.String()
+    history_category = fields.Integer()
     action_name = fields.String()
-    detail_of_action = fields.List(fields.String)
+    detail_of_action = fields.Dict()
     created_date = fields.Integer()
 

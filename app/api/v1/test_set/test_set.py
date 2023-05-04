@@ -1,11 +1,11 @@
 import json
-from urllib3.util import Url
 import uuid
 from flask import Blueprint, request
 from flask_jwt_extended import get_jwt_identity
 from sqlalchemy import desc, asc
 from sqlalchemy.orm import joinedload
 
+from app.api.v1.history_test import save_history_test_set
 from app.api.v1.test_run.schema import TestRunSchema
 from app.gateway import authorization_require
 from app.models import TestStep, TestCase, db, TestRun, TestExecution, \
@@ -93,8 +93,9 @@ def add_test_to_test_set(test_set_id):
         db.session.flush()
         db.session.commit()
         # save history
-        save_history(test_set_id, user_id, 1, test_cases_id, [])
-        return send_result(message='Add test case to test set successfully', status=201, show=True)
+        save_history_test_set(test_set_id, user_id, 1, 1, test_cases_id, [])
+        message = f'{len(test_cases_id)} Test case(s) add to the Test Set'
+        return send_result(message=message)
 
     except Exception as ex:
         db.session.rollback()
@@ -136,9 +137,10 @@ def remove_test_to_test_set(test_set_id):
             new_index += 1
         db.session.flush()
         db.session.commit()
+        message = f'{len(test_cases_id)} Test case(s) remove to the Test Set'
         # save history
-        save_history(test_set_id, user_id, 2, test_cases_id, [])
-        return send_result(message='remove test case to test set successfully', status=201, show=True)
+        save_history_test_set(test_set_id, user_id, 2, 1, test_cases_id, [])
+        return send_result(message=message)
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
@@ -188,65 +190,11 @@ def change_rank_case_in_test_set(test_set_id):
         db.session.flush()
         db.session.commit()
         # save history
-        save_history(test_set_id, user_id, 3, [data[0]['test_case_id']], [index_drag, index_drop])
+        save_history_test_set(test_set_id, user_id, 3, 1, [data[0]['test_case_id']], [index_drag, index_drop])
 
         return send_result(message='Update test case to test set successfully', status=201, show=True)
     except Exception as ex:
         db.session.rollback()
-        return send_error(message=str(ex))
-
-
-def save_history(test_set_id: str, user_id: str, action: int, btest_ids: list, change_rank: list):
-    # 1: add   2: remove  3:change rank
-    if action == 1:
-        query = TestCase.query.filter(TestCase.id.in_(btest_ids)).all()
-        test_case_keys = [item.issue_key for item in query]
-        new_history = HistoryTest(
-            test_set_id=test_set_id,
-            user_id=user_id,
-            id=str(uuid.uuid4()),
-            activities='add',
-            action_name='updated Tests',
-            detail_of_action=test_case_keys,
-            created_date=get_timestamp_now_2())
-        db.session.add(new_history)
-
-    elif action == 2:
-        query = TestCase.query.filter(TestCase.id.in_(btest_ids)).all()
-        test_case_keys = [item.issue_key for item in query]
-        new_history = HistoryTest(
-            test_set_id=test_set_id,
-            user_id=user_id,
-            id=str(uuid.uuid4()),
-            activities='remove',
-            action_name='updated Tests',
-            detail_of_action=test_case_keys,
-            created_date=get_timestamp_now_2())
-        db.session.add(new_history)
-
-    elif action == 3:
-        query = TestCase.query.filter(TestCase.id == btest_ids[0]).first()
-        new_history = HistoryTest(
-            test_set_id=test_set_id,
-            user_id=user_id,
-            id=str(uuid.uuid4()),
-            activities='change',
-            action_name=f'changed Rank of Test {query.issue_id} ',
-            detail_of_action=change_rank,
-            created_date=get_timestamp_now_2())
-        db.session.add(new_history)
-    db.session.commit()
-
-
-@api.route("/history/<test_set_id>", methods=["GET"])
-@authorization_require()
-def get_history(test_set_id):
-    try:
-        token = get_jwt_identity()
-        user_id = token.get("userId")
-        query = HistoryTest.query.filter(HistoryTest.test_set_id == test_set_id).all()
-        return send_result(data=HistorySchema(many=True).dump(query), message="OK")
-    except Exception as ex:
         return send_error(message=str(ex))
 
 

@@ -4,8 +4,10 @@ from operator import or_
 from flask import Blueprint, request
 from flask_jwt_extended import get_jwt_identity
 from sqlalchemy import func, asc, and_
+
+from app.api.v1.history_test import save_history_test_step
 from app.gateway import authorization_require
-from app.models import TestStep, db, TestStepField, TestRunField, TestCase, TestStepDetail
+from app.models import TestStep, db, TestStepField, TestRunField, TestCase, TestStepDetail, HistoryTest
 from app.parser import TestStepSchema
 from app.utils import send_result, send_error, data_preprocessing, get_timestamp_now, get_timestamp_now_2
 from app.api.v1.test_step_field.test_step_field import DEFAULT_DATA
@@ -20,6 +22,7 @@ def add_test_step(test_case_id):
         token = get_jwt_identity()
         cloud_id = token.get('cloudId')
         project_id = token.get('projectId')
+        user_id = token.get('userId')
         test_case = TestCase.query.filter(TestCase.id == test_case_id).first()
         if test_case is None:
             return send_error(
@@ -53,10 +56,11 @@ def add_test_step(test_case_id):
         db.session.add(test_step)
         db.session.flush()
 
-        test_step_fields_count = db.session.query(TestStepField).filter(
+        test_step_fields = db.session.query(TestStepField).filter(
             or_(TestStepField.project_id == project_id, TestStepField.project_key == project_id),
-            TestStepField.cloud_id == cloud_id).count()
-
+            TestStepField.cloud_id == cloud_id).order_by(TestStepField.index.asc())
+        test_step_fields_count = test_step_fields.count()
+        detail_of_action = {}  # detail_of_action of history
         if test_step_fields_count == 0:
             """
             Create default test step field
@@ -88,21 +92,29 @@ def add_test_step(test_case_id):
                 )
                 db.session.add(test_step_detail)
                 db.session.flush()
+                detail_of_action['Action'] = test_step.action
+                detail_of_action['Data'] = test_step.data
+                detail_of_action['Expected Result'] = test_step.result
         else:
-            test_step_fields = db.session.query(TestStepField).filter(
-                or_(TestStepField.project_id == project_id, TestStepField.project_key == project_id),
-                TestStepField.cloud_id == cloud_id)
             for test_step_field in test_step_fields:
                 test_step_detail = TestStepDetail(
-                        id=str(uuid.uuid4()),
-                        test_step_id=test_step_id,
-                        test_step_field_id=test_step_field.id,
-                        created_date=get_timestamp_now_2()
-                    )
+                    id=str(uuid.uuid4()),
+                    test_step_id=test_step_id,
+                    test_step_field_id=test_step_field.id,
+                    created_date=get_timestamp_now_2()
+                )
                 db.session.add(test_step_detail)
                 db.session.flush()
-
+            # create detail_of_action
+            field_name = [item.name for item in test_step_fields]
+            detail_of_action[field_name[0]] = test_step.action
+            detail_of_action[field_name[1]] = test_step.data
+            detail_of_action[field_name[2]] = test_step.result
+            for i, name in enumerate(test_step.custom_fields):
+                detail_of_action[field_name[3+i]] = name
         db.session.commit()
+        # Save history
+        save_history_test_step(test_case_id, user_id, 1, 2, detail_of_action, [count_index+1])
         return send_result(data='add success')
     except Exception as ex:
         db.session.rollback()
@@ -113,20 +125,36 @@ def add_test_step(test_case_id):
 @authorization_require()
 def remove_test_step(test_step_id, test_case_id):
     try:
+        token = get_jwt_identity()
+        cloud_id = token.get('cloudId')
+        project_id = token.get('projectId')
+        user_id = token.get('userId')
         test_step = TestStep.query.filter(TestStep.id == test_step_id).first()
         if test_step is None:
             return send_error(
                 message="Test Step is not exist",
                 code=200, show=False)
-
+        # create detail_of_action
+        detail_of_action = {}
+        test_step_fields = db.session.query(TestStepField).filter(
+            or_(TestStepField.project_id == project_id, TestStepField.project_key == project_id),
+            TestStepField.cloud_id == cloud_id).order_by(TestStepField.index.asc())
+        field_name = [item.name for item in test_step_fields]
+        detail_of_action[field_name[0]] = test_step.action
+        detail_of_action[field_name[1]] = test_step.data
+        detail_of_action[field_name[2]] = test_step.result
+        for i, name in enumerate(test_step.custom_fields):
+            detail_of_action[field_name[3+i]] = name
+        index = test_step.index
+        # delete test_step
         TestStepDetail.query.filter(TestStepDetail.test_step_id == test_step_id).delete()
-
-        TestStep.query.filter(TestStep.test_case_id == test_case_id).filter(TestStep.index > test_step.index)\
+        TestStep.query.filter(TestStep.test_case_id == test_case_id).filter(TestStep.index > test_step.index) \
             .update(dict(index=TestStep.index - 1))
-
         db.session.delete(test_step)
         db.session.flush()
         db.session.commit()
+        # Save history
+        save_history_test_step(test_case_id, user_id, 2, 2, detail_of_action, [index])
         return send_result(data="", message="Test step removed successfully", code=200, show=True)
     except Exception as ex:
         db.session.rollback()
@@ -140,6 +168,7 @@ def change_rank_test_step(test_case_id):
         token = get_jwt_identity()
         cloud_id = token.get('cloudId')
         project_id = token.get('projectId')
+        user_id = token.get('userId')
         query = TestStep.query.filter(or_(TestStep.project_id == project_id, TestStep.project_key == project_id),
                                       TestStep.cloud_id == cloud_id, TestStep.test_case_id == test_case_id).all()
         if query is None:
@@ -149,8 +178,8 @@ def change_rank_test_step(test_case_id):
         index_drag = json_req['index_drag']
         index_drop = json_req['index_drop']
         index_max = db.session.query(TestStep).filter(
-                or_(TestStep.project_id == project_id, TestStep.project_key == project_id),
-                TestStep.cloud_id == cloud_id, TestStep.test_case_id == test_case_id).count()
+            or_(TestStep.project_id == project_id, TestStep.project_key == project_id),
+            TestStep.cloud_id == cloud_id, TestStep.test_case_id == test_case_id).count()
         # vị trí drag to drop
         index_drag_to_drop = TestStep.query.filter(
             or_(TestStep.project_id == project_id, TestStep.project_key == project_id), TestStep.cloud_id == cloud_id,
@@ -159,21 +188,23 @@ def change_rank_test_step(test_case_id):
             if index_drop < 1:
                 return send_error(message=f'Must be a value between 1 and {index_max}', status=404, show=False)
             TestStep.query.filter(or_(TestStep.project_id == project_id, TestStep.project_key == project_id),
-                                  TestStep.cloud_id == cloud_id, TestStep.test_case_id == test_case_id)\
-                .filter(TestStep.index > index_drop-1, TestStep.index < index_drag)\
-                .update(dict(index=TestStep.index+1))
+                                  TestStep.cloud_id == cloud_id, TestStep.test_case_id == test_case_id) \
+                .filter(TestStep.index > index_drop - 1, TestStep.index < index_drag) \
+                .update(dict(index=TestStep.index + 1))
             index_drag_to_drop.index = index_drop
             db.session.flush()
         else:
             if index_drop > index_max:
                 return send_error(message=f'Must be a value between 1 and {index_max}', status=404, show=False)
             TestStep.query.filter(or_(TestStep.project_id == project_id, TestStep.project_key == project_id),
-                                  TestStep.cloud_id == cloud_id, TestStep.test_case_id == test_case_id)\
-                .filter(TestStep.index < index_drop + 1, TestStep.index > index_drag)\
+                                  TestStep.cloud_id == cloud_id, TestStep.test_case_id == test_case_id) \
+                .filter(TestStep.index < index_drop + 1, TestStep.index > index_drag) \
                 .update(dict(index=TestStep.index - 1))
             index_drag_to_drop.index = index_drop
             db.session.flush()
         db.session.commit()
+        # Save history
+        save_history_test_step(test_case_id, user_id, 3, 2, {}, [index_drag, index_drop])
         return send_result(data="", message="success", code=200, show=True)
     except Exception as ex:
         db.session.rollback()
@@ -187,6 +218,7 @@ def call_test_case(test_case_id, test_case_id_reference):
         token = get_jwt_identity()
         cloud_id = token.get('cloudId')
         project_id = token.get('projectId')
+        user_id = token.get('userId')
         test_case = TestCase.query.filter(TestCase.id == test_case_id).first()
         test_case_reference = TestCase.query.filter(TestCase.id == test_case_id_reference).first()
         if test_case is None:
@@ -207,6 +239,9 @@ def call_test_case(test_case_id, test_case_id_reference):
         db.session.add(test_step)
         db.session.flush()
         db.session.commit()
+        # Create detail_of_action and Save history
+        detail_of_action = {"Call test": test_case_reference.issue_key}
+        save_history_test_step(test_case_id, user_id, 5, 2, detail_of_action, [test_step.index + 1])
         return send_result(data='call success')
     except Exception as ex:
         db.session.rollback()
@@ -220,14 +255,15 @@ def clone_test_step(test_case_id, test_step_id):
         token = get_jwt_identity()
         cloud_id = token.get('cloudId')
         project_id = token.get('projectId')
+        user_id = token.get('userId')
         test_step = TestStep.query.filter(TestStep.test_case_id == test_case_id, TestStep.id == test_step_id).first()
         if test_step is None:
             return send_error(
                 message="Test Step is not exist", code=200,
                 show=False)
         # Sắp xếp lại index khi clone
-        TestStep.query.filter(TestStep.test_case_id == test_case_id)\
-            .filter(TestStep.index > test_step.index)\
+        TestStep.query.filter(TestStep.test_case_id == test_case_id) \
+            .filter(TestStep.index > test_step.index) \
             .update(dict(index=TestStep.index + 1))
         db.session.flush()
         # Create new test step
@@ -248,7 +284,7 @@ def clone_test_step(test_case_id, test_step_id):
         db.session.flush()
         test_step_fields = db.session.query(TestStepField).filter(
             or_(TestStepField.project_id == project_id, TestStepField.project_key == project_id),
-            TestStepField.cloud_id == cloud_id)
+            TestStepField.cloud_id == cloud_id).order_by(TestStepField.index.asc())
         for test_step_field in test_step_fields:
             test_step_detail = TestStepDetail(
                 id=str(uuid.uuid4()),
@@ -259,8 +295,18 @@ def clone_test_step(test_case_id, test_step_id):
             db.session.add(test_step_detail)
             db.session.flush()
         db.session.commit()
+        # Create detail_of_action and Save history
+        detail_of_action = {}
+        field_name = [item.name for item in test_step_fields]
+        detail_of_action[field_name[0]] = test_step.action
+        detail_of_action[field_name[1]] = test_step.data
+        detail_of_action[field_name[2]] = test_step.result
+        for i, name in enumerate(test_step.custom_fields):
+            detail_of_action[field_name[3+i]] = name
+        save_history_test_step(test_case_id, user_id, 4, 2, detail_of_action, [test_step.index + 1])
         return send_result(data='', message="Step clone successfully",
                            show=True)
     except Exception as ex:
         db.session.rollback()
         return send_error(data='', message="Something was wrong!")
+

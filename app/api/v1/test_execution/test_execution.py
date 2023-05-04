@@ -6,7 +6,7 @@ from flask import Blueprint, request
 from flask_jwt_extended import jwt_required, get_jwt_identity, create_access_token
 from benedict import benedict
 from sqlalchemy.orm import joinedload
-
+from app.api.v1.history_test import save_history_test_execution
 from app.api.v1.test_run.schema import TestRunSchema
 from app.gateway import authorization_require
 from app.models import TestStep, TestCase, TestType, db, TestField, Setting, TestRun, TestExecution, \
@@ -58,6 +58,7 @@ def add_test_execution(test_issue_id):
     try:
         body_request = request.get_json()
         token = get_jwt_identity()
+        user_id = token.get('userId')
         cloud_id = token.get('cloudId')
         project_id = token.get('projectId')
 
@@ -84,7 +85,7 @@ def add_test_execution(test_issue_id):
             """
                Get test execution, create new if not exist
             """
-            test_execution = TestExecution.query.filter(TestExecution.issue_id == test_execution_issue_id,
+            test_execution = TestExecution.query.filter(TestExecution.id == test_execution_issue_id,
                                                         TestExecution.cloud_id == cloud_id,
                                                         TestExecution.project_id == project_id).first()
             if test_execution is None:
@@ -127,9 +128,9 @@ def add_test_execution(test_issue_id):
             else:
                 return send_error(message='Some Test Executions were already associated with the Test',
                                   status=200, show=False)
-
         db.session.commit()
-        return send_result(data='', message='Add test execution to test case successfully', show=True)
+        save_history_test_execution(test_case, user_id, 1, 2, test_execution_issue_ids)
+        return send_result(message=f'Add {len(test_execution_issue_ids)} test execution to test case successfully')
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
@@ -140,6 +141,7 @@ def add_test_execution(test_issue_id):
 def remove_test_execution(test_issue_id):
     try:
         token = get_jwt_identity()
+        user_id = token.get('userId')
         body_request = request.get_json()
         cloud_id = token.get('cloudId')
         project_id = token.get('projectId')
@@ -157,11 +159,10 @@ def remove_test_execution(test_issue_id):
             test_cases_test_executions.c.test_execution_id.in_(test_execution_ids))\
             .where(test_cases_test_executions.c.test_case_id == test_case.id)
         db.session.execute(remove_test_case_test_executions)
-
         db.session.flush()
         db.session.commit()
-        return send_result(data='', message='Remove test execution to test case successfully', show=True)
-
+        save_history_test_execution(test_case, user_id, 2, 2, test_execution_ids)
+        return send_result(message=f'Remove {len(test_execution_ids)} test execution to test case successfully')
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))

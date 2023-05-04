@@ -448,7 +448,7 @@ class TestCase(db.Model):
     issue_id = db.Column(db.String(50))
     issue_key = db.Column(db.String(50))
     meta_data = db.Text()
-
+    test_type_id = db.Column(db.String(50))
     test_steps = relationship("TestStep", primaryjoin='TestStep.test_case_id == TestCase.id', lazy="noload",
                               order_by="asc(TestStep.index)")
 
@@ -609,7 +609,7 @@ class HistoryTest(db.Model):
     __tablename__ = "history_test"
     id = db.Column(db.String(50), primary_key=True)
     user_id = db.Column(db.String(50), nullable=False)
-    history_category = db.Column(db.Integer, default=1, index=True) # test  set : 1    # test case -  test set:2  /test run:3   test
+    history_category = db.Column(db.Integer, default=1, index=True)  # 1:Test Set , 2: Test Case
     activities = db.Column(db.String(50), nullable=False)
     action_name = db.Column(db.String(50), nullable=False)
     detail_of_action = db.Column(db.JSON, nullable=False)
