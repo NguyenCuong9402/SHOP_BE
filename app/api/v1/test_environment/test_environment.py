@@ -98,8 +98,19 @@ def add_test_environment(project_id):
         if not is_valid:
             return send_error(data=data, code=200, is_dynamic=True)
         ids_to_add = body_request['ids']
+        if len(ids_to_add) == 0:
+            return send_error(message="This field is required")
+        check_parent_id = TestEnvironment.query.filter(TestEnvironment.parent_id.in_(ids_to_add)).all()
+        if check_parent_id is not None:
+            return send_error(message="Test Environment has been added "
+                                      f"\n Please refresh the page to view the changes")
         query = TestEnvironment.query.filter(TestEnvironment.id.in_(ids_to_add)).all()
         for item in query:
+            coincided = check_coincided_name(name=item.name, cloud_id=cloud_id, project_id=project_id)
+            if coincided is True:
+                return send_error(code=200, data={"name": "Test Environment already exists. Please try again"},
+                                  message='Invalid request', show=False, is_dynamic=True)
+
             test_environment = TestEnvironment(
                 id=str(uuid.uuid4()),
                 project_id=project_id,
@@ -241,9 +252,14 @@ def update_test_environment(project_id, test_environment_id):
 
 
 def check_coincided_name(name='', self_id=None, project_id='', cloud_id=''):
-    existed_test_step = TestEnvironment.query.filter(
-        and_(func.lower(TestEnvironment.name) == func.lower(name), TestEnvironment.id != self_id,
-             TestEnvironment.cloud_id == cloud_id)).first()
+    if project_id is None:
+        existed_test_step = TestEnvironment.query.filter(
+            and_(func.lower(TestEnvironment.name) == func.lower(name), TestEnvironment.id != self_id,
+                 TestEnvironment.cloud_id == cloud_id)).first()
+    else:
+        existed_test_step = TestEnvironment.query.filter(
+            and_(func.lower(TestEnvironment.name) == func.lower(name), TestEnvironment.id != self_id,
+                 TestEnvironment.cloud_id == cloud_id, TestEnvironment.project_id == project_id)).first()
     if existed_test_step is None:
         return False
     return True
