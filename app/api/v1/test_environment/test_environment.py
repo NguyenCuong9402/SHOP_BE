@@ -147,27 +147,35 @@ def delete_test_environments(project_id):
             return send_error(data=data, code=200, is_dynamic=True)
 
         ids_to_delete = body_request['ids']
+        is_delete_all = body_request['is_delete_all']
 
         """
         1. Delete all parents id
         """
-        db.session.query(TestEnvironment).filter(TestEnvironment.parent_id.in_(ids_to_delete)).update(
-            {TestEnvironment.parent_id: None})
-
-        """
+        if is_delete_all:
+            db.session.query(TestEnvironment).filter(TestEnvironment.parent_id.in_(ids_to_delete)).update(
+                {TestEnvironment.parent_id: None})
+            """
         1. Delete all test_environments by id
-        """
-        for id_to_delete in ids_to_delete:
-            test_environment = TestEnvironment.get_by_id(id_to_delete)
-            if test_environment is None:
-                return send_error(
-                    message="Test Environment has been changed \n Please refresh the page to view the changes",
-                    code=200,
-                    show=False)
-            db.session.delete(test_environment)
-
+            """
+            for id_to_delete in ids_to_delete:
+                test_environment = TestEnvironment.get_by_id(id_to_delete)
+                if test_environment is None:
+                    return send_error(
+                        message="Test Environment has been changed \n Please refresh the page to view the changes",
+                        code=200,
+                        show=False)
+                db.session.delete(test_environment)
+                db.session.flush()
+            number = len(ids_to_delete)
+        else:
+            number = TestEnvironment.query.filter(TestEnvironment.id.notin_(ids_to_delete)).count()
+            db.session.query(TestEnvironment).filter(TestEnvironment.parent_id.notin_(ids_to_delete)).update(
+                {TestEnvironment.parent_id: None})
+            db.session.query(TestEnvironment).filter(TestEnvironment.id.notin_(ids_to_delete)).delete()
+            db.session.flush()
         db.session.commit()
-        return send_result(data="", message=f"{len(ids_to_delete)} Test Environment(s) removed", code=200, show=True)
+        return send_result(data="", message=f"{number} Test Environment(s) removed", code=200, show=True)
     except Exception as ex:
         db.session.rollback()
         return send_error(data='', message="Something was wrong!")

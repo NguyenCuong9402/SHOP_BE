@@ -29,3 +29,4 @@ class DeleteTestEnvironment(Schema):
     Marshmallow Schema
     """
     ids = fields.List(fields.String)
+    is_delete_all = fields.Boolean()
