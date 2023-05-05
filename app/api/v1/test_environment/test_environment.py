@@ -100,10 +100,19 @@ def add_test_environment(project_id):
         ids_to_add = body_request['ids']
         if len(ids_to_add) == 0:
             return send_error(message="This field is required")
-        check_parent_id = TestEnvironment.query.filter(TestEnvironment.parent_id.in_(ids_to_add)).all()
-        if check_parent_id is not None:
-            return send_error(message="Test Environment has been added "
+        check_id = TestEnvironment.query.filter(TestEnvironment.id.in_(ids_to_add),
+                                                TestEnvironment.parent_id.is_(None),
+                                                TestEnvironment.cloud_id == cloud_id,
+                                                TestEnvironment.project_id != project_id).count()
+        if check_id < len(ids_to_add):
+            return send_error(message=f" Test Environment is not exist ")
+        check_parent_id = TestEnvironment.query.filter(TestEnvironment.cloud_id == cloud_id,
+                                                       TestEnvironment.project_id == project_id,
+                                                       TestEnvironment.parent_id.in_(ids_to_add)).count()
+        if check_parent_id > 0:
+            return send_error(message=f"{check_parent_id} in {len(ids_to_add)} Test Environment has been added "
                                       f"\n Please refresh the page to view the changes")
+
         query = TestEnvironment.query.filter(TestEnvironment.id.in_(ids_to_add)).all()
         for item in query:
             coincided = check_coincided_name(name=item.name, cloud_id=cloud_id, project_id=project_id)
