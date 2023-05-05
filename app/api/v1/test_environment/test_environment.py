@@ -7,7 +7,7 @@ from flask_jwt_extended import get_jwt_identity
 from sqlalchemy import func, asc, and_, desc
 
 from app.api.v1.test_environment.test_environment_validator import CreateTestEnvironment, DeleteTestEnvironment, \
-    UpdateTestEnvironment
+    UpdateTestEnvironment, AddTestEnvironment
 from app.gateway import authorization_require
 from app.models import TestType, db, TestEnvironment
 from app.utils import send_result, send_error, validate_request, escape_wildcard
@@ -86,6 +86,36 @@ def get_test_environments(project_id):
         return send_result(data=results)
     except Exception as ex:
         return send_error(data={})
+
+
+@api.route("/<project_id>/add", methods=["POST"])
+@authorization_require()
+def add_test_environment(project_id):
+    try:
+        token = get_jwt_identity()
+        cloud_id = token.get('cloudId')
+        is_valid, data, body_request = validate_request(AddTestEnvironment(), request)
+        if not is_valid:
+            return send_error(data=data, code=200, is_dynamic=True)
+        ids_to_add = body_request['ids']
+        query = TestEnvironment.query.filter(TestEnvironment.id.in_(ids_to_add)).all()
+        for item in query:
+            test_environment = TestEnvironment(
+                id=str(uuid.uuid4()),
+                project_id=project_id,
+                cloud_id=cloud_id,
+                name=item.name,
+                description=item.description,
+                url=item.url,
+                parent_id=item.id
+            )
+            db.session.add(test_environment)
+            db.session.flush()
+        db.session.commit()
+        return send_result(message=f"{len(ids_to_add)} Test Environments added", show=True)
+    except Exception as ex:
+        db.session.rollback()
+        return send_error(data='', message=str(ex))
 
 
 @api.route("/<project_id>", methods=["POST"])
