@@ -54,11 +54,10 @@ def get_test_status(project_id):
                 TestStatus.project_key == project_id),
             TestStatus.is_default == 0,
             TestStatus.cloud_id == cloud_id).order_by(asc(TestStatus.name))
-
-        test_statuses = test_statuses_default.union(test_statuses_optional)
-
-        result = TestStatusSchema(many=True).dump(test_statuses.all())
-        return send_result(data=result, message="OK", show=False)
+        result = TestStatusSchema(many=True).dump(test_statuses_default.all())
+        result2 = TestStatusSchema(many=True).dump(test_statuses_optional.all())
+        data = result + result2
+        return send_result(data=data, message="OK", show=False)
     except Exception as ex:
         db.session.rollback()
         return send_error(message="Something wrong!")

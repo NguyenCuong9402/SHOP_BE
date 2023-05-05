@@ -7,7 +7,7 @@ from flask_jwt_extended import get_jwt_identity
 from sqlalchemy import func, asc, and_, desc
 
 from app.api.v1.test_environment.test_environment_validator import CreateTestEnvironment, DeleteTestEnvironment, \
-    UpdateTestEnvironment
+    UpdateTestEnvironment, AddTestEnvironment
 from app.gateway import authorization_require
 from app.models import TestType, db, TestEnvironment
 from app.utils import send_result, send_error, validate_request, escape_wildcard
@@ -86,6 +86,56 @@ def get_test_environments(project_id):
         return send_result(data=results)
     except Exception as ex:
         return send_error(data={})
+
+
+@api.route("/<project_id>/add", methods=["POST"])
+@authorization_require()
+def add_test_environment(project_id):
+    try:
+        token = get_jwt_identity()
+        cloud_id = token.get('cloudId')
+        is_valid, data, body_request = validate_request(AddTestEnvironment(), request)
+        if not is_valid:
+            return send_error(data=data, code=200, is_dynamic=True)
+        ids_to_add = body_request['ids']
+        if len(ids_to_add) == 0:
+            return send_error(message="This field is required")
+        check_id = TestEnvironment.query.filter(TestEnvironment.id.in_(ids_to_add),
+                                                TestEnvironment.parent_id.is_(None),
+                                                TestEnvironment.cloud_id == cloud_id,
+                                                TestEnvironment.project_id != project_id).count()
+        if check_id < len(ids_to_add):
+            return send_error(message=f" Test Environment is not exist ")
+        check_parent_id = TestEnvironment.query.filter(TestEnvironment.cloud_id == cloud_id,
+                                                       TestEnvironment.project_id == project_id,
+                                                       TestEnvironment.parent_id.in_(ids_to_add)).count()
+        if check_parent_id > 0:
+            return send_error(message=f"{check_parent_id} in {len(ids_to_add)} Test Environment has been added "
+                                      f"\n Please refresh the page to view the changes")
+
+        query = TestEnvironment.query.filter(TestEnvironment.id.in_(ids_to_add)).all()
+        for item in query:
+            coincided = check_coincided_name(name=item.name, cloud_id=cloud_id, project_id=project_id)
+            if coincided is True:
+                return send_error(code=200, data={"name": "Test Environment already exists. Please try again"},
+                                  message='Invalid request', show=False, is_dynamic=True)
+
+            test_environment = TestEnvironment(
+                id=str(uuid.uuid4()),
+                project_id=project_id,
+                cloud_id=cloud_id,
+                name=item.name,
+                description=item.description,
+                url=item.url,
+                parent_id=item.id
+            )
+            db.session.add(test_environment)
+            db.session.flush()
+        db.session.commit()
+        return send_result(message=f"{len(ids_to_add)} Test Environments added", show=True)
+    except Exception as ex:
+        db.session.rollback()
+        return send_error(data='', message=str(ex))
 
 
 @api.route("/<project_id>", methods=["POST"])
@@ -211,9 +261,14 @@ def update_test_environment(project_id, test_environment_id):
 
 
 def check_coincided_name(name='', self_id=None, project_id='', cloud_id=''):
-    existed_test_step = TestEnvironment.query.filter(
-        and_(func.lower(TestEnvironment.name) == func.lower(name), TestEnvironment.id != self_id,
-             TestEnvironment.cloud_id == cloud_id)).first()
+    if project_id is None:
+        existed_test_step = TestEnvironment.query.filter(
+            and_(func.lower(TestEnvironment.name) == func.lower(name), TestEnvironment.id != self_id,
+                 TestEnvironment.cloud_id == cloud_id)).first()
+    else:
+        existed_test_step = TestEnvironment.query.filter(
+            and_(func.lower(TestEnvironment.name) == func.lower(name), TestEnvironment.id != self_id,
+                 TestEnvironment.cloud_id == cloud_id, TestEnvironment.project_id == project_id)).first()
     if existed_test_step is None:
         return False
     return True

@@ -30,3 +30,12 @@ class DeleteTestEnvironment(Schema):
     """
     ids = fields.List(fields.String)
     is_delete_all = fields.Boolean()
+
+
+class AddTestEnvironment(Schema):
+    """
+        Author: CuongNguyen
+        Create Date: 5/5/2023
+        Marshmallow Schema
+        """
+    ids = fields.List(fields.String)
