@@ -87,13 +87,12 @@ def create_test_type(project_id):
 def delete(project_id, test_type_id):
     try:
         test_type = TestType.get_by_id(test_type_id)
-        test_type_name = test_type.name
         if test_type is None or test_type.is_default:
             return send_error(
                 message="Test Type has been changed \n Please refresh the page to view the changes",
                 code=200,
                 show=False)
-
+        test_type_name = test_type.name
         if test_type_name == DEFAULT_DATA['name']:
             return send_error(
                 message="You can not delete the default test type \n Please refresh the page to view the changes",
