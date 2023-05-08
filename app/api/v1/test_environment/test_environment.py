@@ -190,7 +190,8 @@ def delete_test_environments(project_id):
 
     """
     try:
-
+        token = get_jwt_identity()
+        cloud_id = token.get("cloudId")
         is_valid, data, body_request = validate_request(DeleteTestEnvironment(), request)
 
         if not is_valid:
@@ -198,15 +199,24 @@ def delete_test_environments(project_id):
 
         ids_to_delete = body_request['ids']
         is_delete_all = body_request['is_delete_all']
-
-        """
-        1. Delete all parents id
-        """
         if is_delete_all:
+            number = TestEnvironment.query.filter(TestEnvironment.cloud_id == cloud_id,
+                                                  TestEnvironment.project_id == project_id,
+                                                  TestEnvironment.id.notin_(ids_to_delete)).count()
+            db.session.query(TestEnvironment).filter(TestEnvironment.parent_id.notin_(ids_to_delete)).update(
+                {TestEnvironment.parent_id: None})
+            db.session.query(TestEnvironment).filter(TestEnvironment.cloud_id == cloud_id,
+                                                     TestEnvironment.project_id == project_id,
+                                                     TestEnvironment.id.notin_(ids_to_delete)).delete()
+            db.session.flush()
+        else:
+            """
+            1. Delete all parents id
+            """
             db.session.query(TestEnvironment).filter(TestEnvironment.parent_id.in_(ids_to_delete)).update(
                 {TestEnvironment.parent_id: None})
             """
-        1. Delete all test_environments by id
+                1. Delete all test_environments by id
             """
             for id_to_delete in ids_to_delete:
                 test_environment = TestEnvironment.get_by_id(id_to_delete)
@@ -218,12 +228,6 @@ def delete_test_environments(project_id):
                 db.session.delete(test_environment)
                 db.session.flush()
             number = len(ids_to_delete)
-        else:
-            number = TestEnvironment.query.filter(TestEnvironment.id.notin_(ids_to_delete)).count()
-            db.session.query(TestEnvironment).filter(TestEnvironment.parent_id.notin_(ids_to_delete)).update(
-                {TestEnvironment.parent_id: None})
-            db.session.query(TestEnvironment).filter(TestEnvironment.id.notin_(ids_to_delete)).delete()
-            db.session.flush()
         db.session.commit()
         return send_result(data="", message=f"{number} Test Environment(s) removed", code=200, show=True)
     except Exception as ex:

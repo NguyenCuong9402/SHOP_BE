@@ -165,3 +165,27 @@ def get_test_run_by_id(test_case_id):
 
     except Exception as ex:
         print(ex)
+
+
+@api.route("/<test_run_id>/<new_name_status>", methods=["PUT"])
+@authorization_require()
+def change_status_test_run(test_run_id, new_name_status):
+    try:
+        token = get_jwt_identity()
+        project_id = token.get("projectId")
+        cloud_id = token.get("cloudId")
+        user_id = token.get("userId")
+        query = TestRun.query.filter(TestRun.id == test_run_id).first()
+        if not query:
+            return send_error(message="Test run is not exists")
+        status = TestStatus.query.filter(TestStatus.cloud_id == cloud_id, TestStatus.project_id == project_id,
+                                         TestStatus.name == new_name_status).first()
+        if not status:
+            return send_error(message="status is not exists")
+        query.test_status_id = status.id
+        db.session.flush()
+        db.session.commit()
+        return send_result(message="success")
+    except Exception as ex:
+        db.session.rollback()
+        return send_error(message=str(ex))
