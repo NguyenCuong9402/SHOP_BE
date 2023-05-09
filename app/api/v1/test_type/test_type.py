@@ -86,8 +86,10 @@ def create_test_type(project_id):
 @authorization_require()
 def delete(project_id, test_type_id):
     try:
+        token = get_jwt_identity()
+        cloud_id = token.get("cloudId")
         test_type = TestType.get_by_id(test_type_id)
-        if test_type is None or test_type.is_default:
+        if test_type is None:
             return send_error(
                 message="Test Type has been changed \n Please refresh the page to view the changes",
                 code=200,
@@ -98,8 +100,28 @@ def delete(project_id, test_type_id):
                 message="You can not delete the default test type \n Please refresh the page to view the changes",
                 code=200,
                 show=False)
-
-        db.session.delete(test_type)
+        if test_type.is_default:
+            reg = request.get_json()
+            test_type_id_substitute = reg.get("test_type_id_substitute")
+            test_type_substitute = TestType.get_by_id(test_type_id_substitute)
+            if test_type_substitute is None:
+                manual = TestType.query.filter(TestType.cloud_id == cloud_id, TestType.project_id == project_id,
+                                               TestType.name == DEFAULT_DATA['name']).first()
+                test_type.is_default = False
+                manual.is_default = True
+                db.session.flush()
+                db.session.commit()
+                return send_result(data="",
+                                   message=f"Test Type {test_type_name} removed | Project Test Type settings saved",
+                                   code=200, show=True)
+            else:
+                test_type.is_default = False
+                test_type_substitute.is_default = True
+                db.session.delete(test_type)
+                db.session.flush()
+        else:
+            db.session.delete(test_type)
+            db.session.flush()
         db.session.commit()
         return send_result(data="", message=f"Test Type {test_type_name} removed", code=200, show=True)
     except Exception as ex:

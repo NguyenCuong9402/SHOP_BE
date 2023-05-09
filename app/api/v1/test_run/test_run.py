@@ -189,3 +189,71 @@ def change_status_test_run(test_run_id, new_name_status):
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
+
+
+# call change status mới call set time
+@api.route("/<test_run_id>/set_time", methods=["PUT"])
+@authorization_require()
+def set_time_test_run(test_run_id):
+    try:
+        token = get_jwt_identity()
+        project_id = token.get("projectId")
+        cloud_id = token.get("cloudId")
+        user_id = token.get("userId")
+        edited = request.args.get('edited', False, type=bool)
+        reg = request.get_json()
+        start_time = reg.get("start_time", 0)
+        if not isinstance(start_time, int):
+            start_time = 0
+        query = TestRun.query.filter(TestRun.id == test_run_id).first()
+        if start_time != 0 and edited:
+            if query.end_date == 0:
+                if query.status.name in ["PASSED", "FAILED"]:
+                    query.start_date = start_time
+                    query.end_date = get_timestamp_now()
+                    db.session.flush()
+                    if start_time > query.end_date:
+                        return send_error(message="Test run cannot start after finished date", is_dynamic=True)
+                else:
+                    query.start_date = start_time
+                    query.end_date = 0
+                    db.session.flush()
+            else:
+                if query.status.name in ["PASSED", "FAILED"]:
+                    if start_time > query.end_date:
+                        return send_error(message="Test run cannot start after finished date", is_dynamic=True)
+                    query.start_date = start_time
+                    db.session.flush()
+                else:
+                    query.start_date = start_time
+                    query.end_date = 0
+                    db.session.flush()
+        else:
+            if query.start_date == 0 and query.end_date == 0:
+                if query.status.name in ["PASSED", "FAILED"]:
+                    query.start_date = get_timestamp_now()
+                    query.end_date = TestRun.start_date
+                    db.session.flush()
+                else:
+                    query.start_date = get_timestamp_now()
+                    db.session.flush()
+            elif query.start_date != 0 and query.end_date == 0 and (query.status.name in ["PASSED", "FAILED"]):
+                query.end_date = get_timestamp_now()
+                db.session.flush()
+            elif query.start_date == 0 and query.end_date != 0:
+                if query.status.name not in ["PASSED", "FAILED"]:
+                    query.end_date = get_timestamp_now()
+                    query.end_date = 0
+                    db.session.flush()
+                else:
+                    query.end_date = get_timestamp_now()
+                    query.end_date = TestRun.start_date
+                    db.session.flush()
+            elif query.start_date != 0 and query.end_date != 0 and (query.status.name not in ["PASSED", "FAILED"]):
+                query.end_date = 0
+                db.session.flush()
+        db.session.commit()
+        return send_result(message="success")
+    except Exception as ex:
+        db.session.rollback()
+        return send_error(message="failed")
