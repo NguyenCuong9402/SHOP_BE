@@ -7,7 +7,7 @@ class TestRunSchema(Schema):
     id = fields.String()
     cloud_id = fields.String()
     project_id = fields.String()
-
+    created_date = fields.Integer()
     issue_id = fields.String()
     issue_key = fields.String()
     test_case_id = fields.String()

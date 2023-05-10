@@ -6,6 +6,7 @@ from flask import Blueprint, request
 from flask_jwt_extended import jwt_required, get_jwt_identity, create_access_token
 from benedict import benedict
 from marshmallow import ValidationError
+from sqlalchemy import desc, asc
 from sqlalchemy.orm import joinedload
 
 from app.api.v1.history_test import save_history_test_case, save_history_test_execution
@@ -16,7 +17,7 @@ from app.gateway import authorization_require
 from app.models import TestStep, TestCase, TestType, db, TestField, Setting, TestRun, TestExecution, \
     TestCasesTestExecutions, TestStatus, TestStepDetail, TestCasesTestSets, TestSet
 from app.utils import send_result, send_error, data_preprocessing, get_timestamp_now
-from app.validator import TestCaseValidator
+from app.validator import TestCaseValidator, TestCaseSchema, TestSetSchema, TestCaseTestStepSchema
 
 DELETE_SUCCESS = 13
 ADD_SUCCESS = 16
@@ -24,36 +25,131 @@ ADD_SUCCESS = 16
 api = Blueprint('test_case', __name__)
 
 
-@api.route("/<test_case_id>", methods=["GET"])
+@api.route("/<issue_id>", methods=["GET"])
 @authorization_require()
-def get_test_case(test_case_id):
+def get_test_case(issue_id):
     token = get_jwt_identity()
     cloud_id = token.get('cloudId')
-    test_case = TestCase.get_by_id(test_case_id)
-    return send_result(data=json.dumps(test_case), message="OK")
+    project_id = token.get('projectId')
+    test_case = TestCase.query.filter(TestCase.project_id == project_id, TestCase.cloud_id == cloud_id,
+                                      TestCase.issue_id == issue_id).first()
+    try:
+        return send_result(data=TestCaseSchema().dump(test_case), message="OK")
+    except Exception:
+        return send_error(message="not found")
+
+
+@api.route("/<issue_id>/test-set", methods=["GET"])
+@authorization_require()
+def get_test_set_from_test_case(issue_id):
+    token = get_jwt_identity()
+    cloud_id = token.get('cloudId')
+    project_id = token.get('projectId')
+    # Get search params
+    page = request.args.get('page', 1, type=int)
+    page_size = request.args.get('page_size', 10, type=int)
+    order_by = request.args.get('order_by', "issue_key", type=str)
+    order = request.args.get('order', 'asc', type=str)
+    test_case = TestCase.query.filter(TestCase.cloud_id == cloud_id, TestCase.issue_id == issue_id,
+                                      TestCase.project_id == project_id).first()
+    if test_case is None:
+        return send_error("Not found test case")
+    # sort
+    query = db.session.query(TestSet).join(TestCasesTestSets).filter(TestCasesTestSets.test_case_id == test_case.id)
+    column_sorted = getattr(TestRun, order_by)
+    query = query.order_by(desc(column_sorted)) if order == "desc" else query.order_by(asc(column_sorted))
+    test_sets = query.paginate(page=page, per_page=page_size, error_out=False).items
+    total = query.count()
+    extra = 1 if (total % page_size) else 0
+    total_pages = int(total / page_size) + extra
+    try:
+        results = {
+            "test_cases": TestSetSchema(many=True).dump(test_sets),
+            "total": total,
+            "total_pages": total_pages
+        }
+        return send_result(data=results)
+    except Exception as ex:
+        return send_error(data={})
 
 
 @api.route("/<issue_id>/test_run", methods=["GET"])
 @authorization_require()
-def get_test_run(issue_id):
+def get_test_run_from_test_case(issue_id):
+    token = get_jwt_identity()
+    cloud_id = token.get('cloudId')
+    project_id = token.get('projectId')
+    page = request.args.get('page', 1, type=int)
+    page_size = request.args.get('page_size', 10, type=int)
+    order_by = request.args.get('order_by', '', type=str)
+    order = request.args.get('order', 'asc', type=str)
+    if order_by == '':
+        order_by = "created_date"
+    else:
+        if order_by not in ["issue_id", "issue_key", "created_date"]:
+            return send_error("Not a valid")
+    column_sorted = getattr(TestRun, order_by)
+    # Get test case
+    test_case = TestCase.query.filter(TestCase.cloud_id == cloud_id, TestCase.issue_id == issue_id,
+                                      TestCase.project_id == project_id).first()
+    if test_case is None:
+        return send_error("Not found test case")
+    query = db.session.query(TestRun) \
+        .join(TestExecution, TestExecution.id == TestRun.test_execution_id). \
+        join(TestCase, TestExecution.test_cases). \
+        filter(TestCase.issue_id == test_case.issue_id)
+    query = query.order_by(desc(column_sorted)) if order == "desc" else query.order_by(asc(column_sorted))
+    test_runs = query.paginate(page=page, per_page=page_size, error_out=False).items
+    total = query.count()
+    extra = 1 if (total % page_size) else 0
+    total_pages = int(total / page_size) + extra
     try:
-        token = get_jwt_identity()
-        cloud_id = token.get('cloudId')
-        project_id = token.get('projectId')
+        results = {
+            "test_cases": TestRunSchema(many=True).dump(test_runs),
+            "total": total,
+            "total_pages": total_pages
+        }
+        return send_result(data=results)
 
-        # Get test case
-        test_case = TestCase.query.filter(TestCase.cloud_id == cloud_id, TestCase.issue_id == issue_id,
-                                          TestCase.project_id == project_id).first()
+    except Exception as ex:
+        print(ex)
 
-        # test_executions = test_case.test_execution.all()
-        # test_execution_ids = [item.id for item in test_executions]
 
-        test_runs = db.session.query(TestRun) \
-            .join(TestExecution, TestExecution.id == TestRun.test_execution_id). \
-            join(TestCase, TestExecution.test_cases). \
-            filter(TestCase.issue_id == test_case.issue_id).all()
-
-        return send_result(data=TestRunSchema(many=True).dump(test_runs), message="OK")
+@api.route("/<issue_id>/test_step", methods=["GET"])
+@authorization_require()
+def get_test_step_from_test_case(issue_id):
+    token = get_jwt_identity()
+    cloud_id = token.get('cloudId')
+    project_id = token.get('projectId')
+    page = request.args.get('page', 1, type=int)
+    page_size = request.args.get('page_size', 10, type=int)
+    order_by = request.args.get('order_by', '', type=str)
+    order = request.args.get('order', 'asc', type=str)
+    if order_by == '':
+        order_by = "index"
+    else:
+        if order_by not in ["created_date", "index"]:
+            return send_error("Not a valid")
+    column_sorted = getattr(TestStep, order_by)
+    # Get test case
+    test_case = TestCase.query.filter(TestCase.cloud_id == cloud_id, TestCase.issue_id == issue_id,
+                                      TestCase.project_id == project_id).first()
+    if test_case is None:
+        return send_error("Not found test case")
+    query = db.session.query(TestStep) \
+        .join(TestCase, TestCase.id == TestStep.test_case_id).filter(TestCase.issue_id == test_case.issue_id)
+    query = query.order_by(desc(column_sorted)) if order == "desc" else query.order_by(asc(column_sorted))
+    test_runs = query.paginate(page=page, per_page=page_size, error_out=False).items
+    total = query.count()
+    extra = 1 if (total % page_size) else 0
+    total_pages = int(total / page_size) + extra
+    try:
+        results = {
+            "test_cases": TestCaseTestStepSchema(many=True).dump(test_runs),
+            "total": total,
+            "total_pages": total_pages
+        }
+        return send_result(data=results)
 
     except Exception as ex:
         print(ex)

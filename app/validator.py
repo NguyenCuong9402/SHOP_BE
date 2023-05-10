@@ -508,6 +508,7 @@ class TestEnvironmentSchema(Schema):
 class TestCaseSchema(Schema):
     id = fields.String()
     issue_id = fields.String()
+    issue_key = fields.String()
     project_id = fields.String()
     cloud_id = fields.String()
     created_date = fields.Integer()
@@ -516,6 +517,17 @@ class TestCaseSchema(Schema):
 class TestSetSchema(Schema):
     id = fields.String()
     issue_id = fields.String()
+    issue_key = fields.String()
+    project_id = fields.String()
+    cloud_id = fields.String()
+    created_date = fields.Integer()
+
+
+class TestSetTestCasesSchema(Schema):
+    id = fields.String()
+    index = fields.Int()
+    issue_id = fields.String()
+    issue_key = fields.String()
     project_id = fields.String()
     cloud_id = fields.String()
     created_date = fields.Integer()
@@ -572,4 +584,18 @@ class HistorySchema(Schema):
     action_name = fields.String()
     detail_of_action = fields.Dict()
     created_date = fields.Integer()
+
+
+class TestCaseTestStepSchema(Schema):
+    id = fields.String()
+    cloud_id = fields.String()
+    project_key = fields.String()
+    project_id = fields.String()
+    action = fields.String()
+    data = fields.String()
+    result = fields.String()
+    custom_fields = fields.List(fields.String())
+    attachments = fields.String()
+    index = fields.Integer()
+    test_case_id_reference = fields.String()
 
