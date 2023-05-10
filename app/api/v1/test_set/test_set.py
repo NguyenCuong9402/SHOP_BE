@@ -121,7 +121,7 @@ def add_test_to_test_set(test_set_issue_id):
         # save history
         save_history_test_set(test_set.id, user_id, 1, 1, test_case_ids, [])
         message = f'{len(test_case_ids)} Test case(s) add to the Test Set'
-        return send_result(message=message)
+        return send_result(message=message, show=True)
 
     except Exception as ex:
         db.session.rollback()
@@ -134,11 +134,26 @@ def remove_test_to_test_set(test_set_id):
     try:
         token = get_jwt_identity()
         user_id = token.get('userId')
+        project_id = token.get('projectId')
+        cloud_id = token.get('cloudId')
+
         body_request = request.get_json()
         test_case_ids = body_request.get("test_cases_id")
-        TestCasesTestSets.query.filter(TestCasesTestSets.test_set_id == test_set_id,
-                                       TestCasesTestSets.test_case_id.in_(test_case_ids)).delete()
-        db.session.flush()
+        is_delete_all = body_request.get("is_delete_all", False)
+        if is_delete_all:
+            query = TestCasesTestSets.query.filter(TestCasesTestSets.test_set_id == test_set_id,
+                                                   TestCasesTestSets.test_case_id.notin_(test_case_ids)).all()
+            ids_to_delete = [item.test_case_id for item in query]
+            TestCasesTestSets.query.filter(TestCasesTestSets.test_set_id == test_set_id,
+                                           TestCasesTestSets.test_case_id.in_(ids_to_delete)).delete()
+            db.session.flush()
+
+        else:
+            TestCasesTestSets.query.filter(TestCasesTestSets.test_set_id == test_set_id,
+                                           TestCasesTestSets.test_case_id.in_(test_case_ids)).delete()
+            db.session.flush()
+            ids_to_delete = test_case_ids
+        message = f'{len(ids_to_delete)} Test case(s) remove to the Test Set'
         # Lấy ra tất cả các record trong bảng
         query_all = TestCasesTestSets.query.filter(TestCasesTestSets.test_set_id == test_set_id)\
             .order_by(TestCasesTestSets.index.asc())
@@ -149,10 +164,9 @@ def remove_test_to_test_set(test_set_id):
             new_index += 1
         db.session.flush()
         db.session.commit()
-        message = f'{len(test_case_ids)} Test case(s) remove to the Test Set'
         # save history
-        save_history_test_set(test_set_id, user_id, 2, 1, test_case_ids, [])
-        return send_result(message=message)
+        save_history_test_set(test_set_id, user_id, 2, 1, ids_to_delete, [])
+        return send_result(message=message, show=True)
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))

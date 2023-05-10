@@ -280,23 +280,44 @@ def delete_tests_set_from_testcase(test_case_id):
             return send_error(message_id=INVALID_PARAMETERS_ERROR, data=err.messages)
 
         ids = params.get('ids', [])
-        is_delete_all = params.get('is_delete_all', True)
+        is_delete_all = params.get('is_delete_all', False)
 
         if is_delete_all:
+            # sắp xếp lại index của test set
+            query = TestCasesTestSets.query.filter(TestCasesTestSets.test_case_id == test_case_id,
+                                                   TestCasesTestSets.test_set_id.notin_(ids)).all()
+            ids_to_delete = [item.test_set_id for item in query]
+            number_test_set = len(ids_to_delete)
+
+            for test_set_id in ids_to_delete:
+                max_index = TestCasesTestSets.query.filter(TestCasesTestSets.test_set_id == test_set_id,
+                                                           TestCasesTestSets.test_case_id == test_case_id).first()
+                TestCasesTestSets.query.filter(TestCasesTestSets.test_set_id == test_set_id) \
+                    .filter(TestCasesTestSets.index > max_index.index).update(dict(index=TestCasesTestSets.index - 1))
+            db.session.flush()
+            # delete
             TestCasesTestSets.query.filter(TestCasesTestSets.test_set_id.notin_(ids),
                                            TestCasesTestSets.test_case_id == test_case_id).delete()
-            number_test_set = TestCasesTestSets.query.filter(TestCasesTestSets.test_case_id == test_case_id) \
-                .count()
+            db.session.flush()
         else:
+            # sắp xếp lại index
+            for test_set_id in ids:
+                max_index = TestCasesTestSets.query.filter(TestCasesTestSets.test_set_id == test_set_id,
+                                                           TestCasesTestSets.test_case_id == test_case_id).first()
+                TestCasesTestSets.query.filter(TestCasesTestSets.test_set_id == test_set_id) \
+                    .filter(TestCasesTestSets.index > max_index.index).update(dict(index=TestCasesTestSets.index - 1))
+            db.session.flush()
+            # delete
             TestCasesTestSets.query.filter(TestCasesTestSets.test_set_id.in_(ids),
                                            TestCasesTestSets.test_case_id == test_case_id).delete()
             number_test_set = len(ids)
-        db.session.flush()
+            db.session.flush()
+            ids_to_delete = ids
         db.session.commit()
         message = f'{number_test_set} Test Set(s) removed from the Test'
         # save history
-        save_history_test_case(test_case_id, user_id, 3, 2, ids, [])
-        return send_result(message_id=DELETE_SUCCESS, message=message)
+        save_history_test_case(test_case_id, user_id, 3, 2, ids_to_delete, [])
+        return send_result(message_id=DELETE_SUCCESS, message=message, show=True)
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
@@ -331,7 +352,7 @@ def add_tests_set_for_testcase(test_case_id):
         # save history
         save_history_test_case(test_case_id, user_id, 2, 2, ids, [])
         message = f'{len(ids)} Test Set(s) added to the Test'
-        return send_result(message_id=ADD_SUCCESS, message=message)
+        return send_result(message_id=ADD_SUCCESS, message=message, show=True)
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
