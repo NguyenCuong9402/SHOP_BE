@@ -227,6 +227,17 @@ class TestCaseValidator(Schema):
     is_delete_all = fields.Boolean()
 
 
+class TestCaseFilterValidator(Schema):
+    statuses = fields.List(fields.String())
+    environments = fields.List(fields.String())
+    testrun_started = fields.Dict()
+    testrun_finished = fields.Dict()
+
+
+class TestCaseFilterSchema(Schema):
+    id = fields.String()
+
+
 class TestStepRunSchema(Schema):
     """
     Author: phongnv

@@ -14,9 +14,9 @@ from app.enums import INVALID_PARAMETERS_ERROR
 from app.extensions import logger
 from app.gateway import authorization_require
 from app.models import TestStep, TestCase, TestType, db, TestField, Setting, TestRun, TestExecution, \
-    TestCasesTestExecutions, TestStatus, TestStepDetail, TestCasesTestSets, TestSet
+    TestCasesTestExecutions, TestStatus, TestStepDetail, TestCasesTestSets, TestSet, TestEnvironment
 from app.utils import send_result, send_error, data_preprocessing, get_timestamp_now
-from app.validator import TestCaseValidator
+from app.validator import TestCaseValidator, TestCaseFilterValidator, TestCaseFilterSchema
 
 DELETE_SUCCESS = 13
 ADD_SUCCESS = 16
@@ -335,3 +335,36 @@ def add_tests_set_for_testcase(test_case_id):
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
+
+
+@api.route("/filter/<test_case_id>", methods=['POST'])
+def filter_test_run(test_case_id):
+    try:
+        body = request.get_json()
+        body_req = TestCaseFilterValidator().load(body) if body else dict()
+    except ValidationError as err:
+        logger.error(json.dumps({
+            "message": err.messages,
+            "data": err.valid_data
+        }))
+        return send_error(message_id=INVALID_PARAMETERS_ERROR, data=err.messages)
+
+    statuses = body_req.get("statuses", [])
+    environments = body_req.get("environments", [])
+    testrun_started = body_req.get("testrun_started", {})
+    testrun_finished = body_req.get("testrun_finished", {})
+
+    query = db.session.query(TestRun)
+    if len(statuses) > 0:
+        query = query.join(TestStatus).filter(TestStatus.name.in_(statuses))
+    if len(environments) > 0:
+        query = query.join(TestEnvironment, TestExecution.test_environments).filter(TestEnvironment.name.in_(environments))
+    if len(testrun_started) > 0:
+        query = query.filter(TestRun.start_date > testrun_started.get('from'), TestRun.start_date < testrun_started.get('to'))
+    if len(testrun_finished) > 0:
+        query = query.filter(TestRun.end_date > testrun_finished.get('from'), TestRun.end_date < testrun_finished.get('to'))
+
+    query = query.filter(TestRun.test_case_id == test_case_id).all()
+
+    data = TestCaseFilterSchema(many=True).dump(query)
+    return send_result(data=data)
