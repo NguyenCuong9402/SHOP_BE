@@ -70,7 +70,7 @@ def get_test_set_from_test_case(issue_id):
         }
         return send_result(data=results)
     except Exception as ex:
-        return send_error(data={})
+        return send_error(message=str(ex), data={})
 
 
 @api.route("/<issue_id>/test_run", methods=["GET"])
@@ -94,10 +94,8 @@ def get_test_run_from_test_case(issue_id):
                                       TestCase.project_id == project_id).first()
     if test_case is None:
         return send_error("Not found test case")
-    query = db.session.query(TestRun) \
-        .join(TestExecution, TestExecution.id == TestRun.test_execution_id). \
-        join(TestCase, TestExecution.test_cases). \
-        filter(TestCase.issue_id == test_case.issue_id)
+    query = TestRun.query.filter(TestRun.cloud_id == cloud_id, TestRun.project_id == project_id,
+                                 TestRun.test_case_id == test_case.id)
     query = query.order_by(desc(column_sorted)) if order == "desc" else query.order_by(asc(column_sorted))
     test_runs = query.paginate(page=page, per_page=page_size, error_out=False).items
     total = query.count()
@@ -112,7 +110,7 @@ def get_test_run_from_test_case(issue_id):
         return send_result(data=results)
 
     except Exception as ex:
-        print(ex)
+        return send_error(message=str(ex))
 
 
 @api.route("/<issue_id>/test_step", methods=["GET"])
@@ -136,8 +134,8 @@ def get_test_step_from_test_case(issue_id):
                                       TestCase.project_id == project_id).first()
     if test_case is None:
         return send_error("Not found test case")
-    query = db.session.query(TestStep) \
-        .join(TestCase, TestCase.id == TestStep.test_case_id).filter(TestCase.issue_id == test_case.issue_id)
+    query = TestStep.query.filter(TestStep.project_id == project_id, TestStep.cloud_id == cloud_id,
+                                  TestStep.test_case_id == test_case.id)
     query = query.order_by(desc(column_sorted)) if order == "desc" else query.order_by(asc(column_sorted))
     test_runs = query.paginate(page=page, per_page=page_size, error_out=False).items
     total = query.count()
@@ -152,7 +150,7 @@ def get_test_step_from_test_case(issue_id):
         return send_result(data=results)
 
     except Exception as ex:
-        print(ex)
+        return send_error(message=str(ex))
 
 
 @api.route("/<test_case_id>/<test_type_id>", methods=["PUT"])
@@ -258,6 +256,7 @@ def add_test_execution(test_issue_id):
                     test_execution_id=test_execution.id, activities='{}', test_steps='{}', findings='{}',
                     meta_data='{}',
                     issue_id=test_case.issue_id,
+                    issue_key=test_case.issue_key,
                     created_date=get_timestamp_now(),
                     test_status_id=default_status.id
                 )
