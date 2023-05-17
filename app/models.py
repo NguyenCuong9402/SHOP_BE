@@ -89,10 +89,10 @@ class TestType(db.Model):
     def get_by_id(cls, _id):
         return cls.query.get(_id)
 
-    @hybrid_property
-    def number_of_tests(self):
-        count = TestCase.query.filter(TestCase.test_type_id == self.id).count()
-        return count
+    # @hybrid_property
+    # def number_of_tests(self):
+    #     count = TestCase.query.filter(TestCase.test_type_id == self.id).count()
+    #     return count
 
 
 class TestRunField(db.Model):
@@ -254,13 +254,11 @@ class TestStepDetail(db.Model):
     test_run_id = db.Column(db.String(50),
                             db.ForeignKey('test_run.id', ondelete='CASCADE', onupdate='CASCADE'),
                             nullable=True)
-    test_step_field_id = db.Column(db.String(50),
-                                   db.ForeignKey('test_step_field.id', ondelete='CASCADE', onupdate='CASCADE'),
-                                   nullable=True)
     data = db.Column(db.Text, nullable=True)
     comment = db.Column(db.Text, nullable=True)
     created_date = db.Column(db.Integer, default=0, index=True)
     modified_date = db.Column(db.Integer, default=0)
+    link = db.Column(db.Text, nullable=True)
 
 
 class TestActivity(db.Model):

@@ -96,7 +96,7 @@ def save_history_test_step(id_reference: str, user_id: str, action: int,
                 id=str(uuid.uuid4()),
                 activities='remove',
                 history_category=history_category,
-                action_name='updated Tests',
+                action_name='updated Tests Steps',
                 detail_of_action={"Test Step": index_step[0], "data": detail_of_action},
                 created_date=get_timestamp_now())
             db.session.add(new_history)
