@@ -235,7 +235,7 @@ class TestCaseFilterValidator(Schema):
 
 
 class TestCaseFilterSchema(Schema):
-    id = fields.String()
+    issue_id = fields.String()
 
 
 class TestStepRunSchema(Schema):

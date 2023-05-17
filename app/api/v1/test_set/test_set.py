@@ -111,7 +111,7 @@ def add_test_to_test_set(test_set_issue_id):
                 test_set_test_case = TestCasesTestSets(
                     test_case_id=test_case.id,
                     test_set_id=test_set.id,
-                    index=index_max+i
+                    index=index_max + i
                 )
                 test_case_ids.append(test_case.id)
                 i += 1
@@ -140,7 +140,7 @@ def remove_test_to_test_set(test_set_id):
                                        TestCasesTestSets.test_case_id.in_(test_case_ids)).delete()
         db.session.flush()
         # Lấy ra tất cả các record trong bảng
-        query_all = TestCasesTestSets.query.filter(TestCasesTestSets.test_set_id == test_set_id)\
+        query_all = TestCasesTestSets.query.filter(TestCasesTestSets.test_set_id == test_set_id) \
             .order_by(TestCasesTestSets.index.asc())
         # Cập nhật lại giá trị của cột "index"
         new_index = 1
@@ -174,16 +174,16 @@ def change_rank_test_case_in_test_set(test_set_id):
         if index_drag > index_drop:
             if index_drop < 1:
                 return send_error(message=f'Must be a value between 1 and {index_max}')
-            TestCasesTestSets.query.filter(TestCasesTestSets.test_set_id == test_set_id)\
-                .filter(TestCasesTestSets.index > index_drop - 1).filter(TestCasesTestSets.c.index < index_drag)\
+            TestCasesTestSets.query.filter(TestCasesTestSets.test_set_id == test_set_id) \
+                .filter(TestCasesTestSets.index > index_drop - 1).filter(TestCasesTestSets.c.index < index_drag) \
                 .update(dict(index=TestCasesTestSets.index + 1))
             query.index = index_drop
             db.session.flush()
         else:
             if index_drop > index_max:
                 return send_error(message=f'Must be a value between 1 and {index_max}')
-            TestCasesTestSets.query.filter(TestCasesTestSets.test_set_id == test_set_id)\
-                .filter(TestCasesTestSets.index > index_drag).filter(TestCasesTestSets.index < index_drop + 1)\
+            TestCasesTestSets.query.filter(TestCasesTestSets.test_set_id == test_set_id) \
+                .filter(TestCasesTestSets.index > index_drag).filter(TestCasesTestSets.index < index_drop + 1) \
                 .update(dict(index=TestCasesTestSets.index - 1))
             query.index = index_drop
             db.session.flush()
@@ -331,5 +331,25 @@ def create_test_case():
 
         return send_result(TestSetSchema().dump(test_set), message="OK")
 
+    except Exception as ex:
+        print(ex)
+
+
+@api.route("/filter/test-case", methods=["POST"])
+@authorization_require()
+def filter_test_case():
+    try:
+        body_request = request.get_json()
+        token = get_jwt_identity()
+
+        issue_id = token.get('issueId')
+        test_type_ids = body_request.get("test_type_ids", [])
+
+        test_cases = db.session.query(TestCasesTestSets.test_case_id).join(TestCase).filter(
+            TestCasesTestSets.test_set_id == issue_id,
+            TestCase.test_type_id.in_(test_type_ids)).all()
+
+        data = [test_case.test_case_id for test_case in test_cases]
+        return send_result(data=data)
     except Exception as ex:
         print(ex)

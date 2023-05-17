@@ -10,11 +10,11 @@ from sqlalchemy.orm import joinedload
 
 from app.api.v1.history_test import save_history_test_case, save_history_test_execution
 from app.api.v1.test_run.schema import TestRunSchema
-from app.enums import INVALID_PARAMETERS_ERROR
+from app.enums import INVALID_PARAMETERS_ERROR, TestTimerType
 from app.extensions import logger
 from app.gateway import authorization_require
 from app.models import TestStep, TestCase, TestType, db, TestField, Setting, TestRun, TestExecution, \
-    TestCasesTestExecutions, TestStatus, TestStepDetail, TestCasesTestSets, TestSet, TestEnvironment
+    TestCasesTestExecutions, TestStatus, TestStepDetail, TestCasesTestSets, TestSet, TestEnvironment, TestTimer
 from app.utils import send_result, send_error, data_preprocessing, get_timestamp_now
 from app.validator import TestCaseValidator, TestCaseFilterValidator, TestCaseFilterSchema
 
@@ -77,7 +77,7 @@ def change_test_type(test_case_id, test_type_id):
         test_case.test_type_id = new_type.id
         db.session.flush()
         db.session.commit()
-        save_history_test_case(test_case_id, user_id, 2, [old_type_name,new_type.name])
+        save_history_test_case(test_case_id, user_id, 2, [old_type_name, new_type.name])
         return send_result(message="success")
 
     except Exception as ex:
@@ -324,7 +324,7 @@ def add_tests_set_for_testcase(test_case_id):
         for index, test_set_id in enumerate(ids):
             new_item = TestCasesTestSets(test_set_id=test_set_id,
                                          test_case_id=test_case_id,
-                                         index=index_max+1+index)
+                                         index=index_max + 1 + index)
             db.session.add(new_item)
             db.session.flush()
         db.session.commit()
@@ -358,11 +358,24 @@ def filter_test_run(test_case_id):
     if len(statuses) > 0:
         query = query.join(TestStatus).filter(TestStatus.name.in_(statuses))
     if len(environments) > 0:
-        query = query.join(TestEnvironment, TestExecution.test_environments).filter(TestEnvironment.name.in_(environments))
+        query = query.join(TestEnvironment, TestExecution.test_environments).filter(
+            TestEnvironment.name.in_(environments))
     if len(testrun_started) > 0:
-        query = query.filter(TestRun.start_date > testrun_started.get('from'), TestRun.start_date < testrun_started.get('to'))
+        if testrun_started.get('from') and not testrun_started.get('to'):
+            query = query.join(TestTimer).filter(TestTimer.date_time >= testrun_started.get('from'),
+                                                 TestTimer.time_type == TestTimerType.START_TIME)
+        else:
+            query = query.join(TestTimer).filter(TestTimer.date_time >= testrun_started.get('from'),
+                                                 TestTimer.date_time <= testrun_started.get('to'),
+                                                 TestTimer.time_type == TestTimerType.START_TIME)
     if len(testrun_finished) > 0:
-        query = query.filter(TestRun.end_date > testrun_finished.get('from'), TestRun.end_date < testrun_finished.get('to'))
+        if testrun_finished.get('from') and not testrun_finished.get('to'):
+            query = query.join(TestTimer).filter(TestTimer.date_time >= testrun_finished.get('from'),
+                                                 TestTimer.time_type == TestTimerType.END_TIME)
+        else:
+            query = query.join(TestTimer).filter(TestTimer.date_time >= testrun_finished.get('from'),
+                                                 TestTimer.date_time <= testrun_finished.get('to'),
+                                                 TestTimer.time_type == TestTimerType.END_TIME)
 
     query = query.filter(TestRun.test_case_id == test_case_id).all()
 
