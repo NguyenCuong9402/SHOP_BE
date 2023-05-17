@@ -31,8 +31,8 @@ def get_test_environments(project_id):
     # Get search params
     page = request.args.get('page', 1, type=int)
     page_size = request.args.get('page_size', 10, type=int)
-    text_search = request.args.get('text_search', "", type=str)
-    order_by = request.args.get('order_by', "name", type=str)
+    text_search = request.args.get('text_search', '', type=str)
+    order_by = request.args.get('order_by', '', type=str)
     order = request.args.get('order', 'desc', type=str)
 
     """
@@ -40,6 +40,8 @@ def get_test_environments(project_id):
     Skip all rest params, default sorted by name A-Z
     """
     search_other = request.args.get('search_other', False, type=bool)
+    if order_by == '':
+        order_by = 'name'
     if search_other:
         existed_test_environments = db.session.query(TestEnvironment.parent_id).filter(
             TestEnvironment.project_id == project_id,
@@ -51,7 +53,15 @@ def get_test_environments(project_id):
         query = query.filter(TestEnvironment.project_id != project_id,
                              TestEnvironment.parent_id.is_(None),
                              TestEnvironment.id.not_in(existed_parent_ids),
-                             TestEnvironment.cloud_id == cloud_id).order_by(desc(TestEnvironment.name))
+                             TestEnvironment.cloud_id == cloud_id).order_by(asc(TestEnvironment.name))
+        # Search by text
+        if text_search is not None:
+            text_search = text_search.strip()
+            text_search = text_search.lower()
+            text_search = escape_wildcard(text_search)
+            text_search = "%{}%".format(text_search)
+            query = query.filter(TestEnvironment.name.like(text_search)).order_by(asc(TestEnvironment.name))
+
     else:
         query = query.filter(TestEnvironment.project_id == project_id,
                              TestEnvironment.cloud_id == cloud_id)
@@ -155,7 +165,7 @@ def create_test_environment(project_id):
             return send_error(data=data, code=200, is_dynamic=True)
 
         # Check coincided name
-        coincided = check_coincided_name(name=body_request.get('name'), cloud_id=cloud_id, project_id=project_id)
+        coincided = check_coincided_name(name=body_request.get('name'), cloud_id=cloud_id)
         if coincided is True:
             return send_error(code=200, data={"name": "Test Environment already exists. Please try again"},
                               message='Invalid request', show=False, is_dynamic=True)
@@ -265,7 +275,7 @@ def update_test_environment(project_id, test_environment_id):
 
 
 def check_coincided_name(name='', self_id=None, project_id='', cloud_id=''):
-    if project_id is None:
+    if project_id == '':
         existed_test_step = TestEnvironment.query.filter(
             and_(func.lower(TestEnvironment.name) == func.lower(name), TestEnvironment.id != self_id,
                  TestEnvironment.cloud_id == cloud_id)).first()

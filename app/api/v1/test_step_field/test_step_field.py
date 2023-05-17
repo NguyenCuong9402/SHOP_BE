@@ -104,8 +104,8 @@ def create_test_step(project_id):
                               message='Invalid request', show=False, is_dynamic=True)
 
         # Create new test step
-        max_index = db.session.query(func.max(TestStepField.index)).scalar()
-        max_index = max_index + 1
+        max_index = TestStepField.query.filter(TestStepField.cloud_id == cloud_id,
+                                               TestStepField.project_id == project_id).count()
         test_step_field = TestStepField(
             id=str(uuid.uuid4()),
             project_id=project_id,
@@ -115,7 +115,7 @@ def create_test_step(project_id):
             is_required=body_request['is_required'],
             type=body_request['type'],
             type_values=json.dumps(body_request['field_type_values']),
-            index=max_index
+            index=max_index + 1
         )
         db.session.add(test_step_field)
         db.session.commit()
@@ -221,12 +221,30 @@ def reorder(project_id):
 @authorization_require()
 def delete(project_id, test_step_id):
     try:
-        test_step = TestStepField.get_by_id(test_step_id)
-        if test_step is None:
+        test_step_field = TestStepField.get_by_id(test_step_id)
+        if test_step_field is None:
             return send_error(
                 message="Test Step Fields have been changed \n Please refresh the page to view the changes", code=200,
                 show=False)
-        db.session.delete(test_step)
+        index = test_step_field.index - 4
+        test_steps = TestStep.query.filter(
+            TestStep.cloud_id == test_step_field.cloud_id,
+            TestStep.project_id == project_id
+        ).all()
+        for test_step in test_steps:
+            custom_fields = test_step.custom_fields.copy()
+            if custom_fields:
+                if len(custom_fields) > 0:
+                    del custom_fields[index]
+                    test_step.custom_fields = custom_fields
+                    db.session.flush()
+        # update index Test Step field
+        db.session.query(TestStepField).filter(TestStepField.cloud_id == test_step_field.cloud_id,
+                                               TestStepField.project_id == project_id)\
+            .filter(TestStepField.index > test_step_field.index).update(dict(index=TestStepField.index - 1))
+        db.session.flush()
+        db.session.delete(test_step_field)
+        db.session.flush()
         db.session.commit()
         return send_result(data="", message="Test step field removed successfully", code=200, show=True)
     except Exception as ex:

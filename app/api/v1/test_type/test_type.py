@@ -41,9 +41,13 @@ def get_test_type(project_id):
         db.session.commit()
         test_types = db.session.query(TestType).filter(
             or_(TestType.project_id == project_id, TestType.project_key == project_id),
-            TestType.cloud_id == cloud_id).order_by(asc(TestType.created_date)).all()
-        result = TestTypeSchema(many=True).dump(test_types)
-        return send_result(data=result, message="OK")
+            TestType.cloud_id == cloud_id, TestType.name != DEFAULT_DATA['name']).order_by(asc(TestType.name)).all()
+        test_type_manual = TestType.query.filter(TestType.project_id == project_id, TestType.cloud_id == cloud_id,
+                                                 TestType.name == DEFAULT_DATA['name']).first()
+        result1 = [TestTypeSchema().dump(test_type_manual)]
+        result2 = TestTypeSchema(many=True).dump(test_types)
+        data = result1 + result2
+        return send_result(data=data, message="OK")
     except Exception as ex:
         db.session.rollback()
         return send_error(message="Something wrong!")

@@ -302,14 +302,12 @@ def upgrade():
     sa.Column('status_id', sa.String(length=50), nullable=True),
     sa.Column('test_step_id', sa.String(length=50), nullable=True),
     sa.Column('test_run_id', sa.String(length=50), nullable=True),
-    sa.Column('test_step_field_id', sa.String(length=50), nullable=True),
     sa.Column('data', sa.Text(), nullable=True),
     sa.Column('comment', sa.Text(), nullable=True),
     sa.Column('created_date', sa.Integer(), nullable=True),
     sa.Column('modified_date', sa.Integer(), nullable=True),
     sa.ForeignKeyConstraint(['status_id'], ['test_status.id'], onupdate='CASCADE', ondelete='CASCADE'),
     sa.ForeignKeyConstraint(['test_run_id'], ['test_run.id'], onupdate='CASCADE', ondelete='CASCADE'),
-    sa.ForeignKeyConstraint(['test_step_field_id'], ['test_step_field.id'], onupdate='CASCADE', ondelete='CASCADE'),
     sa.ForeignKeyConstraint(['test_step_id'], ['test_step.id'], onupdate='CASCADE', ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id')
     )

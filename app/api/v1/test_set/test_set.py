@@ -175,9 +175,9 @@ def add_test_to_test_set(test_set_issue_id):
         return send_error(message=str(ex))
 
 
-@api.route("/<test_set_id>/test_case", methods=["DELETE"])
+@api.route("/<test_set_issue_id>/test_case", methods=["DELETE"])
 @authorization_require()
-def remove_test_to_test_set(test_set_id):
+def remove_test_to_test_set(test_set_issue_id):
     try:
         token = get_jwt_identity()
         user_id = token.get('userId')
@@ -187,22 +187,24 @@ def remove_test_to_test_set(test_set_id):
         body_request = request.get_json()
         test_case_ids = body_request.get("test_cases_id")
         is_delete_all = body_request.get("is_delete_all", False)
+        test_set = TestSet.query.filter(TestSet.cloud_id == cloud_id, TestSet.project_id == project_id,
+                                        TestSet.issue_id == test_set_issue_id).first()
         if is_delete_all:
-            query = TestCasesTestSets.query.filter(TestCasesTestSets.test_set_id == test_set_id,
+            query = TestCasesTestSets.query.filter(TestCasesTestSets.test_set_id == test_set.id,
                                                    TestCasesTestSets.test_case_id.notin_(test_case_ids)).all()
             ids_to_delete = [item.test_case_id for item in query]
-            TestCasesTestSets.query.filter(TestCasesTestSets.test_set_id == test_set_id,
+            TestCasesTestSets.query.filter(TestCasesTestSets.test_set_id == test_set.id,
                                            TestCasesTestSets.test_case_id.in_(ids_to_delete)).delete()
             db.session.flush()
 
         else:
-            TestCasesTestSets.query.filter(TestCasesTestSets.test_set_id == test_set_id,
+            TestCasesTestSets.query.filter(TestCasesTestSets.test_set_id == test_set.id,
                                            TestCasesTestSets.test_case_id.in_(test_case_ids)).delete()
             db.session.flush()
             ids_to_delete = test_case_ids
         message = f'{len(ids_to_delete)} Test case(s) remove to the Test Set'
         # Lấy ra tất cả các record trong bảng
-        query_all = TestCasesTestSets.query.filter(TestCasesTestSets.test_set_id == test_set_id)\
+        query_all = TestCasesTestSets.query.filter(TestCasesTestSets.test_set_id == test_set.id)\
             .order_by(TestCasesTestSets.index.asc())
         # Cập nhật lại giá trị của cột "index"
         new_index = 1
@@ -212,45 +214,49 @@ def remove_test_to_test_set(test_set_id):
         db.session.flush()
         db.session.commit()
         # save history
-        save_history_test_set(test_set_id, user_id, 2, 1, ids_to_delete, [])
+        save_history_test_set(test_set.id, user_id, 2, 1, ids_to_delete, [])
         return send_result(message=message, show=True)
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
 
 
-@api.route("/<test_set_id>/test_case", methods=["PUT"])
+@api.route("/<test_set_issue_id>/test_case", methods=["PUT"])
 @authorization_require()
-def change_rank_test_case_in_test_set(test_set_id):
+def change_rank_test_case_in_test_set(test_set_issue_id):
     try:
         token = get_jwt_identity()
         user_id = token.get("userId")
+        cloud_id = token.get("cloudId")
+        project_id = token.get("projectId")
         json_req = request.get_json()
         index_drag = json_req['index_drag']
         index_drop = json_req['index_drop']
+        test_set = TestSet.query.filter(TestSet.cloud_id == cloud_id, TestSet.project_id == project_id,
+                                        TestSet.issue_id == test_set_issue_id).first()
         # lấy index_drag
-        index_max = db.session.query(TestCasesTestSets).filter(TestCasesTestSets.test_set_id == test_set_id).count()
-        query = TestCasesTestSets.query.filter(TestCasesTestSets.test_set_id == test_set_id) \
+        index_max = db.session.query(TestCasesTestSets).filter(TestCasesTestSets.test_set_id == test_set.id).count()
+        query = TestCasesTestSets.query.filter(TestCasesTestSets.test_set_id == test_set.id) \
             .filter(TestCasesTestSets.index == index_drag).first()
         if index_drag > index_drop:
             if index_drop < 1:
                 return send_error(message=f'Must be a value between 1 and {index_max}')
-            TestCasesTestSets.query.filter(TestCasesTestSets.test_set_id == test_set_id)\
-                .filter(TestCasesTestSets.index > index_drop - 1).filter(TestCasesTestSets.c.index < index_drag)\
+            TestCasesTestSets.query.filter(TestCasesTestSets.test_set_id == test_set.id)\
+                .filter(TestCasesTestSets.index > index_drop - 1).filter(TestCasesTestSets.index < index_drag)\
                 .update(dict(index=TestCasesTestSets.index + 1))
             query.index = index_drop
             db.session.flush()
         else:
             if index_drop > index_max:
                 return send_error(message=f'Must be a value between 1 and {index_max}')
-            TestCasesTestSets.query.filter(TestCasesTestSets.test_set_id == test_set_id)\
+            TestCasesTestSets.query.filter(TestCasesTestSets.test_set_id == test_set.id)\
                 .filter(TestCasesTestSets.index > index_drag).filter(TestCasesTestSets.index < index_drop + 1)\
                 .update(dict(index=TestCasesTestSets.index - 1))
             query.index = index_drop
             db.session.flush()
         db.session.commit()
         # save history
-        save_history_test_set(test_set_id, user_id, 3, 1, [query.test_case_id], [index_drag, index_drop])
+        save_history_test_set(test_set.id, user_id, 3, 1, [query.test_case_id], [index_drag, index_drop])
         return send_result(message='Update successfully')
     except Exception as ex:
         db.session.rollback()
@@ -318,7 +324,9 @@ def add_test_execution(test_issue_id):
                                             TestRun.test_case_id == test_case.id,
                                             ).first()
             if test_run is None:
-                default_status = TestStatus.query.filter(TestStatus.name == 'TODO').first()
+                default_status = TestStatus.query.filter(TestStatus.cloud_id == cloud_id,
+                                                         TestStatus.project_id == project_id,
+                                                         TestStatus.name == 'TODO').first()
                 test_run = TestRun(
                     id=str(uuid.uuid4()),
                     project_id=project_id, cloud_id=cloud_id, test_case_id=test_case.id,

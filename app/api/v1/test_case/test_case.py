@@ -10,6 +10,7 @@ from sqlalchemy import desc, asc
 from sqlalchemy.orm import joinedload
 
 from app.api.v1.history_test import save_history_test_case, save_history_test_execution
+from app.api.v1.test_execution.test_execution import add_test_step_id_by_test_case_id
 from app.api.v1.test_run.schema import TestRunSchema
 from app.enums import INVALID_PARAMETERS_ERROR
 from app.extensions import logger
@@ -25,14 +26,26 @@ ADD_SUCCESS = 16
 api = Blueprint('test_case', __name__)
 
 
-@api.route("/<issue_id>", methods=["GET"])
+@api.route("/<issue_id>/<issue_key>", methods=["GET"])
 @authorization_require()
-def get_test_case(issue_id):
+def get_test_case(issue_id, issue_key):
     token = get_jwt_identity()
     cloud_id = token.get('cloudId')
     project_id = token.get('projectId')
     test_case = TestCase.query.filter(TestCase.project_id == project_id, TestCase.cloud_id == cloud_id,
                                       TestCase.issue_id == issue_id).first()
+    if test_case is None:
+        test_case = TestCase(
+            id=str(uuid.uuid4()),
+            issue_id=issue_id,
+            issue_key=issue_key,
+            project_id=project_id,
+            cloud_id=cloud_id,
+            created_date=get_timestamp_now()
+        )
+        db.session.add(test_case)
+        db.session.flush()
+        db.session.commit()
     try:
         return send_result(data=TestCaseSchema().dump(test_case), message="OK")
     except Exception:
@@ -249,7 +262,9 @@ def add_test_execution(test_issue_id):
                                             TestRun.test_case_id == test_case.id,
                                             ).first()
             if test_run is None:
-                default_status = TestStatus.query.filter(TestStatus.name == 'TODO').first()
+                default_status = TestStatus.query.filter(TestStatus.cloud_id == cloud_id,
+                                                         TestStatus.project_id == project_id,
+                                                         TestStatus.name == 'TODO').first()
                 test_run = TestRun(
                     id=str(uuid.uuid4()),
                     project_id=project_id, cloud_id=cloud_id, test_case_id=test_case.id,
@@ -262,6 +277,24 @@ def add_test_execution(test_issue_id):
                 )
                 db.session.add(test_run)
                 db.session.flush()
+                # Tạo test details
+                test_steps = TestStep.query.filter(TestStep.project_id == project_id, TestStep.cloud_id == cloud_id,
+                                                   TestStep.test_case_id == test_case.id).all()
+                for test_step in test_steps:
+                    if test_step.test_case_id_reference is None:
+                        test_step_detail = TestStepDetail(
+                            id=str(uuid.uuid4()),
+                            test_step_id=test_step.id,
+                            status_id=default_status.id,
+                            test_run_id=test_run.id,
+                            created_date=get_timestamp_now(),
+                            link=test_step.test_case_id+"/",
+                        )
+                        db.session.add(test_step_detail)
+                        db.session.flush()
+                    else:
+                        add_test_step_id_by_test_case_id(cloud_id, project_id, test_step.test_case_id_reference,
+                                                         test_run.id, default_status.id, [], test_step.test_case_id+"/")
             else:
                 return send_error(message='Some Test Executions were already associated with the Test',
                                   status=200, show=False)
@@ -284,10 +317,14 @@ def remove_test_execution(test_case_id):
         project_id = token.get('projectId')
         user_id = token.get('userID')
         test_execution_ids = body_request.get('test_execution_ids')
-        # xóa test run
+        # xóa test run và test details
+        test_runs = TestRun.query.filter(TestRun.test_case_id == test_case_id) \
+                                 .filter(TestRun.test_execution_id.in_(test_execution_ids)).all()
+        test_run_id = [test_run.id for test_run in test_runs]
+        TestStepDetail.query.filter(TestStepDetail.test_run_id.in_(test_run_id)).delete()
+        db.session.flush()
         TestRun.query.filter(TestRun.test_case_id == test_case_id) \
-            .filter(TestRun.test_execution_id.in_(test_execution_ids)) \
-            .delete()
+            .filter(TestRun.test_execution_id.in_(test_execution_ids)).delete()
         db.session.flush()
         # xóa test_cases_test_executions
         TestCasesTestExecutions.query.filter(
@@ -340,11 +377,13 @@ def create_test_case():
 
         cloud_id = token.get('cloudId')
         issue_id = token.get('issueId')
+        issue_key = token.get('issueKey')
         project_id = token.get('projectId')
 
         test_case = TestCase(
             id=str(uuid.uuid4()),
             issue_id=issue_id,
+            issue_key=issue_key,
             project_id=project_id,
             cloud_id=cloud_id,
             created_date=get_timestamp_now()
