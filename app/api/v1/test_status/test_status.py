@@ -73,6 +73,11 @@ def create_test_status(project_id):
     try:
         token = get_jwt_identity()
         cloud_id = token.get('cloudId')
+        number_status = TestStatus.query.filter(TestStatus.project_id == project_id,
+                                                TestStatus.cloud_id == cloud_id).count()
+        if number_status == 10:
+            return send_error(code=200, message='Can not add this status because it has reached 10 statuses',
+                              show=False, is_dynamic=True)
 
         is_valid, data, body_request = validate_request(CreateTestStatus(), request)
 

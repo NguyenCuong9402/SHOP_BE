@@ -6,17 +6,18 @@ from flask import Blueprint, request
 from flask_jwt_extended import jwt_required, get_jwt_identity, create_access_token
 from benedict import benedict
 from marshmallow import ValidationError
+from sqlalchemy import desc, asc
 from sqlalchemy.orm import joinedload
 
 from app.api.v1.history_test import save_history_test_case, save_history_test_execution
 from app.api.v1.test_run.schema import TestRunSchema
-from app.enums import INVALID_PARAMETERS_ERROR, TestTimerType
+from app.enums import INVALID_PARAMETERS_ERROR
 from app.extensions import logger
 from app.gateway import authorization_require
 from app.models import TestStep, TestCase, TestType, db, TestField, Setting, TestRun, TestExecution, \
-    TestCasesTestExecutions, TestStatus, TestStepDetail, TestCasesTestSets, TestSet, TestEnvironment, TestTimer
+    TestCasesTestExecutions, TestStatus, TestStepDetail, TestCasesTestSets, TestSet
 from app.utils import send_result, send_error, data_preprocessing, get_timestamp_now
-from app.validator import TestCaseValidator, TestCaseFilterValidator, TestCaseFilterSchema
+from app.validator import TestCaseValidator, TestCaseSchema, TestSetSchema, TestCaseTestStepSchema
 
 DELETE_SUCCESS = 13
 ADD_SUCCESS = 16
@@ -24,39 +25,132 @@ ADD_SUCCESS = 16
 api = Blueprint('test_case', __name__)
 
 
-@api.route("/<test_case_id>", methods=["GET"])
+@api.route("/<issue_id>", methods=["GET"])
 @authorization_require()
-def get_test_case(test_case_id):
+def get_test_case(issue_id):
     token = get_jwt_identity()
     cloud_id = token.get('cloudId')
-    test_case = TestCase.get_by_id(test_case_id)
-    return send_result(data=json.dumps(test_case), message="OK")
+    project_id = token.get('projectId')
+    test_case = TestCase.query.filter(TestCase.project_id == project_id, TestCase.cloud_id == cloud_id,
+                                      TestCase.issue_id == issue_id).first()
+    try:
+        return send_result(data=TestCaseSchema().dump(test_case), message="OK")
+    except Exception:
+        return send_error(message="not found")
+
+
+@api.route("/<issue_id>/test-set", methods=["GET"])
+@authorization_require()
+def get_test_set_from_test_case(issue_id):
+    token = get_jwt_identity()
+    cloud_id = token.get('cloudId')
+    project_id = token.get('projectId')
+    # Get search params
+    page = request.args.get('page', 1, type=int)
+    page_size = request.args.get('page_size', 10, type=int)
+    order_by = request.args.get('order_by', "issue_key", type=str)
+    order = request.args.get('order', 'asc', type=str)
+    test_case = TestCase.query.filter(TestCase.cloud_id == cloud_id, TestCase.issue_id == issue_id,
+                                      TestCase.project_id == project_id).first()
+    if test_case is None:
+        return send_error("Not found test case")
+    # sort
+    query = db.session.query(TestSet).join(TestCasesTestSets).filter(TestCasesTestSets.test_case_id == test_case.id)
+    column_sorted = getattr(TestRun, order_by)
+    query = query.order_by(desc(column_sorted)) if order == "desc" else query.order_by(asc(column_sorted))
+    test_sets = query.paginate(page=page, per_page=page_size, error_out=False).items
+    total = query.count()
+    extra = 1 if (total % page_size) else 0
+    total_pages = int(total / page_size) + extra
+    try:
+        results = {
+            "test_cases": TestSetSchema(many=True).dump(test_sets),
+            "total": total,
+            "total_pages": total_pages
+        }
+        return send_result(data=results)
+    except Exception as ex:
+        return send_error(message=str(ex), data={})
 
 
 @api.route("/<issue_id>/test_run", methods=["GET"])
 @authorization_require()
-def get_test_run(issue_id):
+def get_test_run_from_test_case(issue_id):
+    token = get_jwt_identity()
+    cloud_id = token.get('cloudId')
+    project_id = token.get('projectId')
+    page = request.args.get('page', 1, type=int)
+    page_size = request.args.get('page_size', 10, type=int)
+    order_by = request.args.get('order_by', '', type=str)
+    order = request.args.get('order', 'asc', type=str)
+    if order_by == '':
+        order_by = "created_date"
+    else:
+        if order_by not in ["issue_id", "issue_key", "created_date"]:
+            return send_error("Not a valid")
+    column_sorted = getattr(TestRun, order_by)
+    # Get test case
+    test_case = TestCase.query.filter(TestCase.cloud_id == cloud_id, TestCase.issue_id == issue_id,
+                                      TestCase.project_id == project_id).first()
+    if test_case is None:
+        return send_error("Not found test case")
+    query = TestRun.query.filter(TestRun.cloud_id == cloud_id, TestRun.project_id == project_id,
+                                 TestRun.test_case_id == test_case.id)
+    query = query.order_by(desc(column_sorted)) if order == "desc" else query.order_by(asc(column_sorted))
+    test_runs = query.paginate(page=page, per_page=page_size, error_out=False).items
+    total = query.count()
+    extra = 1 if (total % page_size) else 0
+    total_pages = int(total / page_size) + extra
     try:
-        token = get_jwt_identity()
-        cloud_id = token.get('cloudId')
-        project_id = token.get('projectId')
-
-        # Get test case
-        test_case = TestCase.query.filter(TestCase.cloud_id == cloud_id, TestCase.issue_id == issue_id,
-                                          TestCase.project_id == project_id).first()
-
-        # test_executions = test_case.test_execution.all()
-        # test_execution_ids = [item.id for item in test_executions]
-
-        test_runs = db.session.query(TestRun) \
-            .join(TestExecution, TestExecution.id == TestRun.test_execution_id). \
-            join(TestCase, TestExecution.test_cases). \
-            filter(TestCase.issue_id == test_case.issue_id).all()
-
-        return send_result(data=TestRunSchema(many=True).dump(test_runs), message="OK")
+        results = {
+            "test_cases": TestRunSchema(many=True).dump(test_runs),
+            "total": total,
+            "total_pages": total_pages
+        }
+        return send_result(data=results)
 
     except Exception as ex:
-        print(ex)
+        return send_error(message=str(ex))
+
+
+@api.route("/<issue_id>/test_step", methods=["GET"])
+@authorization_require()
+def get_test_step_from_test_case(issue_id):
+    token = get_jwt_identity()
+    cloud_id = token.get('cloudId')
+    project_id = token.get('projectId')
+    page = request.args.get('page', 1, type=int)
+    page_size = request.args.get('page_size', 10, type=int)
+    order_by = request.args.get('order_by', '', type=str)
+    order = request.args.get('order', 'asc', type=str)
+    if order_by == '':
+        order_by = "index"
+    else:
+        if order_by not in ["created_date", "index"]:
+            return send_error("Not a valid")
+    column_sorted = getattr(TestStep, order_by)
+    # Get test case
+    test_case = TestCase.query.filter(TestCase.cloud_id == cloud_id, TestCase.issue_id == issue_id,
+                                      TestCase.project_id == project_id).first()
+    if test_case is None:
+        return send_error("Not found test case")
+    query = TestStep.query.filter(TestStep.project_id == project_id, TestStep.cloud_id == cloud_id,
+                                  TestStep.test_case_id == test_case.id)
+    query = query.order_by(desc(column_sorted)) if order == "desc" else query.order_by(asc(column_sorted))
+    test_runs = query.paginate(page=page, per_page=page_size, error_out=False).items
+    total = query.count()
+    extra = 1 if (total % page_size) else 0
+    total_pages = int(total / page_size) + extra
+    try:
+        results = {
+            "test_cases": TestCaseTestStepSchema(many=True).dump(test_runs),
+            "total": total,
+            "total_pages": total_pages
+        }
+        return send_result(data=results)
+
+    except Exception as ex:
+        return send_error(message=str(ex))
 
 
 @api.route("/<test_case_id>/<test_type_id>", methods=["PUT"])
@@ -77,7 +171,7 @@ def change_test_type(test_case_id, test_type_id):
         test_case.test_type_id = new_type.id
         db.session.flush()
         db.session.commit()
-        save_history_test_case(test_case_id, user_id, 2, [old_type_name, new_type.name])
+        save_history_test_case(test_case_id, user_id, 2, [old_type_name,new_type.name])
         return send_result(message="success")
 
     except Exception as ex:
@@ -162,6 +256,7 @@ def add_test_execution(test_issue_id):
                     test_execution_id=test_execution.id, activities='{}', test_steps='{}', findings='{}',
                     meta_data='{}',
                     issue_id=test_case.issue_id,
+                    issue_key=test_case.issue_key,
                     created_date=get_timestamp_now(),
                     test_status_id=default_status.id
                 )
@@ -280,23 +375,44 @@ def delete_tests_set_from_testcase(test_case_id):
             return send_error(message_id=INVALID_PARAMETERS_ERROR, data=err.messages)
 
         ids = params.get('ids', [])
-        is_delete_all = params.get('is_delete_all', True)
+        is_delete_all = params.get('is_delete_all', False)
 
         if is_delete_all:
+            # sắp xếp lại index của test set
+            query = TestCasesTestSets.query.filter(TestCasesTestSets.test_case_id == test_case_id,
+                                                   TestCasesTestSets.test_set_id.notin_(ids)).all()
+            ids_to_delete = [item.test_set_id for item in query]
+            number_test_set = len(ids_to_delete)
+
+            for test_set_id in ids_to_delete:
+                max_index = TestCasesTestSets.query.filter(TestCasesTestSets.test_set_id == test_set_id,
+                                                           TestCasesTestSets.test_case_id == test_case_id).first()
+                TestCasesTestSets.query.filter(TestCasesTestSets.test_set_id == test_set_id) \
+                    .filter(TestCasesTestSets.index > max_index.index).update(dict(index=TestCasesTestSets.index - 1))
+            db.session.flush()
+            # delete
             TestCasesTestSets.query.filter(TestCasesTestSets.test_set_id.notin_(ids),
                                            TestCasesTestSets.test_case_id == test_case_id).delete()
-            number_test_set = TestCasesTestSets.query.filter(TestCasesTestSets.test_case_id == test_case_id) \
-                .count()
+            db.session.flush()
         else:
+            # sắp xếp lại index
+            for test_set_id in ids:
+                max_index = TestCasesTestSets.query.filter(TestCasesTestSets.test_set_id == test_set_id,
+                                                           TestCasesTestSets.test_case_id == test_case_id).first()
+                TestCasesTestSets.query.filter(TestCasesTestSets.test_set_id == test_set_id) \
+                    .filter(TestCasesTestSets.index > max_index.index).update(dict(index=TestCasesTestSets.index - 1))
+            db.session.flush()
+            # delete
             TestCasesTestSets.query.filter(TestCasesTestSets.test_set_id.in_(ids),
                                            TestCasesTestSets.test_case_id == test_case_id).delete()
             number_test_set = len(ids)
-        db.session.flush()
+            db.session.flush()
+            ids_to_delete = ids
         db.session.commit()
         message = f'{number_test_set} Test Set(s) removed from the Test'
         # save history
-        save_history_test_case(test_case_id, user_id, 3, 2, ids, [])
-        return send_result(message_id=DELETE_SUCCESS, message=message)
+        save_history_test_case(test_case_id, user_id, 3, 2, ids_to_delete, [])
+        return send_result(message_id=DELETE_SUCCESS, message=message, show=True)
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
@@ -324,14 +440,14 @@ def add_tests_set_for_testcase(test_case_id):
         for index, test_set_id in enumerate(ids):
             new_item = TestCasesTestSets(test_set_id=test_set_id,
                                          test_case_id=test_case_id,
-                                         index=index_max + 1 + index)
+                                         index=index_max+1+index)
             db.session.add(new_item)
             db.session.flush()
         db.session.commit()
         # save history
         save_history_test_case(test_case_id, user_id, 2, 2, ids, [])
         message = f'{len(ids)} Test Set(s) added to the Test'
-        return send_result(message_id=ADD_SUCCESS, message=message)
+        return send_result(message_id=ADD_SUCCESS, message=message, show=True)
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
