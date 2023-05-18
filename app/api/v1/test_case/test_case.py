@@ -288,13 +288,13 @@ def add_test_execution(test_issue_id):
                             status_id=default_status.id,
                             test_run_id=test_run.id,
                             created_date=get_timestamp_now(),
-                            link=test_step.test_case_id+"/",
+                            link=test_step.id+"/",
                         )
                         db.session.add(test_step_detail)
                         db.session.flush()
                     else:
                         add_test_step_id_by_test_case_id(cloud_id, project_id, test_step.test_case_id_reference,
-                                                         test_run.id, default_status.id, [], test_step.test_case_id+"/")
+                                                         test_run.id, default_status.id, test_step.id+"/")
             else:
                 return send_error(message='Some Test Executions were already associated with the Test',
                                   status=200, show=False)

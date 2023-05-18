@@ -58,68 +58,6 @@ def get_test_run_from_test_execution(issue_id):
         return send_error(message=str(ex))
 
 
-@api.route("/<issue_id>/<test_issue_id>/test_run", methods=["GET"])
-@authorization_require()
-def load_test_run(issue_id, test_issue_id):
-    token = get_jwt_identity()
-    cloud_id = token.get('cloudId')
-    project_id = token.get('project_Id')
-    test_execution = TestExecution.query.filter(TestExecution.cloud_id == cloud_id, TestExecution.issue_id == issue_id,
-                                                TestExecution.project_id == project_id).first()
-    if test_execution is None:
-        return send_error("Not found test execution")
-    test_case = TestCase.query.filter(TestCase.cloud_id == cloud_id, TestCase.issue_id == test_issue_id,
-                                      TestCase.project_id == project_id).first()
-    if test_case is None:
-        return send_error("Not found test case")
-    test_run = TestRun.query.filter(TestRun.cloud_id == cloud_id, TestRun.project_id == project_id,
-                                    TestRun.test_execution_id == test_execution.id,
-                                    TestRun.test_case_id == test_case.id).first()
-    if test_run is None:
-        return send_error("Not found test run")
-    test_steps = db.session.query(TestStep).filter(TestStep.project_id == project_id, TestStep.cloud_id == cloud_id,
-                                                   TestStep.test_case_id == test_case.id).order_by(asc(TestStep.index))\
-        .all()
-    result = []
-    link = test_case.id + "/"
-    for test_step in test_steps:
-        if test_step.test_case_id_reference:
-            result_child = get_test_step_id_by_test_case_id_reference(cloud_id, project_id,
-                                                                      test_step.test_case_id_reference, [],
-                                                                      link)
-            result = result + result_child
-        else:
-            data = TestStepTestRunSchema().dump(test_step)
-            data['link'] = link
-            result.append(data)
-    try:
-        return send_result(data=result)
-    except Exception as ex:
-        return send_error(message=str(ex))
-
-
-# lấy tất cả id test step trong test case call
-def get_test_step_id_by_test_case_id_reference(cloud_id, project_id, test_case_id_reference,
-                                               test_details: list, link: str):
-    test_step_reference = db.session.query(TestStep.id, TestStep.cloud_id, TestStep.project_id, TestStep.action,
-                                           TestStep.attachments, TestStep.result, TestStep.data, TestStep.created_date,
-                                           TestStep.test_case_id, TestStep.project_key,
-                                           TestStep.test_case_id_reference, TestCase.issue_key, TestStep.custom_fields)\
-        .join(TestCase, TestCase.id == TestStep.test_case_id) \
-        .filter(TestStep.project_id == project_id, TestStep.cloud_id == cloud_id,
-                TestStep.test_case_id == test_case_id_reference).all()
-    new_link = link + test_case_id_reference + "/"
-    for step in test_step_reference:
-        if step.test_case_id_reference is None:
-            data = TestStepTestRunSchema().dump(step)
-            data['link'] = new_link
-            test_details.append(data)
-        else:
-            get_test_step_id_by_test_case_id_reference(cloud_id, project_id, step.test_case_id_reference,
-                                                       test_details, new_link)
-    return test_details
-
-
 @api.route("/<test_execution_issue_id>", methods=["POST"])
 @authorization_require()
 def add_test_to_test_execution(test_execution_issue_id):
@@ -217,13 +155,13 @@ def add_test_to_test_execution(test_execution_issue_id):
                             status_id=default_status.id,
                             test_run_id=test_run.id,
                             created_date=get_timestamp_now(),
-                            link=test_step.test_case_id+"/"
+                            link=test_step.id+"/"
                         )
                         db.session.add(test_step_detail)
                         db.session.flush()
                     else:
                         add_test_step_id_by_test_case_id(cloud_id, project_id, test_step.test_case_id_reference,
-                                                         test_run.id, default_status.id, [], test_step.test_case_id+"/")
+                                                         test_run.id, default_status.id, test_step.id+"/")
             else:
                 return send_error(message='Test Executions were already associated with the Test',
                                   status=200, show=False)
@@ -236,12 +174,12 @@ def add_test_to_test_execution(test_execution_issue_id):
 
 
 def add_test_step_id_by_test_case_id(cloud_id: str, project_id: str, test_case_id: str,
-                                     test_run_id, status_id, test_step_ids: list, link: str):
+                                     test_run_id, status_id, link: str):
     step_calls = TestStep.query.filter(TestStep.cloud_id == cloud_id, TestStep.project_id == project_id,
                                        TestStep.test_case_id == test_case_id) \
         .order_by(asc(TestStep.index)).all()
-    new_link = link+test_case_id+"/"
     for step in step_calls:
+        new_link = link + step.id + "/"
         if step.test_case_id_reference is None:
             test_step_detail = TestStepDetail(
                 id=str(uuid.uuid4()),
@@ -255,7 +193,7 @@ def add_test_step_id_by_test_case_id(cloud_id: str, project_id: str, test_case_i
             db.session.flush()
         else:
             add_test_step_id_by_test_case_id(cloud_id, project_id, step.test_case_id_reference, test_run_id, status_id,
-                                             test_step_ids, new_link)
+                                             new_link)
 
 
 @api.route("/<test_execution_issue_id>", methods=["DELETE"])
