@@ -18,7 +18,7 @@ class CreateTestStepField(Schema):
     description = fields.String(required=False, allow_none=True, validate=[validate.Length(min=0, max=250)])
     type = fields.String(required=True,
                          validate=validate.OneOf(
-                             choices=["Toggle Switch", "Date Picker", "Radio Buttons", "Select List"]))
+                             choices=["Toggle Switch", "Date Picker", "Radio Buttons", "Select List", "Text"]))
     field_type_values = fields.List(fields.String(), required=True)
     is_required = fields.Boolean(required=True)
 
