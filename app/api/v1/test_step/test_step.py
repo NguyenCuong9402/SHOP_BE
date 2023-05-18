@@ -97,12 +97,12 @@ def add_test_step(test_case_id):
                 status_id=status.id,
                 test_run_id=test_run.id,
                 created_date=get_timestamp_now(),
-                link=test_case_id+"/"
+                link=test_step.id+"/"
             )
             db.session.add(test_step_detail)
             db.session.flush()
         # Tạo test details cho test case khác call test case này
-        add_test_detail_for_test_case_call(cloud_id, project_id, test_case_id, status.id, test_case_id + "/")
+        add_test_detail_for_test_case_call(cloud_id, project_id, test_case_id, status.id, test_step.id + "/")
         detail_of_action = {}
         field_name = [item.name for item in test_step_fields]
         detail_of_action['Action'] = test_step.action
@@ -136,7 +136,7 @@ def add_test_detail_for_test_case_call(cloud_id: str, project_id: str, test_case
                                            TestStep.test_case_id_reference == test_case_id_reference) \
             .order_by(asc(TestStep.created_date)).all()
         for test_step in test_steps:
-            new_link = test_step.test_case_id + "/" + link
+            new_link = test_step.id + "/" + link
             test_runs = TestRun.query.filter(TestRun.cloud_id == cloud_id,
                                              TestRun.project_id == project_id,
                                              TestRun.test_case_id == test_step.test_case_id).all()
@@ -300,9 +300,9 @@ def call_test_case(test_case_id, test_case_id_reference):
                                            TestStep.project_id == project_id, TestStep.test_case_id
                                            == test_case_id_reference).order_by(asc(TestStep.index)).all()
         # Add test details những test run tạo bởi test case id call
-        link = test_case_id + "/" + test_case_id_reference + "/"
         for test_run in test_runs:
             for step_call in step_calls:
+                link = test_step.id + "/" + step_call.id + "/"
                 if step_call.test_case_id_reference is None:
                     test_step_detail = TestStepDetail(
                         id=str(uuid.uuid4()),
@@ -316,12 +316,12 @@ def call_test_case(test_case_id, test_case_id_reference):
                     db.session.flush()
                 else:
                     add_test_step_id_by_test_case_id(cloud_id, project_id, test_step.test_case_id_reference,
-                                                     test_run.id, status.id, [], link)
+                                                     test_run.id, status.id, link)
         # Add test details những test run tạo bởi test case có  test case id call  là reference
         test_steps = TestStep.query.filter(TestStep.cloud_id == cloud_id, TestStep.project_id == project_id,
                                            TestStep.test_case_id_reference == test_case_id).all()
         test_case_ids = [item.test_case_id for item in test_steps]
-        link_2 = test_case_id + "/"
+        link_2 = test_step.id + "/"
         for test_case_id in test_case_ids:
             test_runs_2 = TestRun.query.filter(TestRun.project_id == project_id, TestRun.cloud_id == cloud_id,
                                                TestRun.test_case_id == test_case_id).all()
@@ -338,13 +338,13 @@ def call_test_case(test_case_id, test_case_id_reference):
                             status_id=status.id,
                             test_run_id=test_run.id,
                             created_date=get_timestamp_now(),
-                            link=test_case_id + "/" + link_2
+                            link=step_call.id + "/" + link_2
                         )
                         db.session.add(test_step_detail)
                         db.session.flush()
                     else:
                         add_test_detail_for_test_case_call(cloud_id, project_id, step_call.test_case_id,
-                                                           status.id, step_call.test_case_id + "/" + link_2)
+                                                           status.id, step_call.id + "/" + link_2)
 
         db.session.commit()
         # Create detail_of_action and Save history
@@ -409,12 +409,12 @@ def clone_test_step(test_case_id, test_step_id):
                 status_id=status.id,
                 test_run_id=test_run.id,
                 created_date=get_timestamp_now(),
-                link=test_case_id + "/"
+                link=test_step.id + "/"
             )
             db.session.add(test_step_detail)
             db.session.flush()
         # Tạo test details cho test case khác call test case này
-        add_test_detail_for_test_case_call(cloud_id, project_id, test_case_id, status.id, test_case_id + "/")
+        add_test_detail_for_test_case_call(cloud_id, project_id, test_case_id, status.id, test_step.id + "/")
         db.session.commit()
         # Create detail_of_action and Save history
         detail_of_action = {}

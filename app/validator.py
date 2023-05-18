@@ -574,7 +574,8 @@ class UploadValidation(Schema):
     """
     file_name = fields.String(required=False, validate=validate.Length(min=1, max=50))
     prefix = fields.String(required=True,
-                           validate=validate.OneOf(choices=["test-case"], error="Prefix must be 'test-case'."))
+                           validate=validate.OneOf(choices=["test-case", "evidence"],
+                                                   error="Prefix must be 'test-case','evidence'."))
 
 
 class HistorySchema(Schema):
@@ -603,7 +604,6 @@ class TestCaseTestStepSchema(Schema):
 class TestStepTestRunSchema(Schema):
     id = fields.String()
     cloud_id = fields.String()
-    project_key = fields.String()
     project_id = fields.String()
     action = fields.String()
     data = fields.String()

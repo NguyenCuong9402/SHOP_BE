@@ -96,9 +96,7 @@ def upload_file():
 def get_file():
     attached_files = request.args.getlist('attached_files[]', None)
     files = FileDetail.query.filter(FileDetail.attached_file.in_(attached_files)).all()
-
     files = FileDetailSchema(many=True).dump(files)
-
     return send_result(data=files, message="ok")
 
 

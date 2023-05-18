@@ -140,7 +140,7 @@ def add_test_to_test_set(test_set_issue_id):
             if test_case is None:
                 test_case = TestCase(
                     id=str(uuid.uuid4()),
-                    issue_id=test_set_issue_id,
+                    issue_id=test_case_issue_id,
                     issue_key=test_case_issue_key,
                     project_id=project_id,
                     cloud_id=cloud_id,
