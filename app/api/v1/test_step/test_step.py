@@ -1,4 +1,6 @@
 import json
+import os
+import shutil
 import uuid
 from operator import or_
 from flask import Blueprint, request
@@ -7,6 +9,7 @@ from sqlalchemy import func, asc, and_
 
 from app.api.v1.history_test import save_history_test_step
 from app.api.v1.test_execution.test_execution import add_test_step_id_by_test_case_id
+from app.enums import FILE_PATH
 from app.gateway import authorization_require
 from app.models import TestStep, db, TestStepField, TestRunField, TestCase, TestStepDetail, HistoryTest, TestRun, \
     TestExecution, TestCasesTestExecutions, TestStatus
@@ -192,6 +195,15 @@ def remove_test_step(test_step_id, test_case_id):
             for i, name in enumerate(test_step.custom_fields):
                 detail_of_action[field_name[3 + i]] = name
         index = test_step.index
+        # xóa thư mục trong file (Evidence) 1 test step - nhiều => cặp test run id + test step detail
+        paths = TestStepDetail.query.filter(TestStepDetail.test_step_id == test_step_id).all()
+        for path in paths:
+            folder_path = "{}/{}/{}".format("test-run", path.test_run_id, path.id)
+            if os.path.isdir(FILE_PATH+folder_path):
+                try:
+                    shutil.rmtree(FILE_PATH+folder_path)
+                except Exception as ex:
+                    return send_error(message=str(ex))
         # delete test_step
         TestStepDetail.query.filter(TestStepDetail.test_step_id == test_step_id).delete()
         db.session.flush()
@@ -274,11 +286,14 @@ def call_test_case(test_case_id, test_case_id_reference):
                 message="Test Case is not Exist", code=200, show=False)
         if test_case_reference is None:
             return send_error(message="Call test case reference fail", code=200, show=False)
-        check = TestStep.query.filter(TestStep.test_case_id == test_case_id_reference,
-                                      TestStep.test_case_id_reference == test_case_id).first()
-        if check:
+        # Đệ quy tìm test case id là reference
+        check_up = get_test_case_id(cloud_id, project_id, test_case_id, {test_case_id})
+        # Dệ quy tìm test case refence là  test case id
+        check_down = get_test_case_reference(cloud_id, project_id, test_case_id_reference, {test_case_id_reference})
+        if len(check_up & check_down) > 0:
             return send_error(message="not allowed to call because test was called called test", code=200,
                               is_dynamic=True)
+
         count_index = TestStep.query.filter(TestStep.test_case_id == test_case_id).count()
         test_step = TestStep(
             id=str(uuid.uuid4()),
@@ -440,3 +455,25 @@ def clone_test_step(test_case_id, test_step_id):
     except Exception as ex:
         db.session.rollback()
         return send_error(data='', message="Something was wrong!")
+
+
+def get_test_case_id(cloud_id: str, project_id: str, test_case_id: str, set_id: set):
+    test_step_call_test_case_id = TestStep.query.filter(TestStep.cloud_id == cloud_id,
+                                                        TestStep.project_id == project_id,
+                                                        TestStep.test_case_id_reference == test_case_id).all()
+    for test_step in test_step_call_test_case_id:
+        set_id.add(test_step.test_case_id)
+        set_id_child = get_test_case_id(cloud_id, project_id, test_step.test_case_id, set_id)
+        set_id = set_id | set_id_child
+    return set_id
+
+
+def get_test_case_reference(cloud_id: str, project_id: str, test_case_id_reference: str, set_id: set):
+    test_step_call_test_case_id = TestStep.query.filter(TestStep.cloud_id == cloud_id,
+                                                        TestStep.project_id == project_id,
+                                                        TestStep.test_case_id == test_case_id_reference).all()
+    for test_step in test_step_call_test_case_id:
+        set_id.add(test_step.test_case_id_reference)
+        set_id_child = get_test_case_id(cloud_id, project_id, test_step.test_case_id_reference, set_id)
+        set_id = set_id | set_id_child
+    return set_id

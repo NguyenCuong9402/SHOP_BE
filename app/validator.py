@@ -574,7 +574,7 @@ class UploadValidation(Schema):
     """
     file_name = fields.String(required=False, validate=validate.Length(min=1, max=50))
     prefix = fields.String(required=True,
-                           validate=validate.OneOf(choices=["test-case", "evidence"],
+                           validate=validate.OneOf(choices=["test-case", "test-run"],
                                                    error="Prefix must be 'test-case','evidence'."))
 
 
@@ -614,3 +614,8 @@ class TestStepTestRunSchema(Schema):
     created_date = fields.Integer()
     issue_key = fields.String()
 
+
+class PostDefectSchema(Schema):
+    issue_key = fields.String()
+    issue_id = fields.String()
+    test_kind = fields.String()
