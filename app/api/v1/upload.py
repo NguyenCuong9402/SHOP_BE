@@ -73,11 +73,11 @@ def upload_file():
     if os.path.exists(os.path.join(FILE_PATH + file_path)):
         i = 1
         filename, file_extension = os.path.splitext(file_path)
-        file_path = f"{filename}({i}){file_extension}"
+        file_path = f"{filename}_{i}{file_extension}"
         while True:
             if os.path.exists(os.path.join(FILE_PATH + file_path)):
                 i += 1
-                file_path = f"{filename}({i}){file_extension}"
+                file_path = f"{filename}{i}_{file_extension}"
             else:
                 break
 
@@ -133,7 +133,8 @@ def download_file(name):
     if not os.path.isfile(FILE_PATH + file_path):
         return send_error(message='File not found')
     try:
-        return send_file(os.path.join(FILE_PATH + file_path), as_attachment=True)
+        file = os.path.abspath(FILE_PATH + file_path)
+        return send_file(file, as_attachment=True)
     except Exception as e:
         return send_error(message='Error while downloading file: {}'.format(str(e)))
 

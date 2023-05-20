@@ -7,7 +7,7 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity, create_access_token
 from benedict import benedict
 from sqlalchemy import asc
-from werkzeug.utils import secure_filename
+from werkzeug.utils import secure_filename, send_file
 
 from app.api.v1.setting.setting_validator import UpdateMiscellaneousRequest
 from app.api.v1.test_run.schema import TestRunSchema, CombineSchema
@@ -599,7 +599,7 @@ def upload_evidence(test_run_id, test_step_detail_id):
         while True:
             if os.path.exists(os.path.join(FILE_PATH + file_path)):
                 i += 1
-                file_path = f"{filename}({i}){file_extension}"
+                file_path = f"{filename}_{i}{file_extension}"
             else:
                 break
 
@@ -656,6 +656,31 @@ def delete_evidence(test_run_id, test_step_detail_id):
         return send_result(message="Remove evidence success")
     except Exception as ex:
         db.session.rollback()
+        return send_error(message=str(ex))
+
+
+@api.route('<test_run_id>/<test_step_detail_id>/<name>/evidence-download', methods=['GET'])
+@jwt_required()
+def download_evidence(test_run_id, test_step_detail_id, name):
+    try:
+        prefix = request.args.get('prefix', "", type=str).strip()
+        # validate request params
+        validator_upload = UploadValidation()
+        is_invalid = validator_upload.validate({"prefix": prefix})
+        if is_invalid:
+            return send_error(data=is_invalid, message='Please check your request params')
+        evidence = TestEvidence.query.filter(TestEvidence.test_run_id == test_run_id,
+                                             TestEvidence.test_step_detail_id == test_step_detail_id,
+                                             TestEvidence.name_file == name).first()
+        file_path = "app" + evidence.url_file
+        if not os.path.isfile(file_path):
+            return send_error(message='File not found')
+        try:
+            file = os.path.abspath(file_path)
+            return send_file(file, as_attachment=True, environ=request.environ)
+        except Exception as e:
+            return send_error(message='Error while downloading file: {}'.format(str(e)))
+    except Exception as ex:
         return send_error(message=str(ex))
 
 

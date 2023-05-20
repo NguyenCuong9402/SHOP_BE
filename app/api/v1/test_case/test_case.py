@@ -1,4 +1,6 @@
 import json
+import os
+import shutil
 import uuid
 from operator import or_
 
@@ -12,11 +14,11 @@ from sqlalchemy.orm import joinedload
 from app.api.v1.history_test import save_history_test_case, save_history_test_execution
 from app.api.v1.test_execution.test_execution import add_test_step_id_by_test_case_id
 from app.api.v1.test_run.schema import TestRunSchema
-from app.enums import INVALID_PARAMETERS_ERROR
+from app.enums import INVALID_PARAMETERS_ERROR, FILE_PATH
 from app.extensions import logger
 from app.gateway import authorization_require
 from app.models import TestStep, TestCase, TestType, db, TestField, Setting, TestRun, TestExecution, \
-    TestCasesTestExecutions, TestStatus, TestStepDetail, TestCasesTestSets, TestSet
+    TestCasesTestExecutions, TestStatus, TestStepDetail, TestCasesTestSets, TestSet, TestEvidence
 from app.utils import send_result, send_error, data_preprocessing, get_timestamp_now
 from app.validator import TestCaseValidator, TestCaseSchema, TestSetSchema, TestCaseTestStepSchema
 
@@ -317,16 +319,28 @@ def remove_test_execution(test_case_id):
         project_id = token.get('projectId')
         user_id = token.get('userID')
         test_execution_ids = body_request.get('test_execution_ids')
-        # xóa test run và test details
         test_runs = TestRun.query.filter(TestRun.test_case_id == test_case_id) \
                                  .filter(TestRun.test_execution_id.in_(test_execution_ids)).all()
+
         test_run_id = [test_run.id for test_run in test_runs]
+        for id_test_run in test_run_id:
+            folder_path = "{}/{}".format("test-run", id_test_run)
+            if os.path.isdir(FILE_PATH + folder_path):
+                try:
+                    shutil.rmtree(FILE_PATH + folder_path)
+                except Exception as ex:
+                    return send_error(message=str(ex))
+
+        TestEvidence.query.filter(TestEvidence.test_run_id.in_(test_run_id)).delete()
+        db.session.flush()
+
         TestStepDetail.query.filter(TestStepDetail.test_run_id.in_(test_run_id)).delete()
         db.session.flush()
+
         TestRun.query.filter(TestRun.test_case_id == test_case_id) \
             .filter(TestRun.test_execution_id.in_(test_execution_ids)).delete()
         db.session.flush()
-        # xóa test_cases_test_executions
+
         TestCasesTestExecutions.query.filter(
             TestCasesTestExecutions.test_case_id == test_case_id) \
             .filter(TestCasesTestExecutions.test_execution_id.in_(test_execution_ids)).delete()

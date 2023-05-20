@@ -14,7 +14,7 @@ from app.api.v1.test_run.schema import TestRunSchema
 from app.enums import FILE_PATH
 from app.gateway import authorization_require
 from app.models import TestStep, TestCase, TestType, db, TestField, Setting, TestRun, TestExecution, \
-    TestCasesTestExecutions, TestStatus, TestStepDetail, TestExecutionsTestEnvironments
+    TestCasesTestExecutions, TestStatus, TestStepDetail, TestExecutionsTestEnvironments, TestEvidence
 from app.parser import TestStepSchema
 from app.utils import send_result, send_error, data_preprocessing, get_timestamp_now
 from app.validator import TestExecutionSchema, TestStepTestRunSchema
@@ -212,10 +212,11 @@ def remove_test_to_test_execution(test_execution_issue_id):
         test_execution = TestExecution.query.filter(TestExecution.project_id == project_id,
                                                     TestExecution.cloud_id == cloud_id,
                                                     TestExecution.issue_id == test_execution_issue_id).first()
-        # xóa test run và test details
+
         test_runs = TestRun.query.filter(TestRun.test_execution_id == test_execution.id)\
             .filter(TestRun.test_case_id.in_(test_case_ids)).all()
         test_run_id = [test_run.id for test_run in test_runs]
+
         for id_test_run in test_run_id:
             folder_path = "{}/{}".format("test-run", id_test_run)
             if os.path.isdir(FILE_PATH + folder_path):
@@ -223,8 +224,12 @@ def remove_test_to_test_execution(test_execution_issue_id):
                     shutil.rmtree(FILE_PATH + folder_path)
                 except Exception as ex:
                     return send_error(message=str(ex))
+        TestEvidence.query.filter(TestEvidence.test_run_id.in_(test_run_id)).delete()
+        db.session.flush()
+
         TestStepDetail.query.filter(TestStepDetail.test_run_id.in_(test_run_id)).delete()
         db.session.flush()
+
         TestRun.query.filter(TestRun.test_execution_id == test_execution.id) \
             .filter(TestRun.test_case_id.in_(test_case_ids)).delete()
         db.session.flush()
