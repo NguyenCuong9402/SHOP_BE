@@ -575,6 +575,20 @@ def upload_evidence(test_run_id, test_step_detail_id):
 
     file_name = secure_filename(file.filename)
     real_name = file.filename
+    if TestEvidence.query.filter(TestEvidence.test_step_detail_id == test_step_detail_id,
+                                 TestEvidence.test_run_id == test_run_id,
+                                 TestEvidence.name_file == real_name).first() is not None:
+        i = 1
+        name, file_extension = os.path.splitext(real_name)
+        real_name = f"{name}({i}){file_extension}"
+        while True:
+            if TestEvidence.query.filter(TestEvidence.file_name == real_name,
+                                         TestEvidence.test_step_detail_id == test_step_detail_id,
+                                         TestEvidence.test_run_id == test_run_id).first() is not None:
+                i += 1
+                real_name = f"{name}({i}){file_extension}"
+            else:
+                break
     file_path = "{}/{}/{}/{}".format(prefix, test_run_id, test_step_detail_id, file_name)
     if not os.path.exists(FILE_PATH+prefix+"/"+test_run_id+"/"+"/"+test_step_detail_id):
         os.makedirs(FILE_PATH+prefix+"/"+test_run_id+"/"+"/"+test_step_detail_id)

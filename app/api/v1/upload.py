@@ -66,7 +66,7 @@ def upload_file():
                 real_name = f"{name}({i}){file_extension}"
             else:
                 break
-    file_name = secure_filename(real_name)
+    file_name = secure_filename(file.filename)
     file_path = "{}/{}".format(prefix, file_name)
     if not os.path.exists(FILE_PATH+prefix):
         os.makedirs(FILE_PATH+prefix)
