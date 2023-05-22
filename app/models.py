@@ -607,17 +607,6 @@ class TestStep(db.Model):
     deleted_date = db.Column(db.Integer, default=0)
 
 
-class Attachment(db.Model):
-    __tablename__ = 'attachment'
-    id = db.Column(db.String(50), primary_key=True)
-    file_name = db.Column(db.String(255), nullable=True)
-    size = db.Column(db.BigInteger, default=0)
-    in_btest = db.Column(db.Boolean, nullable=True)
-    created_date = db.Column(db.Integer, default=0)
-    modified_date = db.Column(db.Integer, default=0)
-    deleted_date = db.Column(db.Integer, default=0)
-
-
 class UserSetting(db.Model):
     __tablename__ = 'user_setting'
     id = db.Column(db.String(50), primary_key=True)
@@ -627,16 +616,18 @@ class UserSetting(db.Model):
     modified_date = db.Column(INTEGER(unsigned=True))
 
 
-class FileDetail(db.Model):
-    __tablename__ = "file_detail"
-
+class Attachment(db.Model):
+    __tablename__ = "attachment"
     id = db.Column(db.String(50), primary_key=True)
     attached_file = db.Column(db.Text(), nullable=True)
     file_name = db.Column(db.String(500), nullable=True)
     extension = db.Column(db.Text(), nullable=True)
-    prefix = db.Column(db.Text(), nullable=True)
+    test_step_id = db.Column(db.Text(), nullable=True)
     created_date = db.Column(INTEGER(unsigned=True), default=0)
     modified_date = db.Column(INTEGER(unsigned=True), default=0)
+    project_id = db.Column(db.String(50), nullable=True)
+    cloud_id = db.Column(db.String(50), nullable=True)
+    size = db.Column(db.BigInteger, default=0)
 
 
 class HistoryTest(db.Model):

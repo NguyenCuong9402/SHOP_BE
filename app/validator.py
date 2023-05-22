@@ -223,7 +223,7 @@ class CommentValidator(Schema):
 
 
 class TestCaseValidator(Schema):
-    ids = fields.List(fields.String(), required=True)
+    issue_ids = fields.List(fields.String(), required=True)
     is_delete_all = fields.Boolean()
 
 
@@ -431,9 +431,11 @@ class TestExecutionSchema(Schema):
     Marshmallow Schema
     """
     id = fields.String()
-    jira_id = fields.String()
-    name = fields.String()
-    key = fields.String()
+    project_id = fields.String()
+    cloud_id = fields.String()
+    issue_id = fields.String()
+    issue_key = fields.String()
+    created_date = fields.String()
 
 
 class SettingSchema(Schema):

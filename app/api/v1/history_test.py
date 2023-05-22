@@ -160,7 +160,7 @@ def save_history_test_step(id_reference: str, user_id: str, action: int,
 def save_history_test_case(id_reference: str, user_id: str, action: int,
                            history_category: int, btest_ids: list, test_type_name: list):
     try:
-        # 1: change type   2: add test set  3:remove test set  3: add test execution   4: remove test execution
+        # 1: change type   2: add test set  3:remove test set  4: add test execution   5: remove test execution
         if action == 1:
             new_history = HistoryTest(
                 id_reference=id_reference,

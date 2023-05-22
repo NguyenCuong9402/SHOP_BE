@@ -134,16 +134,11 @@ def register_blueprints(app):
     :return:
     """
     app.register_blueprint(api_v1.auth.api, url_prefix='/api/v1/auth')
-    app.register_blueprint(api_v1.manager_test.api, url_prefix='/api/v1/test')
     app.register_blueprint(api_v1.settings.api, url_prefix='/api/v1/setting')
-    app.register_blueprint(api_v1.btest_execution.api, url_prefix='/api/v1/testexec')
-    app.register_blueprint(api_v1.test_sets.api, url_prefix='/api/v1/test-sets')
-    app.register_blueprint(api_v1.manage_test_repo.api, url_prefix='/api/v1/test-repository')
-    app.register_blueprint(api_v1.upload.api, url_prefix='/api/v1/upload')
+    app.register_blueprint(api_v1.attachment.api, url_prefix='/api/v1/attachment')
     app.register_blueprint(api_v1.history_test.api, url_prefix='/api/v1/history_test')
     app.register_blueprint(api_v1.test_step_field.api, url_prefix='/api/v1/test_step_field')
     app.register_blueprint(api_v1.test_step.api, url_prefix='/api/v1/test_step')
-
     app.register_blueprint(api_v1.test_run_field.api, url_prefix='/api/v1/test_run_field')
     app.register_blueprint(api_v1.test_type.api, url_prefix='/api/v1/test_type')
     app.register_blueprint(api_v1.test_status.api, url_prefix='/api/v1/test_status')
