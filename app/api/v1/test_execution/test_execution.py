@@ -208,7 +208,10 @@ def remove_test_to_test_execution(test_execution_issue_id):
         body_request = request.get_json()
         cloud_id = token.get('cloudId')
         project_id = token.get('projectId')
-        test_case_ids = body_request.get('test_case_ids')
+        test_case_issue_ids = body_request.get('test_case_issue_ids')
+        test_cases = TestCase.query.filter(TestCase.cloud_id == cloud_id, TestCase.project_id == project_id,
+                                           TestCase.issue_id.in_(test_case_issue_ids)).all()
+        test_case_ids = [test_case.id for test_case in test_cases]
         test_execution = TestExecution.query.filter(TestExecution.project_id == project_id,
                                                     TestExecution.cloud_id == cloud_id,
                                                     TestExecution.issue_id == test_execution_issue_id).first()
@@ -248,18 +251,20 @@ def remove_test_to_test_execution(test_execution_issue_id):
 
 @api.route("/", methods=["POST"])
 @authorization_require()
-def create_test_case():
+def create_test_execution():
     try:
         token = get_jwt_identity()
 
         cloud_id = token.get('cloudId')
         issue_id = token.get('issueId')
+        issue_key = token.get('issueKey')
         project_id = token.get('projectId')
 
         test_execution = TestExecution(
             id=str(uuid.uuid4()),
             issue_id=issue_id,
             project_id=project_id,
+            issue_key=issue_key,
             cloud_id=cloud_id,
             created_date=get_timestamp_now()
         )

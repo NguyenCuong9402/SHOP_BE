@@ -195,20 +195,6 @@ def delete(project_id, test_run_field_id):
         return send_error(data='', message="Something was wrong!")
 
 
-@api.route("/test", methods=["GET"])
-def test():
-    try:
-        ids = ["0a05579a-07f9-11ed-ae0f-00e04b1830a6", "0a3572aa-0cf3-11ed-a60f-0242ac130002"]
-        test_type = TestType.query.filter(TestType.id.in_(ids)).all()
-        test2 = TestRunField.query.first()
-        test2.test_types.extend(test_type)
-        db.session.commit()
-        return send_result(data="", message="Test step field removed successfully", code=200, show=True)
-    except Exception as ex:
-        db.session.rollback()
-        return send_error(data='', message="Something was wrong!")
-
-
 """
 Helper function
 """
