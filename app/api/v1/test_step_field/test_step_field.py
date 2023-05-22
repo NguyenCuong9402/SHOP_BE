@@ -76,7 +76,7 @@ def create_test_step(project_id):
         if test_step_fields_count >= 6:
             return send_error(code=200, data="",
                               message='Can not create this test step field because it has reached 3 non-native fields',
-                              show=False)
+                              show=False, is_dynamic=True)
 
         try:
             json_req = request.get_json()
@@ -140,13 +140,12 @@ def update_test_step(project_id, test_step_id):
         if test_step is None:
             return send_error(
                 message="Test Step Fields have been changed \n Please refresh the page to view the changes", code=200,
-                show=False)
+                show=False, is_dynamic=True)
 
         try:
             json_req = request.get_json()
         except Exception as ex:
             return send_error(message="Request Body incorrect json format: " + str(ex), code=442)
-
             # Strip body request
         body_request = {}
         for key, value in json_req.items():
@@ -154,14 +153,11 @@ def update_test_step(project_id, test_step_id):
                 body_request.setdefault(key, value.strip())
             else:
                 body_request.setdefault(key, value)
-
         # Validate body request
-
         input_validation = UpdateTestStepField()
         is_not_validate = input_validation.validate(body_request)
         if is_not_validate:
             return send_error(code=400, data=is_not_validate, message='Invalid request')
-
         # Check coincided name
         coincided = check_coincided_name(name=body_request.get('name'), self_id=test_step_id, cloud_id=cloud_id,
                                          project_id=project_id)
@@ -225,7 +221,7 @@ def delete(project_id, test_step_id):
         if test_step_field is None:
             return send_error(
                 message="Test Step Fields have been changed \n Please refresh the page to view the changes", code=200,
-                show=False)
+                show=False, is_dynamic=True)
         index = test_step_field.index - 4
         test_steps = TestStep.query.filter(
             TestStep.cloud_id == test_step_field.cloud_id,

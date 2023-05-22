@@ -95,7 +95,7 @@ def update_test_run_field(project_id, test_run_field_id):
             return send_error(
                 message="Test Run Custom Fields have been changed \n Please refresh the page to view the changes",
                 code=200,
-                show=False)
+                show=False, is_dynamic=True)
 
         try:
             json_req = request.get_json()
@@ -186,10 +186,10 @@ def delete(project_id, test_run_field_id):
             return send_error(
                 message="Test Run Custom Fields have been changed \n Please refresh the page to view the changes",
                 code=200,
-                show=False)
+                show=False, is_dynamic=True)
         db.session.delete(test_run_field)
         db.session.commit()
-        return send_result(data="", message="Test Run Custom field removed successfully", code=200, show=True)
+        return send_result(data="", message="Test Run Custom Field removed successfully", code=200, show=True)
     except Exception as ex:
         db.session.rollback()
         return send_error(data='', message="Something was wrong!")

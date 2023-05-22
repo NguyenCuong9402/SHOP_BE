@@ -3,8 +3,8 @@ import uuid
 from marshmallow import Schema, fields, validate, ValidationError, types, validates_schema, post_dump
 
 from flask import Blueprint, request, send_file, jsonify
-from flask_jwt_extended import jwt_required
-from werkzeug.utils import secure_filename
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from werkzeug.utils import secure_filename, send_from_directory
 from app.validator import UploadValidation
 from app.utils import send_result, send_error, get_timestamp_now
 from app.enums import FILE_PATH, URL_SERVER
@@ -55,11 +55,21 @@ def upload_file():
         file = request.files['file']
     except Exception as ex:
         return send_error(message=str(ex))
-
-    file_name = secure_filename(file.filename)
     real_name = file.filename
+    if FileDetail.query.filter(FileDetail.file_name == real_name).first() is not None:
+        i = 1
+        name, file_extension = os.path.splitext(real_name)
+        real_name = f"{name}({i}){file_extension}"
+        while True:
+            if FileDetail.query.filter(FileDetail.file_name == real_name).first() is not None:
+                i += 1
+                real_name = f"{name}({i}){file_extension}"
+            else:
+                break
+    file_name = secure_filename(file.filename)
     file_path = "{}/{}".format(prefix, file_name)
-
+    if not os.path.exists(FILE_PATH+prefix):
+        os.makedirs(FILE_PATH+prefix)
     if os.path.exists(os.path.join(FILE_PATH + file_path)):
         i = 1
         filename, file_extension = os.path.splitext(file_path)
@@ -67,16 +77,17 @@ def upload_file():
         while True:
             if os.path.exists(os.path.join(FILE_PATH + file_path)):
                 i += 1
-                file_path = f"{filename}_{i}{file_extension}"
+                file_path = f"{filename}{i}_{file_extension}"
             else:
                 break
 
     file_url = os.path.join(URL_SERVER + file_path)
     try:
         file.save(os.path.join(FILE_PATH + file_path))
-
         # Store file information such as name,path
-        file_detail = FileDetail(id=str(uuid.uuid4()), attached_file=file_url, file_name=real_name,
+        file_detail = FileDetail(id=str(uuid.uuid4()),
+                                 attached_file=file_url,
+                                 file_name=real_name,
                                  created_date=get_timestamp_now())
         db.session.add(file_detail)
         db.session.flush()
@@ -93,6 +104,7 @@ def upload_file():
 
 
 @api.route('', methods=['GET'])
+@jwt_required()
 def get_file():
     attached_files = request.args.getlist('attached_files[]', None)
     files = FileDetail.query.filter(FileDetail.attached_file.in_(attached_files)).all()
@@ -108,6 +120,43 @@ class FileDetailSchema(Schema):
     prefix = fields.String()
 
 
-# @api.route('/<name>', methods=['GET'])
-# def download_file(name):
-#     return send_file(os.path.join("files", name), as_attachment=True, download_name=name, attachment_filename=name)
+@api.route('/<name>', methods=['GET'])
+@jwt_required()
+def download_file(name):
+    prefix = request.args.get('prefix', "", type=str).strip()
+    # validate request params
+    validator_upload = UploadValidation()
+    is_invalid = validator_upload.validate({"prefix": prefix})
+    if is_invalid:
+        return send_error(data=is_invalid, message='Please check your request params')
+    file_path = "{}/{}".format(prefix, name)
+    if not os.path.isfile(FILE_PATH + file_path):
+        return send_error(message='File not found')
+    try:
+        file = os.path.abspath(FILE_PATH + file_path)
+        return send_file(file, as_attachment=True)
+    except Exception as e:
+        return send_error(message='Error while downloading file: {}'.format(str(e)))
+
+
+@api.route("/<name>", methods=['DELETE'])
+@jwt_required()
+def delete_file(name):
+    try:
+        prefix = request.args.get('prefix', "", type=str).strip()
+        # validate request params
+        validator_upload = UploadValidation()
+        is_invalid = validator_upload.validate({"prefix": prefix})
+        if is_invalid:
+            return send_error(data=is_invalid, message='Please check your request params')
+        file_name = secure_filename(name)
+        file_path = "{}/{}".format(prefix, file_name)
+        FileDetail.query.filter(FileDetail.file_name == name).delete()
+        db.session.flush()
+        if os.path.exists(os.path.join(FILE_PATH+file_path)):
+            os.remove(FILE_PATH+file_path)
+        db.session.commit()
+        return send_result(message="Remove success")
+    except Exception as ex:
+        db.session.rollback()
+        return send_error(message=str(ex))

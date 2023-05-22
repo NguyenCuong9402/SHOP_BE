@@ -7,17 +7,17 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity, create_access_token
 from benedict import benedict
 from sqlalchemy import asc
-from werkzeug.utils import secure_filename
+from werkzeug.utils import secure_filename, send_file
 
 from app.api.v1.setting.setting_validator import UpdateMiscellaneousRequest
 from app.api.v1.test_run.schema import TestRunSchema, CombineSchema
 from app.enums import FILE_PATH, URL_SERVER
 from app.gateway import authorization_require
 from app.models import TestStep, TestCase, TestType, db, TestField, Setting, TestRun, TestExecution, \
-    TestCasesTestExecutions, TestStatus, TestStepDetail, Defects, TestEvidence
-from app.utils import send_result, send_error, data_preprocessing, get_timestamp_now
+    TestCasesTestExecutions, TestStatus, TestStepDetail, Defects, TestEvidence, TestSet
+from app.utils import send_result, send_error, data_preprocessing, get_timestamp_now, validate_request
 from app.validator import CreateTestValidator, SettingSchema, DefectsSchema, TestStepTestRunSchema, UploadValidation, \
-    EvidenceSchema
+    EvidenceSchema, PostDefectSchema
 from app.parser import TestFieldSchema, TestStepSchema
 
 api = Blueprint('test_run', __name__)
@@ -348,31 +348,62 @@ def post_defect(test_run_id, test_step_detail_id):
         token = get_jwt_identity()
         cloud_id = token.get('cloudId')
         project_id = token.get('project_Id')
-        req = request.get_json()
-        issue_id = req.get('issue_id')
-        issue_key = req.get('issue_key')
-        type_key = req.get('type_key')
+        is_valid, data, body_request = validate_request(PostDefectSchema(), request)
+        if not is_valid:
+            return send_error(data=data, code=200, is_dynamic=True)
+        type_kind = body_request['test_kind']
+        issue_id = body_request['issue_id']
+        issue_key = body_request['issue_key']
         test_run = TestRun.query.filter(TestRun.cloud_id == cloud_id, TestRun.project_id == project_id,
                                         TestRun.id == test_run_id).first()
         if test_run is None:
             return send_error("Not found test run")
-        # 1 : test case  2: test set  3:test execution
-        if type_key == 1:
+        # 1 : test case  2: test set  3:test_execution
+        if type_kind == "Test Case":
             test_case = TestCase.query.filter(TestCase.cloud_id == cloud_id, TestCase.project_id == project_id,
                                               TestCase.issue_id == issue_id, TestCase.issue_key == issue_key).first()
             if test_case is None:
                 test_case = TestCase(
-                    test_case=TestCase(
-                        id=str(uuid.uuid4()),
-                        issue_id=issue_id,
-                        issue_key=issue_key,
-                        project_id=project_id,
-                        cloud_id=cloud_id,
-                        created_date=get_timestamp_now()
-                    )
+                    id=str(uuid.uuid4()),
+                    issue_id=issue_id,
+                    issue_key=issue_key,
+                    project_id=project_id,
+                    cloud_id=cloud_id,
+                    created_date=get_timestamp_now()
                 )
                 db.session.add(test_case)
                 db.session.flush()
+        elif type_kind == "Test Set":
+            test_set = TestSet.query.filter(TestSet.cloud_id == cloud_id, TestSet.project_id == project_id,
+                                            TestSet.issue_id == issue_id, TestSet.issue_key == issue_key).first()
+            if test_set is None:
+                test_set = TestSet(
+                    id=str(uuid.uuid4()),
+                    issue_id=issue_id,
+                    issue_key=issue_key,
+                    project_id=project_id,
+                    cloud_id=cloud_id,
+                    created_date=get_timestamp_now()
+                )
+                db.session.add(test_set)
+                db.session.flush()
+        elif type_kind == "Test Execution":
+            test_execution = TestExecution.query.filter(TestExecution.cloud_id == cloud_id,
+                                                        TestExecution.project_id == project_id,
+                                                        TestExecution.issue_id == issue_id,
+                                                        TestExecution.issue_key == issue_key).first()
+            if test_execution is None:
+                test_execution = TestExecution(
+                    id=str(uuid.uuid4()),
+                    issue_id=issue_id,
+                    issue_key=issue_key,
+                    project_id=project_id,
+                    cloud_id=cloud_id,
+                    created_date=get_timestamp_now()
+                )
+                db.session.add(test_execution)
+                db.session.flush()
+
         test_detail = TestStepDetail.query.filter(TestStepDetail.id == test_step_detail_id,
                                                   TestStepDetail.test_run_id == test_run_id).first()
         if test_detail is None:
@@ -416,7 +447,7 @@ def get_defect(test_run_id, test_step_detail_id):
             return send_error("Not found test detail")
         defects = Defects.query.filter(Defects.test_run_id == test_run_id,
                                        Defects.test_step_detail_id == test_step_detail_id)\
-            .over(asc(Defects.created_date)).all()
+            .order_by(asc(Defects.created_date))
         return send_result(data=DefectsSchema(many=True).dump(defects))
     except Exception as ex:
         return send_error(message=str(ex))
@@ -429,9 +460,11 @@ def delete_defect(test_run_id, test_step_detail_id):
         token = get_jwt_identity()
         cloud_id = token.get('cloudId')
         project_id = token.get('project_Id')
-        req = request.get_json()
-        issue_id = req.get('issue_id')
-        issue_key = req.get('issue_key')
+        is_valid, data, body_request = validate_request(PostDefectSchema(), request)
+        if not is_valid:
+            return send_error(data=data, code=200, is_dynamic=True)
+        issue_id = body_request['issue_id']
+        issue_key = body_request['issue_key']
         test_run = TestRun.query.filter(TestRun.cloud_id == cloud_id, TestRun.project_id == project_id,
                                         TestRun.id == test_run_id).first()
         if test_run is None:
@@ -522,7 +555,7 @@ def get_test_step_id_by_test_case_id_reference(cloud_id, project_id, test_case_i
     return test_details
 
 
-@api.route("/<test_run_id>/<test_step_detail_id>", methods=['POST'])
+@api.route("/<test_run_id>/<test_step_detail_id>/evidence", methods=['POST'])
 @jwt_required()
 def upload_evidence(test_run_id, test_step_detail_id):
     token = get_jwt_identity()
@@ -542,12 +575,27 @@ def upload_evidence(test_run_id, test_step_detail_id):
 
     file_name = secure_filename(file.filename)
     real_name = file.filename
+    if TestEvidence.query.filter(TestEvidence.test_step_detail_id == test_step_detail_id,
+                                 TestEvidence.test_run_id == test_run_id,
+                                 TestEvidence.name_file == real_name).first() is not None:
+        i = 1
+        name, file_extension = os.path.splitext(real_name)
+        real_name = f"{name}({i}){file_extension}"
+        while True:
+            if TestEvidence.query.filter(TestEvidence.file_name == real_name,
+                                         TestEvidence.test_step_detail_id == test_step_detail_id,
+                                         TestEvidence.test_run_id == test_run_id).first() is not None:
+                i += 1
+                real_name = f"{name}({i}){file_extension}"
+            else:
+                break
     file_path = "{}/{}/{}/{}".format(prefix, test_run_id, test_step_detail_id, file_name)
-
+    if not os.path.exists(FILE_PATH+prefix+"/"+test_run_id+"/"+"/"+test_step_detail_id):
+        os.makedirs(FILE_PATH+prefix+"/"+test_run_id+"/"+"/"+test_step_detail_id)
     if os.path.exists(os.path.join(FILE_PATH + file_path)):
         i = 1
         filename, file_extension = os.path.splitext(file_path)
-        file_path = f"{filename}_{i}{file_extension}"
+        file_path = f"{filename}({i}){file_extension}"
         while True:
             if os.path.exists(os.path.join(FILE_PATH + file_path)):
                 i += 1
@@ -575,20 +623,21 @@ def upload_evidence(test_run_id, test_step_detail_id):
     dt = {
         "file_url": file_url
     }
-    return send_result(data=dt, message="Ok")
+    return send_result(data=dt, message="Add evidence success")
 
 
-@api.route('<test_run_id>/<test_step_detail_id>', methods=['GET'])
+@api.route('<test_run_id>/<test_step_detail_id>/evidence', methods=['GET'])
+@jwt_required()
 def get_evidence(test_run_id, test_step_detail_id):
-    url_files = request.args.getlist('url_files[]', None)
     files = TestEvidence.query.filter(TestEvidence.test_run_id == test_run_id,
-                                      TestEvidence.test_step_detail_id == test_step_detail_id,
-                                      TestEvidence.url_file.in_(url_files)).all()
+                                      TestEvidence.test_step_detail_id == test_step_detail_id)\
+        .order_by(asc(TestEvidence.created_date)).all()
     files = EvidenceSchema(many=True).dump(files)
-    return send_result(data=files, message="ok")
+    return send_result(data=files)
 
 
-@api.route('<test_run_id>/<test_step_detail_id>', methods=['DELETE'])
+@api.route('<test_run_id>/<test_step_detail_id>/evidence', methods=['DELETE'])
+@jwt_required()
 def delete_evidence(test_run_id, test_step_detail_id):
     try:
         token = get_jwt_identity()
@@ -599,10 +648,40 @@ def delete_evidence(test_run_id, test_step_detail_id):
         TestEvidence.query.filter(TestEvidence.test_run_id == test_run_id,
                                   TestEvidence.test_step_detail_id == test_step_detail_id,
                                   TestEvidence.url_file == url_file).delete()
-        os.remove(url_file)
         db.session.flush()
+        file_path = "app"+url_file
+        if os.path.exists(os.path.join(file_path)):
+            os.remove(file_path)
         db.session.commit()
-        return send_result(message="Ok")
+        return send_result(message="Remove evidence success")
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
+
+
+@api.route('<test_run_id>/<test_step_detail_id>/<name>/evidence-download', methods=['GET'])
+@jwt_required()
+def download_evidence(test_run_id, test_step_detail_id, name):
+    try:
+        prefix = request.args.get('prefix', "", type=str).strip()
+        # validate request params
+        validator_upload = UploadValidation()
+        is_invalid = validator_upload.validate({"prefix": prefix})
+        if is_invalid:
+            return send_error(data=is_invalid, message='Please check your request params')
+        evidence = TestEvidence.query.filter(TestEvidence.test_run_id == test_run_id,
+                                             TestEvidence.test_step_detail_id == test_step_detail_id,
+                                             TestEvidence.name_file == name).first()
+        file_path = "app" + evidence.url_file
+        if not os.path.isfile(file_path):
+            return send_error(message='File not found')
+        try:
+            file = os.path.abspath(file_path)
+            return send_file(file, as_attachment=True, environ=request.environ)
+        except Exception as e:
+            return send_error(message='Error while downloading file: {}'.format(str(e)))
+    except Exception as ex:
+        return send_error(message=str(ex))
+
+
+
