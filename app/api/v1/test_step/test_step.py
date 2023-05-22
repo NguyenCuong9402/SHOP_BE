@@ -12,7 +12,7 @@ from app.api.v1.test_execution.test_execution import add_test_step_id_by_test_ca
 from app.enums import FILE_PATH
 from app.gateway import authorization_require
 from app.models import TestStep, db, TestStepField, TestRunField, TestCase, TestStepDetail, HistoryTest, TestRun, \
-    TestExecution, TestCasesTestExecutions, TestStatus
+    TestExecution, TestCasesTestExecutions, TestStatus, Attachment
 from app.parser import TestStepSchema
 from app.utils import send_result, send_error, data_preprocessing, get_timestamp_now
 from app.api.v1.test_step_field.test_step_field import DEFAULT_DATA
@@ -160,14 +160,16 @@ def add_test_detail_for_test_case_call(cloud_id: str, project_id: str, test_case
         db.session.rollback()
 
 
-@api.route("/<test_case_id>/<test_step_id>", methods=["DELETE"])
+@api.route("/<issue_id>/<test_step_id>", methods=["DELETE"])
 @authorization_require()
-def remove_test_step(test_step_id, test_case_id):
+def remove_test_step(test_step_id, issue_id):
     try:
         token = get_jwt_identity()
         cloud_id = token.get('cloudId')
         project_id = token.get('projectId')
         user_id = token.get('userId')
+        test_case = TestCase.query.filter(TestCase.issue_id == issue_id, TestCase.project_id == project_id,
+                                          TestStep.cloud_id == cloud_id).first()
         test_step = TestStep.query.filter(TestStep.id == test_step_id).first()
         if test_step is None:
             return send_error(
@@ -195,6 +197,16 @@ def remove_test_step(test_step_id, test_case_id):
             for i, name in enumerate(test_step.custom_fields):
                 detail_of_action[field_name[3 + i]] = name
         index = test_step.index
+        # Xóa file trong test step của test detail
+        files = Attachment.query.filter(Attachment.cloud_id == cloud_id, Attachment.project_id,
+                                        Attachment.test_step_id == test_step_id).all()
+        for file in files:
+            file_path = "{}/{}".format("app", file.attached_file)
+            if os.path.exists(os.path.join(file_path)):
+                os.remove(file_path)
+        Attachment.query.filter(Attachment.cloud_id == cloud_id, Attachment.project_id,
+                                Attachment.test_step_id == test_step_id).delete()
+        db.session.flush()
         # xóa thư mục trong file (Evidence) 1 test step - nhiều => cặp test run id + test step detail
         paths = TestStepDetail.query.filter(TestStepDetail.test_step_id == test_step_id).all()
         for path in paths:
@@ -207,13 +219,13 @@ def remove_test_step(test_step_id, test_case_id):
         # delete test_step
         TestStepDetail.query.filter(TestStepDetail.test_step_id == test_step_id).delete()
         db.session.flush()
-        TestStep.query.filter(TestStep.test_case_id == test_case_id).filter(TestStep.index > test_step.index) \
+        TestStep.query.filter(TestStep.test_case_id == test_case.id).filter(TestStep.index > test_step.index) \
             .update(dict(index=TestStep.index - 1))
         db.session.delete(test_step)
         db.session.flush()
         db.session.commit()
         # Save history
-        save_history_test_step(test_case_id, user_id, 2, 2, detail_of_action, [index])
+        save_history_test_step(test_case.id, user_id, 2, 2, detail_of_action, [index])
         return send_result(data="", message="Test step removed successfully", code=200, show=True)
     except Exception as ex:
         db.session.rollback()
