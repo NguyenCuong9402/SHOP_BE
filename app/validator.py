@@ -148,6 +148,8 @@ class DefectsSchema(Schema):
     id = fields.String()
     test_issue_key = fields.String()
     test_issue_id = fields.String()
+    created_date = fields.Integer()
+    test_step_detail_id = fields.String()
 
 
 class DefectsValidator(Schema):
@@ -169,6 +171,8 @@ class EvidenceSchema(Schema):
     id = fields.String()
     name_file = fields.String()
     url_file = fields.String()
+    test_step_detail_id = fields.String()
+    created_date = fields.Integer()
 
 
 class EvidenceValidator(Schema):
@@ -621,3 +625,4 @@ class PostDefectSchema(Schema):
     issue_key = fields.String()
     issue_id = fields.String()
     test_kind = fields.String()
+    test_step_detail_id = fields.String()
