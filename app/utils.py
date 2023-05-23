@@ -132,6 +132,7 @@ def get_datetime_now() -> datetime:
     time_zon_sg = timezone('Asia/Ho_Chi_Minh')
     return datetime.datetime.now(time_zon_sg)
 
+
 def data_preprocessing(cls_validator, input_json: dict):
     """
     Data preprocessing trim then check validate

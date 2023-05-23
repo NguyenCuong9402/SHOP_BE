@@ -234,10 +234,6 @@ class TestCaseFilterValidator(Schema):
     testrun_finished = fields.Dict()
 
 
-class TestCaseFilterSchema(Schema):
-    issue_id = fields.String()
-
-
 class TestStepRunSchema(Schema):
     """
     Author: phongnv

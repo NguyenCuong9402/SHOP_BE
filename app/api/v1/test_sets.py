@@ -30,11 +30,11 @@ def get_test_by_id(test_set_id):
 @api.route("", methods=["GET"])
 @jwt_required()
 def get_test_sets():
-    token = get_jwt_identity()
-    cloud_id = token.get('cloudId')
-    results = TestSets.query.filter(TestSets.cloud_id == cloud_id).all()
-    results = TestSetsSchema(many=True).dump(results)
-    return send_result(data=results, message="OK")
+    # token = get_jwt_identity()
+    # cloud_id = token.get('cloudId')
+    # results = TestSets.query.filter(TestSets.cloud_id == cloud_id).all()
+    # results = TestSetsSchema(many=True).dump(results)
+    return send_result(data=[], message="OK")
 
 
 @api.route("", methods=["POST"])

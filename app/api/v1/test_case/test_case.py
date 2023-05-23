@@ -11,11 +11,11 @@ from sqlalchemy.orm import joinedload
 
 from app.api.v1.history_test import save_history_test_case, save_history_test_execution
 from app.api.v1.test_run.schema import TestRunSchema
-from app.enums import INVALID_PARAMETERS_ERROR
+from app.enums import INVALID_PARAMETERS_ERROR, TestTimerType
 from app.extensions import logger
 from app.gateway import authorization_require
 from app.models import TestStep, TestCase, TestType, db, TestField, Setting, TestRun, TestExecution, \
-    TestCasesTestExecutions, TestStatus, TestStepDetail, TestCasesTestSets, TestSet
+    TestCasesTestExecutions, TestStatus, TestStepDetail, TestCasesTestSets, TestSet, TestEnvironment, TestTimer
 from app.utils import send_result, send_error, data_preprocessing, get_timestamp_now
 from app.validator import TestCaseValidator, TestCaseSchema, TestSetSchema, TestCaseTestStepSchema
 
@@ -453,8 +453,8 @@ def add_tests_set_for_testcase(test_case_id):
         return send_error(message=str(ex))
 
 
-@api.route("/filter/<test_case_id>", methods=['POST'])
-def filter_test_run(test_case_id):
+@api.route("/filter/testrun", methods=['POST'])
+def filter_test_run():
     try:
         body = request.get_json()
         body_req = TestCaseFilterValidator().load(body) if body else dict()
@@ -469,8 +469,10 @@ def filter_test_run(test_case_id):
     environments = body_req.get("environments", [])
     testrun_started = body_req.get("testrun_started", {})
     testrun_finished = body_req.get("testrun_finished", {})
+    token = get_jwt_identity()
+    issue_id = token.get('issueId')
 
-    query = db.session.query(TestRun)
+    query = db.session.query(TestCase.issue_id)
     if len(statuses) > 0:
         query = query.join(TestStatus).filter(TestStatus.name.in_(statuses))
     if len(environments) > 0:
@@ -493,7 +495,7 @@ def filter_test_run(test_case_id):
                                                  TestTimer.date_time <= testrun_finished.get('to'),
                                                  TestTimer.time_type == TestTimerType.END_TIME)
 
-    query = query.filter(TestRun.test_case_id == test_case_id).all()
+    query = query.filter(TestRun.issue_id == issue_id).all()
 
     data = TestCaseFilterSchema(many=True).dump(query)
     return send_result(data=data)

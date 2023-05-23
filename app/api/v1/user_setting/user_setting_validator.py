@@ -7,4 +7,3 @@ class UserSettingValidator(Schema):
 
 class UserSettingSchema(Schema):
     display_column = fields.String()
-    user_id = fields.String()
