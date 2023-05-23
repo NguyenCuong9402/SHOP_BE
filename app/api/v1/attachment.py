@@ -103,15 +103,9 @@ def download_attachment():
     token = get_jwt_identity()
     cloud_id = token.get('cloudId')
     project_id = token.get('projectId')
-    prefix = request.args.get('prefix', "", type=str).strip()
     req = request.get_json()
     attached_file = req.get('attached_file', '')
-    # validate request params
-    validator_upload = UploadValidation()
-    is_invalid = validator_upload.validate({"prefix": prefix})
-    if is_invalid:
-        return send_error(data=is_invalid, message='Please check your request params')
-    file_path = "{}/{}".format("app", attached_file)
+    file_path = "app"+attached_file
     if not os.path.isfile(file_path):
         return send_error(message='File not found')
     try:
@@ -128,19 +122,13 @@ def delete_file(test_step_id):
         token = get_jwt_identity()
         cloud_id = token.get('cloudId')
         project_id = token.get('projectId')
-        prefix = request.args.get('prefix', "", type=str).strip()
-        req = request.get_json()
-        attached_file = req.get('attached_file', '')
-        validator_upload = UploadValidation()
-        is_invalid = validator_upload.validate({"prefix": prefix})
-        if is_invalid:
-            return send_error(data=is_invalid, message='Please check your request params')
+        body_request = request.get_json()
+        attached_file = body_request.get("attached_file")
         Attachment.query.filter(Attachment.project_id == project_id, Attachment.cloud_id == cloud_id,
                                 Attachment.test_step_id == test_step_id,
                                 Attachment.attached_file == attached_file).delete()
         db.session.flush()
-
-        file_path = "{}/{}".format("app", attached_file)
+        file_path = "app" + attached_file
         if os.path.exists(os.path.join(file_path)):
             os.remove(file_path)
         db.session.commit()
