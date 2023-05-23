@@ -136,9 +136,9 @@ class AttachmentSchema(Schema):
     created_date = fields.Integer()
 
 
-@api.route('/<file_name>', methods=['GET'])
+@api.route('/<test_step_id>/<file_name>', methods=['GET'])
 @jwt_required()
-def download_attachment(file_name):
+def download_attachment(test_step_id,file_name):
     token = get_jwt_identity()
     cloud_id = token.get('cloudId')
     project_id = token.get('projectId')
@@ -149,6 +149,7 @@ def download_attachment(file_name):
     if is_invalid:
         return send_error(data=is_invalid, message='Please check your request params')
     attach = Attachment.query.filter(Attachment.cloud_id == cloud_id, Attachment.project_id == project_id,
+                                     Attachment.test_step_id == test_step_id,
                                      Attachment.file_name == file_name).first()
     file_path = "{}/{}".format("app", attach.attached_file)
     if not os.path.isfile(file_path):
@@ -160,9 +161,9 @@ def download_attachment(file_name):
         return send_error(message='Error while downloading file: {}'.format(str(e)))
 
 
-@api.route("/<name>", methods=['DELETE'])
+@api.route("/<test_step_id>/<name>", methods=['DELETE'])
 @jwt_required()
-def delete_file(name):
+def delete_file(test_step_id, name):
     try:
         token = get_jwt_identity()
         cloud_id = token.get('cloudId')
@@ -174,6 +175,7 @@ def delete_file(name):
         if is_invalid:
             return send_error(data=is_invalid, message='Please check your request params')
         attach = Attachment.query.filter(Attachment.project_id == project_id, Attachment.cloud_id == cloud_id,
+                                         Attachment.test_step_id == test_step_id,
                                          Attachment.file_name == name).first()
         file_path = "{}/{}".format("app", attach.attached_file)
         db.session.delete(attach)
