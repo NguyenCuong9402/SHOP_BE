@@ -495,7 +495,7 @@ def upload_evidence(test_run_id):
             if os.path.exists(os.path.join(FILE_PATH + file_path)):
                 i = 1
                 filename, file_extension = os.path.splitext(file_path)
-                file_path = f"{filename}({i}){file_extension}"
+                file_path = f"{filename}_{i}{file_extension}"
                 while True:
                     if os.path.exists(os.path.join(FILE_PATH + file_path)):
                         i += 1
@@ -521,7 +521,7 @@ def upload_evidence(test_run_id):
             if os.path.exists(os.path.join(FILE_PATH + file_path)):
                 i = 1
                 filename, file_extension = os.path.splitext(file_path)
-                file_path = f"{filename}({i}){file_extension}"
+                file_path = f"{filename}_{i}{file_extension}"
                 while True:
                     if os.path.exists(os.path.join(FILE_PATH + file_path)):
                         i += 1

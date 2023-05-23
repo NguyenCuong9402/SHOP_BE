@@ -14,32 +14,6 @@ from app.extensions import db
 
 api = Blueprint('attachment', __name__)
 
-# ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
-
-os.makedirs("app/files", exist_ok=True)
-
-
-# def allowed_file(filename):
-#     return '.' in filename and \
-#            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-
-# @api.route('', methods=['POST'])
-# @jwt_required()
-# def upload_file():
-#     # check if the post request has the file part
-#     files = request.files
-#     # If the user does not select a file, the browser submits an
-#     # empty file without a filename.
-#     # if file:
-#     for key, data in files.items():
-#         filename = secure_filename(data.filename)
-#         file_id = str(uuid.uuid4()).split('-')[0]
-#         savename = f"{file_id}-{filename}"
-#         data.save(os.path.join("app/files", savename))
-#         return send_result(data={"filename": savename}, message="OK")
-#     return send_error(message="File not found")
-
 
 @api.route('/<test_step_id>', methods=['POST'])
 @jwt_required()
@@ -82,7 +56,7 @@ def upload_attachment(test_step_id):
         while True:
             if os.path.exists(os.path.join(FILE_PATH + file_path)):
                 i += 1
-                file_path = f"{filename}{i}_{file_extension}"
+                file_path = f"{filename}_{i}{file_extension}"
             else:
                 break
 
