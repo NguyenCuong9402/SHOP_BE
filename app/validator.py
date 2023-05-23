@@ -223,7 +223,7 @@ class CommentValidator(Schema):
 
 
 class TestCaseValidator(Schema):
-    ids = fields.List(fields.String(), required=True)
+    issue_ids = fields.List(fields.String(), required=True)
     is_delete_all = fields.Boolean()
 
 
@@ -438,9 +438,11 @@ class TestExecutionSchema(Schema):
     Marshmallow Schema
     """
     id = fields.String()
-    jira_id = fields.String()
-    name = fields.String()
-    key = fields.String()
+    project_id = fields.String()
+    cloud_id = fields.String()
+    issue_id = fields.String()
+    issue_key = fields.String()
+    created_date = fields.String()
 
 
 class SettingSchema(Schema):
@@ -581,7 +583,8 @@ class UploadValidation(Schema):
     """
     file_name = fields.String(required=False, validate=validate.Length(min=1, max=50))
     prefix = fields.String(required=True,
-                           validate=validate.OneOf(choices=["test-case"], error="Prefix must be 'test-case'."))
+                           validate=validate.OneOf(choices=["test-case", "test-run"],
+                                                   error="Prefix must be 'test-case','test-run'."))
 
 
 class HistorySchema(Schema):
@@ -610,15 +613,18 @@ class TestCaseTestStepSchema(Schema):
 class TestStepTestRunSchema(Schema):
     id = fields.String()
     cloud_id = fields.String()
-    project_key = fields.String()
     project_id = fields.String()
     action = fields.String()
     data = fields.String()
     result = fields.String()
     custom_fields = fields.List(fields.String())
     attachments = fields.String()
-    index = fields.Integer()
     test_case_id = fields.String()
     created_date = fields.Integer()
     issue_key = fields.String()
 
+
+class PostDefectSchema(Schema):
+    issue_key = fields.String()
+    issue_id = fields.String()
+    test_kind = fields.String()

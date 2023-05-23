@@ -15,7 +15,24 @@ api = Blueprint('history_test', __name__)
 @authorization_require()
 def get_history(id_reference, history_category):
     try:
-        query = HistoryTest.query.filter(HistoryTest.id_reference == id_reference,
+        token = get_jwt_identity()
+        cloud_id = token.get('cloudId')
+        project_id = token.get('projectId')
+        user_id = token.get('userId')
+        # 1:Test Set , 2: Test Case , 3: Test Execution
+        if history_category == '1':
+            test = TestSet.query.filter(TestSet.project_id == project_id, TestSet.cloud_id == cloud_id,
+                                        TestSet.issue_id == id_reference).first()
+        elif history_category == '2':
+            test = TestCase.query.filter(TestCase.project_id == project_id, TestCase.cloud_id == cloud_id,
+                                         TestCase.issue_id == id_reference).first()
+        elif history_category == '3':
+            test = TestExecution.query.filter(TestExecution.project_id == project_id,
+                                              TestExecution.cloud_id == cloud_id,
+                                              TestExecution.issue_id == id_reference).first()
+        else:
+            return send_error(message="Error ")
+        query = HistoryTest.query.filter(HistoryTest.id_reference == test.id,
                                          HistoryTest.history_category == history_category)\
             .order_by(HistoryTest.created_date.desc()).all()
         return send_result(data=HistorySchema(many=True).dump(query), message="OK")
@@ -96,7 +113,7 @@ def save_history_test_step(id_reference: str, user_id: str, action: int,
                 id=str(uuid.uuid4()),
                 activities='remove',
                 history_category=history_category,
-                action_name='updated Tests',
+                action_name='updated Tests Steps',
                 detail_of_action={"Test Step": index_step[0], "data": detail_of_action},
                 created_date=get_timestamp_now())
             db.session.add(new_history)
@@ -143,7 +160,7 @@ def save_history_test_step(id_reference: str, user_id: str, action: int,
 def save_history_test_case(id_reference: str, user_id: str, action: int,
                            history_category: int, btest_ids: list, test_type_name: list):
     try:
-        # 1: change type   2: add test set  3:remove test set  3: add test execution   4: remove test execution
+        # 1: change type   2: add test set  3:remove test set  4: add test execution   5: remove test execution
         if action == 1:
             new_history = HistoryTest(
                 id_reference=id_reference,

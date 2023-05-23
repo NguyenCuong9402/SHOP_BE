@@ -95,7 +95,7 @@ def update_test_run_field(project_id, test_run_field_id):
             return send_error(
                 message="Test Run Custom Fields have been changed \n Please refresh the page to view the changes",
                 code=200,
-                show=False)
+                show=False, is_dynamic=True)
 
         try:
             json_req = request.get_json()
@@ -186,24 +186,10 @@ def delete(project_id, test_run_field_id):
             return send_error(
                 message="Test Run Custom Fields have been changed \n Please refresh the page to view the changes",
                 code=200,
-                show=False)
+                show=False, is_dynamic=True)
         db.session.delete(test_run_field)
         db.session.commit()
-        return send_result(data="", message="Test Run Custom field removed successfully", code=200, show=True)
-    except Exception as ex:
-        db.session.rollback()
-        return send_error(data='', message="Something was wrong!")
-
-
-@api.route("/test", methods=["GET"])
-def test():
-    try:
-        ids = ["0a05579a-07f9-11ed-ae0f-00e04b1830a6", "0a3572aa-0cf3-11ed-a60f-0242ac130002"]
-        test_type = TestType.query.filter(TestType.id.in_(ids)).all()
-        test2 = TestRunField.query.first()
-        test2.test_types.extend(test_type)
-        db.session.commit()
-        return send_result(data="", message="Test step field removed successfully", code=200, show=True)
+        return send_result(data="", message="Test Run Custom Field removed successfully", code=200, show=True)
     except Exception as ex:
         db.session.rollback()
         return send_error(data='', message="Something was wrong!")

@@ -1,4 +1,6 @@
 import json
+import os
+import shutil
 import uuid
 from operator import or_
 
@@ -10,14 +12,15 @@ from sqlalchemy import desc, asc
 from sqlalchemy.orm import joinedload
 
 from app.api.v1.history_test import save_history_test_case, save_history_test_execution
+from app.api.v1.test_execution.test_execution import add_test_step_id_by_test_case_id
 from app.api.v1.test_run.schema import TestRunSchema
-from app.enums import INVALID_PARAMETERS_ERROR, TestTimerType
+from app.enums import INVALID_PARAMETERS_ERROR, FILE_PATH
 from app.extensions import logger
 from app.gateway import authorization_require
 from app.models import TestStep, TestCase, TestType, db, TestField, Setting, TestRun, TestExecution, \
-    TestCasesTestExecutions, TestStatus, TestStepDetail, TestCasesTestSets, TestSet, TestEnvironment, TestTimer
+    TestCasesTestExecutions, TestStatus, TestStepDetail, TestCasesTestSets, TestSet, TestEvidence
 from app.utils import send_result, send_error, data_preprocessing, get_timestamp_now
-from app.validator import TestCaseValidator, TestCaseSchema, TestSetSchema, TestCaseTestStepSchema
+from app.validator import TestCaseValidator, TestCaseSchema, TestSetSchema, TestCaseTestStepSchema, TestExecutionSchema
 
 DELETE_SUCCESS = 13
 ADD_SUCCESS = 16
@@ -25,14 +28,26 @@ ADD_SUCCESS = 16
 api = Blueprint('test_case', __name__)
 
 
-@api.route("/<issue_id>", methods=["GET"])
+@api.route("/<issue_id>/<issue_key>", methods=["GET"])
 @authorization_require()
-def get_test_case(issue_id):
+def get_test_case(issue_id, issue_key):
     token = get_jwt_identity()
     cloud_id = token.get('cloudId')
     project_id = token.get('projectId')
     test_case = TestCase.query.filter(TestCase.project_id == project_id, TestCase.cloud_id == cloud_id,
                                       TestCase.issue_id == issue_id).first()
+    if test_case is None:
+        test_case = TestCase(
+            id=str(uuid.uuid4()),
+            issue_id=issue_id,
+            issue_key=issue_key,
+            project_id=project_id,
+            cloud_id=cloud_id,
+            created_date=get_timestamp_now()
+        )
+        db.session.add(test_case)
+        db.session.flush()
+        db.session.commit()
     try:
         return send_result(data=TestCaseSchema().dump(test_case), message="OK")
     except Exception:
@@ -56,7 +71,7 @@ def get_test_set_from_test_case(issue_id):
         return send_error("Not found test case")
     # sort
     query = db.session.query(TestSet).join(TestCasesTestSets).filter(TestCasesTestSets.test_case_id == test_case.id)
-    column_sorted = getattr(TestRun, order_by)
+    column_sorted = getattr(TestSet, order_by)
     query = query.order_by(desc(column_sorted)) if order == "desc" else query.order_by(asc(column_sorted))
     test_sets = query.paginate(page=page, per_page=page_size, error_out=False).items
     total = query.count()
@@ -153,15 +168,17 @@ def get_test_step_from_test_case(issue_id):
         return send_error(message=str(ex))
 
 
-@api.route("/<test_case_id>/<test_type_id>", methods=["PUT"])
+@api.route("/<issue_id>/<test_type_id>", methods=["PUT"])
 @authorization_require()
-def change_test_type(test_case_id, test_type_id):
+def change_test_type(issue_id, test_type_id):
     try:
         token = get_jwt_identity()
         cloud_id = token.get('cloudId')
         project_id = token.get('projectId')
         user_id = token.get('userId')
-        test_case = TestCase.query.filter(TestCase.id == test_case_id).first()
+        test_case = TestCase.query.filter(TestCase.issue_id == issue_id,
+                                          TestCase.cloud_id == cloud_id,
+                                          TestExecution.project_id == project_id).first()
         new_type = TestType.query.filter(TestType.id == test_type_id).first()
         if new_type is None:
             return send_error(message="Error changing test type. '[new test type name]' no longer exists",
@@ -171,7 +188,7 @@ def change_test_type(test_case_id, test_type_id):
         test_case.test_type_id = new_type.id
         db.session.flush()
         db.session.commit()
-        save_history_test_case(test_case_id, user_id, 2, [old_type_name,new_type.name])
+        save_history_test_case(test_case.id, user_id, 2, [old_type_name, new_type.name])
         return send_result(message="success")
 
     except Exception as ex:
@@ -190,9 +207,7 @@ def add_test_execution(test_issue_id):
         user_id = token.get('userId')
         test_executions = body_request.get('test_executions')
         test_case_issue_key = body_request.get('test_case_issue_key')
-        """
-            Get test case, create new if not exist
-        """
+
         test_case = TestCase.query.filter(TestCase.issue_id == test_issue_id,
                                           TestCase.cloud_id == cloud_id,
                                           TestExecution.project_id == project_id).first()
@@ -209,9 +224,6 @@ def add_test_execution(test_issue_id):
             db.session.flush()
         test_execution_ids = []
         for test_execution_issue_id, test_execution_issue_key in test_executions.items():
-            """
-               Get test execution, create new if not exist
-            """
             test_execution = TestExecution.query.filter(TestExecution.issue_id == test_execution_issue_id,
                                                         TestExecution.cloud_id == cloud_id,
                                                         TestExecution.project_id == project_id).first()
@@ -249,7 +261,9 @@ def add_test_execution(test_issue_id):
                                             TestRun.test_case_id == test_case.id,
                                             ).first()
             if test_run is None:
-                default_status = TestStatus.query.filter(TestStatus.name == 'TODO').first()
+                default_status = TestStatus.query.filter(TestStatus.cloud_id == cloud_id,
+                                                         TestStatus.project_id == project_id,
+                                                         TestStatus.name == 'TODO').first()
                 test_run = TestRun(
                     id=str(uuid.uuid4()),
                     project_id=project_id, cloud_id=cloud_id, test_case_id=test_case.id,
@@ -262,6 +276,24 @@ def add_test_execution(test_issue_id):
                 )
                 db.session.add(test_run)
                 db.session.flush()
+                # Tạo test details
+                test_steps = TestStep.query.filter(TestStep.project_id == project_id, TestStep.cloud_id == cloud_id,
+                                                   TestStep.test_case_id == test_case.id).all()
+                for test_step in test_steps:
+                    if test_step.test_case_id_reference is None:
+                        test_step_detail = TestStepDetail(
+                            id=str(uuid.uuid4()),
+                            test_step_id=test_step.id,
+                            status_id=default_status.id,
+                            test_run_id=test_run.id,
+                            created_date=get_timestamp_now(),
+                            link=test_step.id+"/",
+                        )
+                        db.session.add(test_step_detail)
+                        db.session.flush()
+                    else:
+                        add_test_step_id_by_test_case_id(cloud_id, project_id, test_step.test_case_id_reference,
+                                                         test_run.id, default_status.id, test_step.id+"/")
             else:
                 return send_error(message='Some Test Executions were already associated with the Test',
                                   status=200, show=False)
@@ -274,62 +306,54 @@ def add_test_execution(test_issue_id):
         return send_error(message=str(ex))
 
 
-@api.route("/<test_case_id>/test_execution", methods=["DELETE"])
+@api.route("/<issue_id>/test_execution", methods=["DELETE"])
 @authorization_require()
-def remove_test_execution(test_case_id):
+def remove_test_execution(issue_id):
     try:
         body_request = request.get_json()
         token = get_jwt_identity()
         cloud_id = token.get('cloudId')
         project_id = token.get('projectId')
         user_id = token.get('userID')
-        test_execution_ids = body_request.get('test_execution_ids')
-        # xóa test run
-        TestRun.query.filter(TestRun.test_case_id == test_case_id) \
-            .filter(TestRun.test_execution_id.in_(test_execution_ids)) \
-            .delete()
+        test_execution_issue_ids = body_request.get('test_execution_issue_ids')
+        test_executions = TestExecution.query.filter(TestExecution.cloud_id == cloud_id,
+                                                     TestExecution.project_id == project_id,
+                                                     TestExecution.issue_id.in_(test_execution_issue_ids)).all()
+        test_execution_ids = [test_execution.id for test_execution in test_executions]
+        test_case = TestCase.query.filter(TestCase.cloud_id == cloud_id, TestCase.project_id == project_id,
+                                          TestCase.issue_id == issue_id).first()
+        test_runs = TestRun.query.filter(TestRun.test_case_id == test_case.id) \
+                                 .filter(TestRun.test_execution_id.in_(test_execution_ids)).all()
+
+        test_run_id = [test_run.id for test_run in test_runs]
+        for id_test_run in test_run_id:
+            folder_path = "{}/{}".format("test-run", id_test_run)
+            if os.path.isdir(FILE_PATH + folder_path):
+                try:
+                    shutil.rmtree(FILE_PATH + folder_path)
+                except Exception as ex:
+                    return send_error(message=str(ex))
+
+        TestEvidence.query.filter(TestEvidence.test_run_id.in_(test_run_id)).delete()
         db.session.flush()
-        # xóa test_cases_test_executions
+
+        TestStepDetail.query.filter(TestStepDetail.test_run_id.in_(test_run_id)).delete()
+        db.session.flush()
+
+        TestRun.query.filter(TestRun.test_case_id == test_case.id) \
+            .filter(TestRun.test_execution_id.in_(test_execution_ids)).delete()
+        db.session.flush()
+
         TestCasesTestExecutions.query.filter(
-            TestCasesTestExecutions.test_case_id == test_case_id) \
+            TestCasesTestExecutions.test_case_id == test_case.id) \
             .filter(TestCasesTestExecutions.test_execution_id.in_(test_execution_ids)).delete()
         db.session.flush()
         db.session.commit()
-        save_history_test_case(test_case_id, user_id, 5, 2, test_execution_ids, [])
+        save_history_test_case(test_case.id, user_id, 5, 2, test_execution_ids, [])
         return send_result(message=f'Remove {len(test_execution_ids)} test to test case execution successfully')
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
-
-
-@api.route("/<test_case_id>/test_run_id", methods=["GET"])
-@authorization_require()
-def get_test_run_by_id(test_case_id):
-    try:
-        token = get_jwt_identity()
-
-        cloud_id = token.get('cloudId')
-        issue_id = 100002
-        project_id = 10003
-        test_run = TestRun.query.first()
-        status = test_run.status
-        return send_result(data='Done', message="OK")
-
-    except Exception as ex:
-        print(ex)
-
-
-@api.route("/test", methods=["GET"])
-@authorization_require()
-def test():
-    try:
-        test = TestCase.query.options(
-            joinedload(TestCase.test_steps, innerjoin=True).joinedload(TestStep.test_details, innerjoin=True)).filter(
-            TestStepDetail.id == '1').all()
-        return send_result(data='Done', message="OK")
-
-    except Exception as ex:
-        print(ex)
 
 
 @api.route("/", methods=["POST"])
@@ -337,33 +361,53 @@ def test():
 def create_test_case():
     try:
         token = get_jwt_identity()
-
         cloud_id = token.get('cloudId')
         issue_id = token.get('issueId')
+        issue_key = token.get('issueKey')
         project_id = token.get('projectId')
-
         test_case = TestCase(
             id=str(uuid.uuid4()),
             issue_id=issue_id,
+            issue_key=issue_key,
             project_id=project_id,
             cloud_id=cloud_id,
             created_date=get_timestamp_now()
         )
         db.session.add(test_case)
         db.session.flush()
-
+        db.session.commit()
         return send_result(data='Done', message="OK")
+    except Exception as ex:
+        db.session.rollback()
+        print(ex)
 
+
+@api.route("/", methods=["DELETE"])
+@authorization_require()
+def delete_test_case():
+    try:
+        token = get_jwt_identity()
+        cloud_id = token.get('cloudId')
+        issue_id = token.get('issueId')
+        issue_key = token.get('issueKey')
+        project_id = token.get('projectId')
+        TestCase.query.filter(TestCase.cloud_id == cloud_id, TestCase.project_id == project_id,
+                              TestCase.issue_id == issue_id, TestCase.issue_key == issue_key).delete()
+        db.session.flush()
+        db.session.commit()
+        return send_result(data='Done', message="OK")
     except Exception as ex:
         print(ex)
 
 
-@api.route("/<test_case_id>/test-set", methods=['DELETE'])
+@api.route("/<issue_id>/test-set", methods=['DELETE'])
 @authorization_require()
-def delete_tests_set_from_testcase(test_case_id):
+def delete_tests_set_from_testcase(issue_id):
     try:
         token = get_jwt_identity()
         user_id = token.get('userId')
+        cloud_id = token.get('cloudId')
+        project_id = token.get('projectId')
         try:
             body = request.get_json()
             params = TestCaseValidator().load(body) if body else dict()
@@ -373,57 +417,62 @@ def delete_tests_set_from_testcase(test_case_id):
                 "data": err.valid_data
             }))
             return send_error(message_id=INVALID_PARAMETERS_ERROR, data=err.messages)
-
-        ids = params.get('ids', [])
+        issue_ids = params.get('issue_ids', [])
+        test_sets = TestSet.query.filter(TestSet.cloud_id == cloud_id, TestSet.project_id == project_id,
+                                         TestSet.issue_id.in_(issue_ids)).all()
+        ids = [test_set.id for test_set in test_sets]
         is_delete_all = params.get('is_delete_all', False)
-
+        test_case = TestCase.query.filter(TestCase.cloud_id == cloud_id, TestCase.project_id == project_id,
+                                          TestCase.issue_id == issue_id).first()
         if is_delete_all:
             # sắp xếp lại index của test set
-            query = TestCasesTestSets.query.filter(TestCasesTestSets.test_case_id == test_case_id,
+            query = TestCasesTestSets.query.filter(TestCasesTestSets.test_case_id == test_case.id,
                                                    TestCasesTestSets.test_set_id.notin_(ids)).all()
             ids_to_delete = [item.test_set_id for item in query]
             number_test_set = len(ids_to_delete)
 
             for test_set_id in ids_to_delete:
                 max_index = TestCasesTestSets.query.filter(TestCasesTestSets.test_set_id == test_set_id,
-                                                           TestCasesTestSets.test_case_id == test_case_id).first()
+                                                           TestCasesTestSets.test_case_id == test_case.id).first()
                 TestCasesTestSets.query.filter(TestCasesTestSets.test_set_id == test_set_id) \
                     .filter(TestCasesTestSets.index > max_index.index).update(dict(index=TestCasesTestSets.index - 1))
             db.session.flush()
             # delete
             TestCasesTestSets.query.filter(TestCasesTestSets.test_set_id.notin_(ids),
-                                           TestCasesTestSets.test_case_id == test_case_id).delete()
+                                           TestCasesTestSets.test_case_id == test_case.id).delete()
             db.session.flush()
         else:
             # sắp xếp lại index
             for test_set_id in ids:
                 max_index = TestCasesTestSets.query.filter(TestCasesTestSets.test_set_id == test_set_id,
-                                                           TestCasesTestSets.test_case_id == test_case_id).first()
+                                                           TestCasesTestSets.test_case_id == test_case.id).first()
                 TestCasesTestSets.query.filter(TestCasesTestSets.test_set_id == test_set_id) \
                     .filter(TestCasesTestSets.index > max_index.index).update(dict(index=TestCasesTestSets.index - 1))
             db.session.flush()
             # delete
             TestCasesTestSets.query.filter(TestCasesTestSets.test_set_id.in_(ids),
-                                           TestCasesTestSets.test_case_id == test_case_id).delete()
+                                           TestCasesTestSets.test_case_id == test_case.id).delete()
             number_test_set = len(ids)
             db.session.flush()
             ids_to_delete = ids
         db.session.commit()
         message = f'{number_test_set} Test Set(s) removed from the Test'
         # save history
-        save_history_test_case(test_case_id, user_id, 3, 2, ids_to_delete, [])
+        save_history_test_case(test_case.id, user_id, 3, 2, ids_to_delete, [])
         return send_result(message_id=DELETE_SUCCESS, message=message, show=True)
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
 
 
-@api.route("/<test_case_id>/test-set", methods=['POST'])
+@api.route("/<issue_id>/test-set", methods=['POST'])
 @authorization_require()
-def add_tests_set_for_testcase(test_case_id):
+def add_tests_set_for_testcase(issue_id):
     try:
         token = get_jwt_identity()
         user_id = token.get('userId')
+        cloud_id = token.get('cloudId')
+        project_id = token.get('projectId')
         try:
             body = request.get_json()
             params = TestCaseValidator().load(body) if body else dict()
@@ -435,23 +484,58 @@ def add_tests_set_for_testcase(test_case_id):
             return send_error(message_id=INVALID_PARAMETERS_ERROR, data=err.messages)
 
         ids = params.get('ids', [])
-
-        index_max = TestCasesTestSets.query.filter(TestCasesTestExecutions.test_case_id == test_case_id).count()
+        test_case = TestCase.query.filter(TestCase.cloud_id == cloud_id, TestCase.project_id == project_id,
+                                          TestCase.issue_id == issue_id).first()
+        index_max = TestCasesTestSets.query.filter(TestCasesTestExecutions.test_case_id == test_case.id).count()
         for index, test_set_id in enumerate(ids):
             new_item = TestCasesTestSets(test_set_id=test_set_id,
-                                         test_case_id=test_case_id,
+                                         test_case_id=test_case.id,
                                          index=index_max+1+index)
             db.session.add(new_item)
             db.session.flush()
         db.session.commit()
         # save history
-        save_history_test_case(test_case_id, user_id, 2, 2, ids, [])
+        save_history_test_case(test_case.id, user_id, 2, 2, ids, [])
         message = f'{len(ids)} Test Set(s) added to the Test'
         return send_result(message_id=ADD_SUCCESS, message=message, show=True)
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
 
+
+@api.route("/<issue_id>/test_execution", methods=["GET"])
+@authorization_require()
+def get_test_execution_from_test_case(issue_id):
+    token = get_jwt_identity()
+    cloud_id = token.get('cloudId')
+    project_id = token.get('projectId')
+    # Get search params
+    page = request.args.get('page', 1, type=int)
+    page_size = request.args.get('page_size', 10, type=int)
+    order_by = request.args.get('order_by', "issue_key", type=str)
+    order = request.args.get('order', 'asc', type=str)
+    test_case = TestCase.query.filter(TestCase.cloud_id == cloud_id, TestCase.issue_id == issue_id,
+                                      TestCase.project_id == project_id).first()
+    if test_case is None:
+        return send_error("Not found test case")
+    # sort
+    query = db.session.query(TestExecution).join(TestCasesTestExecutions)\
+        .filter(TestCasesTestSets.test_case_id == test_case.id)
+    column_sorted = getattr(TestExecution, order_by)
+    query = query.order_by(desc(column_sorted)) if order == "desc" else query.order_by(asc(column_sorted))
+    test_executions = query.paginate(page=page, per_page=page_size, error_out=False).items
+    total = query.count()
+    extra = 1 if (total % page_size) else 0
+    total_pages = int(total / page_size) + extra
+    try:
+        results = {
+            "test_cases": TestExecutionSchema(many=True).dump(test_executions),
+            "total": total,
+            "total_pages": total_pages
+        }
+        return send_result(data=results)
+    except Exception as ex:
+        return send_error(message=str(ex), data={})
 
 @api.route("/filter/testrun", methods=['POST'])
 def filter_test_run():

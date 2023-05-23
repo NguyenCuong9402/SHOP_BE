@@ -1,4 +1,6 @@
 import json
+import os
+import shutil
 import uuid
 from operator import or_
 
@@ -9,9 +11,10 @@ from sqlalchemy import desc, asc
 from sqlalchemy.orm import joinedload
 from app.api.v1.history_test import save_history_test_execution
 from app.api.v1.test_run.schema import TestRunSchema
+from app.enums import FILE_PATH
 from app.gateway import authorization_require
 from app.models import TestStep, TestCase, TestType, db, TestField, Setting, TestRun, TestExecution, \
-    TestCasesTestExecutions, TestStatus, TestStepDetail, TestExecutionsTestEnvironments
+    TestCasesTestExecutions, TestStatus, TestStepDetail, TestExecutionsTestEnvironments, TestEvidence
 from app.parser import TestStepSchema
 from app.utils import send_result, send_error, data_preprocessing, get_timestamp_now
 from app.validator import TestExecutionSchema, TestStepTestRunSchema
@@ -54,49 +57,6 @@ def get_test_run_from_test_execution(issue_id):
         }
         return send_result(data=results)
 
-    except Exception as ex:
-        return send_error(message=str(ex))
-
-
-@api.route("/<issue_id>/<test_issue_id>/test_run", methods=["GET"])
-@authorization_require()
-def get_test_step_in_test_run(issue_id, test_issue_id):
-    token = get_jwt_identity()
-    cloud_id = token.get('cloudId')
-    project_id = token.get('project_Id')
-    test_execution = TestExecution.query.filter(TestExecution.cloud_id == cloud_id, TestExecution.issue_id == issue_id,
-                                                TestExecution.project_id == project_id).first()
-    if test_execution is None:
-        return send_error("Not found test execution")
-    test_case = TestCase.query.filter(TestCase.cloud_id == cloud_id, TestCase.issue_id == test_issue_id,
-                                      TestCase.project_id == project_id).first()
-    if test_case is None:
-        return send_error("Not found test case")
-    test_run = TestRun.query.filter(TestRun.cloud_id == cloud_id, TestRun.project_id == project_id,
-                                    TestRun.test_execution_id == test_execution.id,
-                                    TestRun.test_case_id == test_case.id).first()
-    if test_run is None:
-        return send_error("Not found test run")
-    test_steps = db.session.query(TestStep).filter(TestStep.project_id == project_id, TestStep.cloud_id == cloud_id,
-                                                   TestStep.test_case_id == test_case.id).order_by(asc(TestStep.index))\
-        .all()
-    result = []
-    for test_step in test_steps:
-        if test_step.test_case_id_reference:
-            test_step_reference = db.session.query(TestStep.id, TestStep.action, TestStep.attachments, TestStep.result,
-                                                   TestStep.cloud_id, TestStep.project_id, TestStep.created_date,
-                                                   TestStep.test_case_id, TestStep.index, TestStep.project_key,
-                                                   TestStep.data, TestCase.issue_key, TestStep.custom_fields)\
-                .join(TestCase, TestCase.id == TestStep.test_case_id)\
-                .filter(TestStep.project_id == project_id, TestStep.cloud_id == cloud_id,
-                        TestStep.test_case_id == test_step.test_case_id_reference).all()
-
-            data = TestStepTestRunSchema(many=True).dump(test_step_reference)
-        else:
-            data = [TestStepTestRunSchema().dump(test_step)]
-        result = result + data
-    try:
-        return send_result(data=result)
     except Exception as ex:
         return send_error(message=str(ex))
 
@@ -172,7 +132,9 @@ def add_test_to_test_execution(test_execution_issue_id):
                                             TestRun.test_case_id == test_case.id,
                                             ).first()
             if test_run is None:
-                default_status = TestStatus.query.filter(TestStatus.name == 'TODO').first()
+                default_status = TestStatus.query.filter(TestStatus.cloud_id == cloud_id,
+                                                         TestStatus.project_id == project_id,
+                                                         TestStatus.name == 'TODO').first()
                 test_run = TestRun(
                     id=str(uuid.uuid4()),
                     project_id=project_id, cloud_id=cloud_id, test_case_id=test_case.id,
@@ -185,6 +147,24 @@ def add_test_to_test_execution(test_execution_issue_id):
                 )
                 db.session.add(test_run)
                 db.session.flush()
+                # Tạo test details
+                test_steps = TestStep.query.filter(TestStep.project_id == project_id, TestStep.cloud_id == cloud_id,
+                                                   TestStep.test_case_id == test_case.id).all()
+                for test_step in test_steps:
+                    if test_step.test_case_id_reference is None:
+                        test_step_detail = TestStepDetail(
+                            id=str(uuid.uuid4()),
+                            test_step_id=test_step.id,
+                            status_id=default_status.id,
+                            test_run_id=test_run.id,
+                            created_date=get_timestamp_now(),
+                            link=test_step.id+"/"
+                        )
+                        db.session.add(test_step_detail)
+                        db.session.flush()
+                    else:
+                        add_test_step_id_by_test_case_id(cloud_id, project_id, test_step.test_case_id_reference,
+                                                         test_run.id, default_status.id, test_step.id+"/")
             else:
                 return send_error(message='Test Executions were already associated with the Test',
                                   status=200, show=False)
@@ -196,28 +176,73 @@ def add_test_to_test_execution(test_execution_issue_id):
         return send_error(message=str(ex))
 
 
-@api.route("/<test_execution_id>", methods=["DELETE"])
+def add_test_step_id_by_test_case_id(cloud_id: str, project_id: str, test_case_id: str,
+                                     test_run_id, status_id, link: str):
+    step_calls = TestStep.query.filter(TestStep.cloud_id == cloud_id, TestStep.project_id == project_id,
+                                       TestStep.test_case_id == test_case_id) \
+        .order_by(asc(TestStep.index)).all()
+    for step in step_calls:
+        new_link = link + step.id + "/"
+        if step.test_case_id_reference is None:
+            test_step_detail = TestStepDetail(
+                id=str(uuid.uuid4()),
+                test_step_id=step.id,
+                status_id=status_id,
+                test_run_id=test_run_id,
+                created_date=get_timestamp_now(),
+                link=new_link
+            )
+            db.session.add(test_step_detail)
+            db.session.flush()
+        else:
+            add_test_step_id_by_test_case_id(cloud_id, project_id, step.test_case_id_reference, test_run_id, status_id,
+                                             new_link)
+
+
+@api.route("/<test_execution_issue_id>", methods=["DELETE"])
 @authorization_require()
-def remove_test_to_test_execution(test_execution_id):
+def remove_test_to_test_execution(test_execution_issue_id):
     try:
         token = get_jwt_identity()
         user_id = token.get('userId')
         body_request = request.get_json()
         cloud_id = token.get('cloudId')
         project_id = token.get('projectId')
-        test_case_ids = body_request.get('test_case_ids')
-        # xóa test run
-        TestRun.query.filter(TestRun.test_execution_id == test_execution_id)\
-            .filter(TestRun.test_case_id.in_(test_case_ids))\
-            .delete()
+        test_case_issue_ids = body_request.get('test_case_issue_ids')
+        test_cases = TestCase.query.filter(TestCase.cloud_id == cloud_id, TestCase.project_id == project_id,
+                                           TestCase.issue_id.in_(test_case_issue_ids)).all()
+        test_case_ids = [test_case.id for test_case in test_cases]
+        test_execution = TestExecution.query.filter(TestExecution.project_id == project_id,
+                                                    TestExecution.cloud_id == cloud_id,
+                                                    TestExecution.issue_id == test_execution_issue_id).first()
+
+        test_runs = TestRun.query.filter(TestRun.test_execution_id == test_execution.id)\
+            .filter(TestRun.test_case_id.in_(test_case_ids)).all()
+        test_run_id = [test_run.id for test_run in test_runs]
+
+        for id_test_run in test_run_id:
+            folder_path = "{}/{}".format("test-run", id_test_run)
+            if os.path.isdir(FILE_PATH + folder_path):
+                try:
+                    shutil.rmtree(FILE_PATH + folder_path)
+                except Exception as ex:
+                    return send_error(message=str(ex))
+        TestEvidence.query.filter(TestEvidence.test_run_id.in_(test_run_id)).delete()
+        db.session.flush()
+
+        TestStepDetail.query.filter(TestStepDetail.test_run_id.in_(test_run_id)).delete()
+        db.session.flush()
+
+        TestRun.query.filter(TestRun.test_execution_id == test_execution.id) \
+            .filter(TestRun.test_case_id.in_(test_case_ids)).delete()
         db.session.flush()
         # xóa test_cases_test_executions
         TestCasesTestExecutions.query.filter(
-            TestCasesTestExecutions.test_execution_id == test_execution_id) \
+            TestCasesTestExecutions.test_execution_id == test_execution.id) \
             .filter(TestCasesTestExecutions.test_case_id.in_(test_case_ids)).delete()
         db.session.flush()
         db.session.commit()
-        save_history_test_execution(test_execution_id, user_id, 2, 3, test_case_ids)
+        save_history_test_execution(test_execution.id, user_id, 2, 3, test_case_ids)
         return send_result(message=f'Remove {len(test_case_ids)} test to test case execution successfully')
     except Exception as ex:
         db.session.rollback()
@@ -226,18 +251,20 @@ def remove_test_to_test_execution(test_execution_id):
 
 @api.route("/", methods=["POST"])
 @authorization_require()
-def create_test_case():
+def create_test_execution():
     try:
         token = get_jwt_identity()
 
         cloud_id = token.get('cloudId')
         issue_id = token.get('issueId')
+        issue_key = token.get('issueKey')
         project_id = token.get('projectId')
 
         test_execution = TestExecution(
             id=str(uuid.uuid4()),
             issue_id=issue_id,
             project_id=project_id,
+            issue_key=issue_key,
             cloud_id=cloud_id,
             created_date=get_timestamp_now()
         )
