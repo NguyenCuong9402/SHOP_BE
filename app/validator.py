@@ -1,6 +1,4 @@
-import json
 import typing
-from datetime import date
 
 from marshmallow import Schema, fields, validate, ValidationError, types, validates_schema, post_dump
 from flask_marshmallow import Marshmallow
@@ -244,26 +242,12 @@ class TestStepRunSchema(Schema):
     evidences = fields.List(fields.Nested(EvidenceSchema))
 
 
-class TestTimerSchema(Schema):
-    """
-    Author: phongnv
-    Create Date: 12/07/2022
-    Marshmallow Schema
-    """
+class TimerSchema(Schema):
     id = fields.String()
-    time_type = fields.String()
-    date_time = fields.DateTime()
-    str_date_time = fields.String()
-
-
-class TestTimerValidator(Schema):
-    """
-    Author: phongnv
-    Create Date: 12/07/2022
-    Marshmallow Schema
-    """
-    time_type = fields.Integer(required=True)
-    date_time = fields.DateTime()
+    time_type = fields.Integer()
+    test_timer = fields.Float()
+    delta_time = fields.Float()
+    created_date = fields.String()
 
 
 class TestRunDetailSchema(Schema):
@@ -298,7 +282,7 @@ class TestRunSchema(Schema):
     steps = fields.List(fields.Nested(TestStepRunSchema))
     defects = fields.List(fields.Nested(DefectsSchema))
     evidences = fields.List(fields.Nested(EvidenceSchema))
-    test_timer = fields.List(fields.Nested(TestTimerSchema))
+    test_timer = fields.List(fields.Nested(TimerSchema))
     list_activity = fields.List(fields.Nested(TestActivitySchema))
     tests = fields.Nested(TestRunDetailSchema)
 
