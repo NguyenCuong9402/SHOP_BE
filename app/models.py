@@ -52,14 +52,6 @@ class ProjectSetting(db.Model):
     project_id = db.Column(db.String(255), nullable=False)
 
 
-# test_type_test_run_field = db.Table('test_type_test_run_field',
-#                                     db.Column('test_type_id', db.String(50), db.ForeignKey('test_type.id'),
-#                                               primary_key=True),
-#                                     db.Column('test_run_field_id', db.String(50), db.ForeignKey('test_run_field.id'),
-#                                               primary_key=True)
-#                                     )
-
-
 class TestTypeTestRunField(db.Model):
     __tablename__ = 'test_type_test_run_field'
     test_type_id = db.Column(db.String(50), db.ForeignKey('test_type.id'), primary_key=True, nullable=False)
@@ -152,32 +144,6 @@ class TestStepsConfig(db.Model):
                                    nullable=True)
     created_date = db.Column(db.Integer, default=0)
     modified_date = db.Column(db.Integer, default=0)
-
-
-# class TestSets(db.Model):
-#     __tablename__ = 'test_sets'
-#     id = db.Column(db.String(50), primary_key=True)
-#     tests = db.relationship('Test', secondary=test_testsets, lazy='subquery',
-#                             backref=db.backref('tests', lazy=True))
-#     name = db.Column(db.String(255), nullable=True)
-#     key = db.Column(db.String(255), nullable=True)
-#     jira_id = db.Column(db.String(255), nullable=True)
-#     cloud_id = db.Column(db.String(255), nullable=True)
-#     created_date = db.Column(db.Integer, default=0)
-#     modified_date = db.Column(db.Integer, default=0)
-#
-#
-# """
-# Many to many relationship
-# Read more: https://flask-sqlalchemy.palletsprojects.com/en/2.x/models/
-# Test Sets and Test Runs table
-# """
-#
-# test_test_executions = db.Table('map_test_executions',
-#                                 db.Column('test_id', db.String(50), db.ForeignKey('tests.id'), primary_key=True),
-#                                 db.Column('test_execution_id', db.String(50), db.ForeignKey('test_executions.id'),
-#                                           primary_key=True)
-#                                 )
 
 
 class Message(db.Model):
