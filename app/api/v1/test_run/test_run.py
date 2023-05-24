@@ -2,7 +2,7 @@ import json
 import os
 import uuid
 from operator import or_
-
+import datetime
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity, create_access_token
 from benedict import benedict
@@ -14,7 +14,7 @@ from app.api.v1.test_run.schema import TestRunSchema, CombineSchema
 from app.enums import FILE_PATH, URL_SERVER
 from app.gateway import authorization_require
 from app.models import TestStep, TestCase, TestType, db, TestField, Setting, TestRun, TestExecution, \
-    TestCasesTestExecutions, TestStatus, TestStepDetail, Defects, TestEvidence, TestSet
+    TestCasesTestExecutions, TestStatus, TestStepDetail, Defects, TestEvidence, TestSet, TestTimer
 from app.utils import send_result, send_error, data_preprocessing, get_timestamp_now, validate_request
 from app.validator import CreateTestValidator, SettingSchema, DefectsSchema, TestStepTestRunSchema, UploadValidation, \
     EvidenceSchema, PostDefectSchema
@@ -396,7 +396,7 @@ def delete_defect(test_run_id):
         return send_error(message=str(ex))
 
 
-@api.route("/<issue_id>/<test_issue_id>/test_run", methods=["GET"])
+@api.route("/<issue_id>/<test_issue_id>", methods=["GET"])
 @authorization_require()
 def load_test_run(issue_id, test_issue_id):
     token = get_jwt_identity()
@@ -468,7 +468,7 @@ def get_test_step_id_by_test_case_id_reference(cloud_id, project_id, test_case_i
 
 
 @api.route("/<test_run_id>/evidence", methods=['POST'])
-@jwt_required()
+@authorization_require()
 def upload_evidence(test_run_id):
     try:
         token = get_jwt_identity()
@@ -552,7 +552,7 @@ def upload_evidence(test_run_id):
 
 
 @api.route('<test_run_id>/get-evidence', methods=['POST'])
-@jwt_required()
+@authorization_require()
 def get_evidence(test_run_id):
     try:
         token = get_jwt_identity()
@@ -631,7 +631,7 @@ def get_test_step_detail_id(cloud_id, project_id, test_case_id_reference, test_d
 
 
 @api.route('<test_run_id>/evidence', methods=['DELETE'])
-@jwt_required()
+@authorization_require()
 def delete_evidence(test_run_id):
     try:
         token = get_jwt_identity()
@@ -662,7 +662,7 @@ def delete_evidence(test_run_id):
 
 
 @api.route('/evidence-download', methods=['POST'])
-@jwt_required()
+@authorization_require()
 def download_evidence():
     try:
         req = request.get_json()
@@ -677,3 +677,61 @@ def download_evidence():
             return send_error(message='Error while downloading file: {}'.format(str(e)))
     except Exception as ex:
         return send_error(message=str(ex))
+
+
+@api.route("/<test_run_id>/set_timer/start", methods=['PUT'])
+@authorization_require()
+def start_time(test_run_id):
+    try:
+        token = get_jwt_identity()
+        cloud_id = token.get('cloudId')
+        project_id = token.get('projectId')
+        date_time = datetime.datetime.now()
+        test_timer = TestTimer.query.filter(TestTimer.test_run_id == test_run_id).first()
+        if test_timer is None:
+            test_timer = TestTimer(
+                id=str(uuid.uuid4()),
+                test_run_id=test_run_id,
+                created_date=get_timestamp_now()
+            )
+            db.session.add(test_timer)
+            db.session.flush()
+        test_timer.date_time = date_time
+        db.session.commit()
+    except Exception as ex:
+        db.session.rollback()
+        return send_error(message=str(ex))
+
+
+@api.route("/<test_run_id>/set_timer/pause", methods=['PUT'])
+@authorization_require()
+def pause_time(test_run_id):
+    try:
+        token = get_jwt_identity()
+        cloud_id = token.get('cloudId')
+        project_id = token.get('projectId')
+        date_time = datetime.datetime.now()
+        test_timer = TestTimer.query.filter(TestTimer.test_run_id == test_run_id).first()
+        test_timer.str_date_time = test_timer.str_date_time + date_time - test_timer.date_time
+        test_timer.date_time = 0
+        db.session.flush()
+        db.session.commit()
+    except Exception as ex:
+        db.session.rollback()
+        return send_error(message=str(ex))\
+
+
+
+@api.route("/<test_run_id>/set_timer/stop", methods=['PUT'])
+@authorization_require()
+def stop_time(test_run_id):
+    try:
+        token = get_jwt_identity()
+        cloud_id = token.get('cloudId')
+        project_id = token.get('projectId')
+
+        TestTimer.query.filter
+    except Exception as ex:
+        db.session.rollback()
+        return send_error(message=str(ex))
+
