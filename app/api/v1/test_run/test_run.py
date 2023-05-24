@@ -6,6 +6,7 @@ import datetime
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity, create_access_token
 from benedict import benedict
+from numpy import double
 from sqlalchemy import asc
 from werkzeug.utils import secure_filename, send_file
 
@@ -14,10 +15,10 @@ from app.api.v1.test_run.schema import TestRunSchema, CombineSchema
 from app.enums import FILE_PATH, URL_SERVER
 from app.gateway import authorization_require
 from app.models import TestStep, TestCase, TestType, db, TestField, Setting, TestRun, TestExecution, \
-    TestCasesTestExecutions, TestStatus, TestStepDetail, Defects, TestEvidence, TestSet, TestTimer
+    TestCasesTestExecutions, TestStatus, TestStepDetail, Defects, TestEvidence, TestSet, Timer
 from app.utils import send_result, send_error, data_preprocessing, get_timestamp_now, validate_request
 from app.validator import CreateTestValidator, SettingSchema, DefectsSchema, TestStepTestRunSchema, UploadValidation, \
-    EvidenceSchema, PostDefectSchema
+    EvidenceSchema, PostDefectSchema, TimerSchema
 from app.parser import TestFieldSchema, TestStepSchema
 
 api = Blueprint('test_run', __name__)
@@ -679,59 +680,115 @@ def download_evidence():
         return send_error(message=str(ex))
 
 
-@api.route("/<test_run_id>/set_timer/start", methods=['PUT'])
+@api.route("/<test_run_id>/start", methods=['POST'])
 @authorization_require()
 def start_time(test_run_id):
     try:
         token = get_jwt_identity()
         cloud_id = token.get('cloudId')
         project_id = token.get('projectId')
-        date_time = datetime.datetime.now()
-        test_timer = TestTimer.query.filter(TestTimer.test_run_id == test_run_id).first()
-        if test_timer is None:
-            test_timer = TestTimer(
+        test_run = TestRun.query.filter(TestRun.id == test_run_id).first()
+        if test_run is None:
+            return send_error(message="Not found test run")
+        time_start = round(double(datetime.datetime.now().timestamp()), 3)
+        timer = Timer.query.filter(Timer.test_run_id == test_run_id).first()
+        if timer is None:
+            timer = Timer(
                 id=str(uuid.uuid4()),
                 test_run_id=test_run_id,
+                time_type=1,
+                time_start=time_start,
+                delta_time=0,
                 created_date=get_timestamp_now()
             )
-            db.session.add(test_timer)
+            db.session.add(timer)
             db.session.flush()
-        test_timer.date_time = date_time
+        else:
+            if timer.time_type == 1:
+                return send_error(message="Timer is running")
+            timer.time_type = 1
+            timer.time_start = time_start
+            db.session.flush()
         db.session.commit()
+        return send_result(message="Oke")
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
 
 
-@api.route("/<test_run_id>/set_timer/pause", methods=['PUT'])
+@api.route("/<test_run_id>/pause", methods=['PUT'])
 @authorization_require()
 def pause_time(test_run_id):
     try:
         token = get_jwt_identity()
         cloud_id = token.get('cloudId')
         project_id = token.get('projectId')
-        date_time = datetime.datetime.now()
-        test_timer = TestTimer.query.filter(TestTimer.test_run_id == test_run_id).first()
-        test_timer.str_date_time = test_timer.str_date_time + date_time - test_timer.date_time
-        test_timer.date_time = 0
+        test_run = TestRun.query.filter(TestRun.id == test_run_id).first()
+        if test_run is None:
+            return send_error(message="Not found test run")
+        time_start = double(datetime.datetime.now().timestamp())
+        timer = Timer.query.filter(Timer.test_run_id == test_run_id).first()
+        if timer is None:
+            return send_error(message="Not found")
+        if timer.time_type == 2:
+            return send_error(message="time stopped")
+        timer.delta_time = round(time_start - double(timer.time_start) + double(timer.delta_time), 3)
+        timer.time_type = 2
         db.session.flush()
         db.session.commit()
+        return send_result(message="oke")
     except Exception as ex:
         db.session.rollback()
-        return send_error(message=str(ex))\
+        return send_error(message=str(ex))
 
 
-
-@api.route("/<test_run_id>/set_timer/stop", methods=['PUT'])
+@api.route("/<test_run_id>/reset", methods=['PUT'])
 @authorization_require()
-def stop_time(test_run_id):
+def reset_time(test_run_id):
     try:
         token = get_jwt_identity()
         cloud_id = token.get('cloudId')
         project_id = token.get('projectId')
+        test_run = TestRun.query.filter(TestRun.id == test_run_id).first()
+        if test_run is None:
+            return send_error(message="Not found test run")
+        test_timer = Timer.query.filter(Timer.test_run_id == test_run_id).first()
+        test_timer.time_type = 2
+        test_timer.time_start = 0
+        test_timer.delta_time = 0
+        db.session.flush()
+        db.session.commit()
+        return send_result(message="oke")
 
-        TestTimer.query.filter
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
+
+
+@api.route("/<test_run_id>/timer", methods=['GET'])
+@authorization_require()
+def get_time(test_run_id):
+    try:
+        token = get_jwt_identity()
+        cloud_id = token.get('cloudId')
+        project_id = token.get('projectId')
+        test_run = TestRun.query.filter(TestRun.id == test_run_id).first()
+        if test_run is None:
+            return send_error(message="Not found test run")
+        test_timer = Timer.query.filter(Timer.test_run_id == test_run_id).first()
+        if test_timer is None:
+            timer = Timer(
+                id=str(uuid.uuid4()),
+                test_run_id=test_run_id,
+                time_type=2,
+                created_date=get_timestamp_now()
+            )
+            db.session.add(timer)
+            db.session.flush()
+            db.session.commit()
+        return send_result(data=TimerSchema().dump(test_timer))
+    except Exception as ex:
+        db.session.rollback()
+        return send_error(message=str(ex))
+
 

@@ -5,7 +5,7 @@ from typing import List
 from sqlalchemy.orm import relationship
 from sqlalchemy import ForeignKey, TEXT, asc, CheckConstraint
 from app.extensions import db
-from sqlalchemy.dialects.mysql import INTEGER
+from sqlalchemy.dialects.mysql import INTEGER , DOUBLE
 from sqlalchemy.ext.hybrid import hybrid_property
 
 
@@ -305,15 +305,15 @@ class TestEvidence(db.Model):
     modified_date = db.Column(db.Integer, default=0)
 
 
-class TestTimer(db.Model):
-    __tablename__ = 'test_timer'
+class Timer(db.Model):
+    __tablename__ = 'timer'
     id = db.Column(db.String(50), primary_key=True)
     test_run_id = db.Column(db.String(50),
                             db.ForeignKey('test_run.id', ondelete='CASCADE', onupdate='CASCADE'),
                             nullable=True)
     time_type = db.Column(db.Integer, default=1)  # 1 start time, 2 end time
-    date_time = db.Column(db.DATE)  # format %Y-%m-%d %H:%M:%S.%f
-    str_date_time = db.Column(db.Text, nullable=True)
+    time_start = db.Column(DOUBLE, default=0)
+    delta_time = db.Column(DOUBLE, default=0)
     created_date = db.Column(db.Integer, default=0, index=True)
     modified_date = db.Column(db.Integer, default=0)
 

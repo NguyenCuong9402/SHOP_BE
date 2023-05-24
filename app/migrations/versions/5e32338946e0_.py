@@ -358,18 +358,6 @@ def upgrade():
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_test_step_detail_created_date'), 'test_step_detail', ['created_date'], unique=False)
-    op.create_table('test_timer',
-    sa.Column('id', sa.String(length=50), nullable=False),
-    sa.Column('test_run_id', sa.String(length=50), nullable=True),
-    sa.Column('time_type', sa.Integer(), nullable=True),
-    sa.Column('date_time', sa.DATE(), nullable=True),
-    sa.Column('str_date_time', sa.Text(), nullable=True),
-    sa.Column('created_date', sa.Integer(), nullable=True),
-    sa.Column('modified_date', sa.Integer(), nullable=True),
-    sa.ForeignKeyConstraint(['test_run_id'], ['test_run.id'], onupdate='CASCADE', ondelete='CASCADE'),
-    sa.PrimaryKeyConstraint('id')
-    )
-    op.create_index(op.f('ix_test_timer_created_date'), 'test_timer', ['created_date'], unique=False)
     op.create_table('test_type_test_run_field',
     sa.Column('test_type_id', sa.String(length=50), nullable=False),
     sa.Column('test_run_field_id', sa.String(length=50), nullable=False),
@@ -413,8 +401,7 @@ def downgrade():
     op.drop_index(op.f('ix_defect_created_date'), table_name='defect')
     op.drop_table('defect')
     op.drop_table('test_type_test_run_field')
-    op.drop_index(op.f('ix_test_timer_created_date'), table_name='test_timer')
-    op.drop_table('test_timer')
+
     op.drop_index(op.f('ix_test_step_detail_created_date'), table_name='test_step_detail')
     op.drop_table('test_step_detail')
     op.drop_table('test_cases_test_steps')
