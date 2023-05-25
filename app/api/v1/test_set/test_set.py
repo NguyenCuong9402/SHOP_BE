@@ -180,7 +180,7 @@ def remove_test_to_test_set(test_set_issue_id):
             ids_to_delete = test_case_ids
         message = f'{len(ids_to_delete)} Test case(s) remove to the Test Set'
         # Lấy ra tất cả các record trong bảng
-        query_all = TestCasesTestSets.query.filter(TestCasesTestSets.test_set_id == test_set.id)\
+        query_all = TestCasesTestSets.query.filter(TestCasesTestSets.test_set_id == test_set.id) \
             .order_by(TestCasesTestSets.index.asc())
         # Cập nhật lại giá trị của cột "index"
         new_index = 1
@@ -217,16 +217,16 @@ def change_rank_test_case_in_test_set(test_set_issue_id):
         if index_drag > index_drop:
             if index_drop < 1:
                 return send_error(message=f'Must be a value between 1 and {index_max}')
-            TestCasesTestSets.query.filter(TestCasesTestSets.test_set_id == test_set.id)\
-                .filter(TestCasesTestSets.index > index_drop - 1).filter(TestCasesTestSets.index < index_drag)\
+            TestCasesTestSets.query.filter(TestCasesTestSets.test_set_id == test_set.id) \
+                .filter(TestCasesTestSets.index > index_drop - 1).filter(TestCasesTestSets.index < index_drag) \
                 .update(dict(index=TestCasesTestSets.index + 1))
             query.index = index_drop
             db.session.flush()
         else:
             if index_drop > index_max:
                 return send_error(message=f'Must be a value between 1 and {index_max}')
-            TestCasesTestSets.query.filter(TestCasesTestSets.test_set_id == test_set.id)\
-                .filter(TestCasesTestSets.index > index_drag).filter(TestCasesTestSets.index < index_drop + 1)\
+            TestCasesTestSets.query.filter(TestCasesTestSets.test_set_id == test_set.id) \
+                .filter(TestCasesTestSets.index > index_drag).filter(TestCasesTestSets.index < index_drop + 1) \
                 .update(dict(index=TestCasesTestSets.index - 1))
             query.index = index_drop
             db.session.flush()
@@ -237,10 +237,6 @@ def change_rank_test_case_in_test_set(test_set_issue_id):
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
-
-
-
-
 
 
 @api.route("/filter/test-case", methods=["POST"])
@@ -284,6 +280,7 @@ def import_test_case():
 
         cloud_id = token.get('cloudId')
         project_id = token.get('projectId')
+        data = body_request.get('data_input')
 
         data_input = pd.DataFrame(data).to_dict(orient="list")
         test_sets = data_input.get('test_sets')
@@ -323,10 +320,12 @@ def import_test_case():
         test_cases_test_sets_new = list()
         for test_set in test_sets:
             test_set_id = test_set_dict.get(test_set.get('issue_id'))
-            if test_set.get('issue_id')  not in test_case_index:
+            if test_set.get('issue_id') not in test_case_index:
+                # init index
                 index = 1
                 test_case_index[test_set.get('issue_id')] = index
             else:
+                # plus index if had test case add to test set
                 index = test_case_index.get(test_set.get('issue_id')) + 1
                 test_case_index[test_set.get('issue_id')] = index
             test_cases_test_sets_new.append(
@@ -364,8 +363,11 @@ def import_test_case():
         # add relationship testcase-testsets (test_cases_test_sets table)
         # insert many test_cases_test_sets
         db.session.bulk_insert_mappings(TestCasesTestSets, test_cases_test_sets_new)
-
-        db.session.commit()
+        try:
+            db.session.commit()
+        except:
+            db.session.rollback()
+            return send_error()
         return send_result()
     except Exception as ex:
-        return send_error(message='something wrong')
+        return send_error(message='Something wrong!')

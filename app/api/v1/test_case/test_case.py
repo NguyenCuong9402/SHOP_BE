@@ -14,13 +14,15 @@ from sqlalchemy.orm import joinedload
 from app.api.v1.history_test import save_history_test_case, save_history_test_execution
 from app.api.v1.test_execution.test_execution import add_test_step_id_by_test_case_id
 from app.api.v1.test_run.schema import TestRunSchema
-from app.enums import INVALID_PARAMETERS_ERROR, FILE_PATH
+from app.enums import INVALID_PARAMETERS_ERROR, FILE_PATH, TestTimerType
 from app.extensions import logger
 from app.gateway import authorization_require
 from app.models import TestStep, TestCase, TestType, db, TestField, Setting, TestRun, TestExecution, \
-    TestCasesTestExecutions, TestStatus, TestStepDetail, TestCasesTestSets, TestSet, TestEvidence
+    TestCasesTestExecutions, TestStatus, TestStepDetail, TestCasesTestSets, TestSet, TestEvidence, TestEnvironment, \
+    TestTimer
 from app.utils import send_result, send_error, data_preprocessing, get_timestamp_now
-from app.validator import TestCaseValidator, TestCaseSchema, TestSetSchema, TestCaseTestStepSchema, TestExecutionSchema
+from app.validator import TestCaseValidator, TestCaseSchema, TestSetSchema, TestCaseTestStepSchema, TestExecutionSchema, \
+    TestCaseFilterValidator
 
 DELETE_SUCCESS = 13
 ADD_SUCCESS = 16
@@ -287,13 +289,13 @@ def add_test_execution(test_issue_id):
                             status_id=default_status.id,
                             test_run_id=test_run.id,
                             created_date=get_timestamp_now(),
-                            link=test_step.id+"/",
+                            link=test_step.id + "/",
                         )
                         db.session.add(test_step_detail)
                         db.session.flush()
                     else:
                         add_test_step_id_by_test_case_id(cloud_id, project_id, test_step.test_case_id_reference,
-                                                         test_run.id, default_status.id, test_step.id+"/")
+                                                         test_run.id, default_status.id, test_step.id + "/")
             else:
                 return send_error(message='Some Test Executions were already associated with the Test',
                                   status=200, show=False)
@@ -323,7 +325,7 @@ def remove_test_execution(issue_id):
         test_case = TestCase.query.filter(TestCase.cloud_id == cloud_id, TestCase.project_id == project_id,
                                           TestCase.issue_id == issue_id).first()
         test_runs = TestRun.query.filter(TestRun.test_case_id == test_case.id) \
-                                 .filter(TestRun.test_execution_id.in_(test_execution_ids)).all()
+            .filter(TestRun.test_execution_id.in_(test_execution_ids)).all()
 
         test_run_id = [test_run.id for test_run in test_runs]
         for id_test_run in test_run_id:
@@ -490,7 +492,7 @@ def add_tests_set_for_testcase(issue_id):
         for index, test_set_id in enumerate(ids):
             new_item = TestCasesTestSets(test_set_id=test_set_id,
                                          test_case_id=test_case.id,
-                                         index=index_max+1+index)
+                                         index=index_max + 1 + index)
             db.session.add(new_item)
             db.session.flush()
         db.session.commit()
@@ -519,7 +521,7 @@ def get_test_execution_from_test_case(issue_id):
     if test_case is None:
         return send_error("Not found test case")
     # sort
-    query = db.session.query(TestExecution).join(TestCasesTestExecutions)\
+    query = db.session.query(TestExecution).join(TestCasesTestExecutions) \
         .filter(TestCasesTestSets.test_case_id == test_case.id)
     column_sorted = getattr(TestExecution, order_by)
     query = query.order_by(desc(column_sorted)) if order == "desc" else query.order_by(asc(column_sorted))
@@ -537,7 +539,9 @@ def get_test_execution_from_test_case(issue_id):
     except Exception as ex:
         return send_error(message=str(ex), data={})
 
+
 @api.route("/filter/testrun", methods=['POST'])
+@jwt_required()
 def filter_test_run():
     try:
         body = request.get_json()
@@ -554,9 +558,10 @@ def filter_test_run():
     testrun_started = body_req.get("testrun_started", {})
     testrun_finished = body_req.get("testrun_finished", {})
     token = get_jwt_identity()
-    issue_id = token.get('issueId')
+    issue_id = token.get('issue_id')
 
-    query = db.session.query(TestCase.issue_id)
+    query = db.session.query(TestRun.issue_id).join(TestCase, TestCase.id == TestRun.test_case_id).filter(
+        TestCase.issue_id == issue_id)
     if len(statuses) > 0:
         query = query.join(TestStatus).filter(TestStatus.name.in_(statuses))
     if len(environments) > 0:
@@ -579,7 +584,5 @@ def filter_test_run():
                                                  TestTimer.date_time <= testrun_finished.get('to'),
                                                  TestTimer.time_type == TestTimerType.END_TIME)
 
-    query = query.filter(TestRun.issue_id == issue_id).all()
-
-    data = TestCaseFilterSchema(many=True).dump(query)
+    data = [test_run.issue_id for test_run in query.all()]
     return send_result(data=data)
