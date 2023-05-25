@@ -14,13 +14,15 @@ from sqlalchemy.orm import joinedload
 from app.api.v1.history_test import save_history_test_case, save_history_test_execution
 from app.api.v1.test_execution.test_execution import add_test_step_id_by_test_case_id
 from app.api.v1.test_run.schema import TestRunSchema
-from app.enums import INVALID_PARAMETERS_ERROR, FILE_PATH
+from app.enums import INVALID_PARAMETERS_ERROR, FILE_PATH, TestTimerType
 from app.extensions import logger
 from app.gateway import authorization_require
 from app.models import TestStep, TestCase, TestType, db, TestField, Setting, TestRun, TestExecution, \
-    TestCasesTestExecutions, TestStatus, TestStepDetail, TestCasesTestSets, TestSet, TestEvidence
+    TestCasesTestExecutions, TestStatus, TestStepDetail, TestCasesTestSets, TestSet, TestEvidence, TestEnvironment, \
+    TestTimer
 from app.utils import send_result, send_error, data_preprocessing, get_timestamp_now
-from app.validator import TestCaseValidator, TestCaseSchema, TestSetSchema, TestCaseTestStepSchema, TestExecutionSchema
+from app.validator import TestCaseValidator, TestCaseSchema, TestSetSchema, TestCaseTestStepSchema, TestExecutionSchema, \
+    TestCaseFilterValidator
 
 DELETE_SUCCESS = 13
 ADD_SUCCESS = 16
@@ -566,3 +568,51 @@ def get_test_execution_from_test_case(issue_id):
         return send_result(data=results)
     except Exception as ex:
         return send_error(message=str(ex), data={})
+
+
+@api.route("/filter/testrun", methods=['POST'])
+@jwt_required()
+def filter_test_run():
+    try:
+        body = request.get_json()
+        body_req = TestCaseFilterValidator().load(body) if body else dict()
+    except ValidationError as err:
+        logger.error(json.dumps({
+            "message": err.messages,
+            "data": err.valid_data
+        }))
+        return send_error(message_id=INVALID_PARAMETERS_ERROR, data=err.messages)
+
+    statuses = body_req.get("statuses", [])
+    environments = body_req.get("environments", [])
+    testrun_started = body_req.get("testrun_started", {})
+    testrun_finished = body_req.get("testrun_finished", {})
+    token = get_jwt_identity()
+    issue_id = token.get('issue_id')
+
+    query = db.session.query(TestRun.issue_id).join(TestCase, TestCase.id == TestRun.test_case_id).filter(
+        TestCase.issue_id == issue_id)
+    if len(statuses) > 0:
+        query = query.join(TestStatus).filter(TestStatus.name.in_(statuses))
+    if len(environments) > 0:
+        query = query.join(TestEnvironment, TestExecution.test_environments).filter(
+            TestEnvironment.name.in_(environments))
+    if len(testrun_started) > 0:
+        if testrun_started.get('from') and not testrun_started.get('to'):
+            query = query.join(TestTimer).filter(TestTimer.date_time >= testrun_started.get('from'),
+                                                 TestTimer.time_type == TestTimerType.START_TIME)
+        else:
+            query = query.join(TestTimer).filter(TestTimer.date_time >= testrun_started.get('from'),
+                                                 TestTimer.date_time <= testrun_started.get('to'),
+                                                 TestTimer.time_type == TestTimerType.START_TIME)
+    if len(testrun_finished) > 0:
+        if testrun_finished.get('from') and not testrun_finished.get('to'):
+            query = query.join(TestTimer).filter(TestTimer.date_time >= testrun_finished.get('from'),
+                                                 TestTimer.time_type == TestTimerType.END_TIME)
+        else:
+            query = query.join(TestTimer).filter(TestTimer.date_time >= testrun_finished.get('from'),
+                                                 TestTimer.date_time <= testrun_finished.get('to'),
+                                                 TestTimer.time_type == TestTimerType.END_TIME)
+
+    data = [test_run.issue_id for test_run in query.all()]
+    return send_result(data=data)

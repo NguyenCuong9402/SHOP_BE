@@ -184,8 +184,7 @@ class TestStepField(db.Model):
     id = db.Column(db.String(50), primary_key=True)
     name = db.Column(db.String(250))
     description = db.Column(db.String(250))
-    type_values \
-        = db.Column(db.Text())
+    type_values = db.Column(db.Text())
     type = db.Column(db.String(250))
     is_required = db.Column(db.Boolean, default=0)
     is_disabled = db.Column(db.Boolean, default=0)

@@ -1,18 +1,17 @@
-import json
 import uuid
 from flask import Blueprint, request
 from flask_jwt_extended import get_jwt_identity
 from sqlalchemy import desc, asc
-from sqlalchemy.orm import joinedload
+
+import pandas as pd
 
 from app.api.v1.history_test import save_history_test_set
 from app.api.v1.test_run.schema import TestRunSchema
 from app.gateway import authorization_require
-from app.models import TestStep, TestCase, db, TestRun, TestExecution, \
-    TestStatus, TestStepDetail, TestSet, TestCasesTestSets, HistoryTest
-from app.utils import send_result, send_error, data_preprocessing, get_timestamp_now, escape_wildcard
-from app.validator import TestSetSchema, TestCaseSchema, HistorySchema, TestSetTestCasesSchema
-from operator import or_
+from app.models import TestCase, db, TestRun, TestExecution, \
+    TestStatus, TestSet, TestCasesTestSets, TestType
+from app.utils import send_result, send_error, get_timestamp_now, escape_wildcard
+from app.validator import TestSetSchema, TestSetTestCasesSchema
 
 INVALID_PARAMETERS_ERROR = 'g1'
 
@@ -57,7 +56,7 @@ def get_test_case_from_test_set(issue_id):
             return send_error("Not a valid")
         column_sorted = getattr(TestCase, order_by)
     query = db.session.query(TestCase.id, TestCase.issue_id, TestCase.issue_key, TestCase.project_id, TestCase.cloud_id,
-                             TestCase.created_date, TestCasesTestSets.index).join(TestCasesTestSets)\
+                             TestCase.created_date, TestCasesTestSets.index).join(TestCasesTestSets) \
         .filter(TestCasesTestSets.test_set_id == test_set.id)
     query = query.order_by(desc(column_sorted)) if order == "desc" else query.order_by(asc(column_sorted))
     test_cases = query.paginate(page=page, per_page=page_size, error_out=False).items
@@ -132,7 +131,7 @@ def add_test_to_test_set(test_set_issue_id):
                 test_set_test_case = TestCasesTestSets(
                     test_case_id=test_case.id,
                     test_set_id=test_set.id,
-                    index=index_max+i
+                    index=index_max + i
                 )
                 test_case_ids.append(test_case.id)
                 i += 1
@@ -181,7 +180,7 @@ def remove_test_to_test_set(test_set_issue_id):
             ids_to_delete = test_case_ids
         message = f'{len(ids_to_delete)} Test case(s) remove to the Test Set'
         # Lấy ra tất cả các record trong bảng
-        query_all = TestCasesTestSets.query.filter(TestCasesTestSets.test_set_id == test_set.id)\
+        query_all = TestCasesTestSets.query.filter(TestCasesTestSets.test_set_id == test_set.id) \
             .order_by(TestCasesTestSets.index.asc())
         # Cập nhật lại giá trị của cột "index"
         new_index = 1
@@ -218,16 +217,16 @@ def change_rank_test_case_in_test_set(test_set_issue_id):
         if index_drag > index_drop:
             if index_drop < 1:
                 return send_error(message=f'Must be a value between 1 and {index_max}')
-            TestCasesTestSets.query.filter(TestCasesTestSets.test_set_id == test_set.id)\
-                .filter(TestCasesTestSets.index > index_drop - 1).filter(TestCasesTestSets.index < index_drag)\
+            TestCasesTestSets.query.filter(TestCasesTestSets.test_set_id == test_set.id) \
+                .filter(TestCasesTestSets.index > index_drop - 1).filter(TestCasesTestSets.index < index_drag) \
                 .update(dict(index=TestCasesTestSets.index + 1))
             query.index = index_drop
             db.session.flush()
         else:
             if index_drop > index_max:
                 return send_error(message=f'Must be a value between 1 and {index_max}')
-            TestCasesTestSets.query.filter(TestCasesTestSets.test_set_id == test_set.id)\
-                .filter(TestCasesTestSets.index > index_drag).filter(TestCasesTestSets.index < index_drop + 1)\
+            TestCasesTestSets.query.filter(TestCasesTestSets.test_set_id == test_set.id) \
+                .filter(TestCasesTestSets.index > index_drag).filter(TestCasesTestSets.index < index_drop + 1) \
                 .update(dict(index=TestCasesTestSets.index - 1))
             query.index = index_drop
             db.session.flush()
@@ -240,5 +239,135 @@ def change_rank_test_case_in_test_set(test_set_issue_id):
         return send_error(message=str(ex))
 
 
+@api.route("/filter/test-case", methods=["POST"])
+@authorization_require()
+def filter_test_case():
+    try:
+        body_request = request.get_json()
+        token = get_jwt_identity()
+
+        issue_id = token.get('issueId')
+        cloud_id = token.get('cloudId')
+        project_id = token.get('projectId')
+        tests_type = body_request.get("tests_type", [])
+
+        test_set = db.session.query(TestSet.id).filter(TestSet.issue_id == issue_id,
+                                                       TestSet.cloud_id == cloud_id,
+                                                       TestSet.project_id == project_id).first()
+        if test_set is None:
+            return send_error(message='Test set not exists')
+
+        tests_type = db.session.query(TestType.id).filter(TestType.name.in_(tests_type),
+                                                          TestType.cloud_id == cloud_id,
+                                                          TestType.project_id == project_id).subquery()
+
+        test_cases = db.session.query(TestCase.issue_id).join(TestCasesTestSets).filter(
+            TestCasesTestSets.test_set_id == test_set.id,
+            TestCase.test_type_id.in_(tests_type)).all()
+
+        data = [test_case.issue_id for test_case in test_cases]
+        return send_result(data=data)
+    except Exception as ex:
+        return send_error(message='something wrong')
 
 
+@api.route("/import/test-case", methods=["POST"])
+@authorization_require()
+def import_test_case():
+    try:
+        body_request = request.get_json()
+        token = get_jwt_identity()
+
+        cloud_id = token.get('cloudId')
+        project_id = token.get('projectId')
+        data = body_request.get('data_input')
+
+        data_input = pd.DataFrame(data).to_dict(orient="list")
+        test_sets = data_input.get('test_sets')
+        test_set_issue_ids = list(set([test_set.get('issue_id') for test_set in data_input.get('test_sets')]))
+        # get all test set exist in my db
+        test_sets_own = db.session.query(TestSet.issue_id, TestSet.id).filter(TestSet.issue_id.in_(test_set_issue_ids),
+                                                                              TestSet.cloud_id == cloud_id,
+                                                                              TestSet.project_id == project_id).all()
+        # compare if have new test set
+        test_set_issue_id_own = set([item.issue_id for item in test_sets_own])
+        test_sets_new = [item for item in set(test_set_issue_ids) - test_set_issue_id_own]
+
+        # create test_set_dict
+        test_set_dict = {item['issue_id']: item['id'] for item in test_sets_own}
+        # create test set if have
+        if test_sets_new:
+            # handle data input
+            test_sets_dict = {item['issue_id']: item['issue_key'] for item in data_input.get('test_sets')}
+            test_set_list = list()
+            for test_set_issue_id in test_sets_new:
+                test_set_id = str(uuid.uuid4())
+                # add to test_set_dict
+                test_set_dict[test_set_issue_id] = test_set_id
+                test_set_list.append({
+                    "id": test_set_id,
+                    "cloud_id": cloud_id,
+                    "project_id": project_id,
+                    "created_date": get_timestamp_now(),
+                    "issue_id": test_set_issue_id,
+                    "issue_key": test_sets_dict.get(test_set_issue_id)
+                })
+            # insert many test set
+            db.session.bulk_insert_mappings(TestSet, test_set_list)
+
+        # save new test set, index to insert to test_cases_test_sets table
+        test_case_index = dict()
+        test_cases_test_sets_new = list()
+        for test_set in test_sets:
+            test_set_id = test_set_dict.get(test_set.get('issue_id'))
+            if test_set.get('issue_id') not in test_case_index:
+                # init index
+                index = 1
+                test_case_index[test_set.get('issue_id')] = index
+            else:
+                # plus index if had test case add to test set
+                index = test_case_index.get(test_set.get('issue_id')) + 1
+                test_case_index[test_set.get('issue_id')] = index
+            test_cases_test_sets_new.append(
+                {
+                    "test_set_id": test_set_id,
+                    "index": index
+                }
+            )
+
+        # test case
+        test_cases_new = data_input.get('test_cases')
+        test_types_name = [item.get('test_type') for item in test_cases_new]
+        test_types = dict(db.session.query(TestType.name, TestType.id).filter(TestType.name.in_(test_types_name)).all())
+        test_case_list = list()
+        for index, test_case in enumerate(test_cases_new):
+            if test_types.get(test_case.get('test_type')) is not None:
+                test_case_id = str(uuid.uuid4())
+                test_case_list.append({
+                    "id": test_case_id,
+                    "cloud_id": cloud_id,
+                    "project_id": project_id,
+                    "issue_id": test_case.get('issue_id'),
+                    "issue_key": test_case.get('issue_key'),
+                    "created_date": get_timestamp_now(),
+                    "test_type_id": test_types.get(test_case.get('test_type'))
+                })
+                # add test case id to test_cases_test_sets_new
+                test_cases_test_sets_new[index].update({'test_case_id': test_case_id})
+            else:
+                # remove item not valid
+                test_cases_test_sets_new.pop(index)
+        # insert many test case
+        db.session.bulk_insert_mappings(TestCase, test_case_list)
+
+        # add relationship testcase-testsets (test_cases_test_sets table)
+        # insert many test_cases_test_sets
+        db.session.bulk_insert_mappings(TestCasesTestSets, test_cases_test_sets_new)
+        try:
+            db.session.commit()
+        except:
+            db.session.rollback()
+            return send_error()
+        return send_result()
+    except Exception as ex:
+        return send_error(message='Something wrong!')
