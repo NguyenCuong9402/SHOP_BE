@@ -289,13 +289,13 @@ def add_test_execution(test_issue_id):
                             status_id=default_status.id,
                             test_run_id=test_run.id,
                             created_date=get_timestamp_now(),
-                            link=test_step.id + "/",
+                            link=test_step.id+"/",
                         )
                         db.session.add(test_step_detail)
                         db.session.flush()
                     else:
                         add_test_step_id_by_test_case_id(cloud_id, project_id, test_step.test_case_id_reference,
-                                                         test_run.id, default_status.id, test_step.id + "/")
+                                                         test_run.id, default_status.id, test_step.id+"/")
             else:
                 return send_error(message='Some Test Executions were already associated with the Test',
                                   status=200, show=False)
@@ -325,7 +325,7 @@ def remove_test_execution(issue_id):
         test_case = TestCase.query.filter(TestCase.cloud_id == cloud_id, TestCase.project_id == project_id,
                                           TestCase.issue_id == issue_id).first()
         test_runs = TestRun.query.filter(TestRun.test_case_id == test_case.id) \
-            .filter(TestRun.test_execution_id.in_(test_execution_ids)).all()
+                                 .filter(TestRun.test_execution_id.in_(test_execution_ids)).all()
 
         test_run_id = [test_run.id for test_run in test_runs]
         for id_test_run in test_run_id:
@@ -475,30 +475,60 @@ def add_tests_set_for_testcase(issue_id):
         user_id = token.get('userId')
         cloud_id = token.get('cloudId')
         project_id = token.get('projectId')
-        try:
-            body = request.get_json()
-            params = TestCaseValidator().load(body) if body else dict()
-        except ValidationError as err:
-            logger.error(json.dumps({
-                "message": err.messages,
-                "data": err.valid_data
-            }))
-            return send_error(message_id=INVALID_PARAMETERS_ERROR, data=err.messages)
+        body_request = request.get_json()
+        test_sets = body_request.get("test_sets")
+        test_case_issue_key = body_request.get("test_case_issue_key")
+        test_case = TestCase.query.filter(TestCase.issue_id == issue_id, TestCase.cloud_id == cloud_id,
+                                          TestCase.project_id == project_id).first()
 
-        ids = params.get('ids', [])
-        test_case = TestCase.query.filter(TestCase.cloud_id == cloud_id, TestCase.project_id == project_id,
-                                          TestCase.issue_id == issue_id).first()
-        index_max = TestCasesTestSets.query.filter(TestCasesTestExecutions.test_case_id == test_case.id).count()
-        for index, test_set_id in enumerate(ids):
-            new_item = TestCasesTestSets(test_set_id=test_set_id,
-                                         test_case_id=test_case.id,
-                                         index=index_max + 1 + index)
-            db.session.add(new_item)
+        if test_case is None:
+            test_case = TestCase(
+                id=str(uuid.uuid4()),
+                issue_id=issue_id,
+                issue_key=test_case_issue_key,
+                project_id=project_id,
+                cloud_id=cloud_id,
+                created_date=get_timestamp_now()
+            )
+            db.session.add(test_case)
             db.session.flush()
+        test_set_ids = []
+        for test_set_issue_id, test_set_issue_key in test_sets.items():
+
+            test_set = TestSet.query.filter(TestSet.issue_id == test_set_issue_id,
+                                            TestSet.cloud_id == cloud_id,
+                                            TestSet.project_id == project_id).first()
+            if test_set is None:
+                test_set = TestSet(
+                    id=str(uuid.uuid4()),
+                    issue_id=test_set_issue_id,
+                    issue_key=test_set_issue_key,
+                    project_id=project_id,
+                    cloud_id=cloud_id,
+                    created_date=get_timestamp_now()
+                )
+                db.session.add(test_set)
+                db.session.flush()
+            index_max = TestCasesTestSets.query.filter(TestCasesTestSets.test_set_id == test_set.id).count()
+            exist_test_case = TestCasesTestSets \
+                .query.filter(TestCasesTestSets.test_case_id == test_case.id,
+                              TestCasesTestSets.test_set_id == test_set.id).first()
+            if exist_test_case is None:
+                """
+                  Add this test case to test set
+                  """
+                test_set_test_case = TestCasesTestSets(
+                    test_case_id=test_case.id,
+                    test_set_id=test_set.id,
+                    index=index_max + 1
+                )
+                test_set_ids.append(test_set.id)
+                db.session.add(test_set_test_case)
+                db.session.flush()
         db.session.commit()
         # save history
-        save_history_test_case(test_case.id, user_id, 2, 2, ids, [])
-        message = f'{len(ids)} Test Set(s) added to the Test'
+        save_history_test_case(test_case.id, user_id, 2, 2, test_set_ids, [])
+        message = f'{len(test_set_ids)} Test Set(s) added to the Test'
         return send_result(message_id=ADD_SUCCESS, message=message, show=True)
     except Exception as ex:
         db.session.rollback()
@@ -521,7 +551,7 @@ def get_test_execution_from_test_case(issue_id):
     if test_case is None:
         return send_error("Not found test case")
     # sort
-    query = db.session.query(TestExecution).join(TestCasesTestExecutions) \
+    query = db.session.query(TestExecution).join(TestCasesTestExecutions)\
         .filter(TestCasesTestSets.test_case_id == test_case.id)
     column_sorted = getattr(TestExecution, order_by)
     query = query.order_by(desc(column_sorted)) if order == "desc" else query.order_by(asc(column_sorted))
