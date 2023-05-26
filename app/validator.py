@@ -190,9 +190,10 @@ class TestActivitySchema(Schema):
     Marshmallow Schema
     """
     id = fields.String()
-    comment = fields.String()
+    comment = fields.Dict(fields.String())
     status_change = fields.String()
     jira_user_id = fields.String()
+    created_date = fields.Int()
 
 
 class TestActivityValidator(Schema):
