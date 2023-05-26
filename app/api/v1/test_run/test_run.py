@@ -15,7 +15,7 @@ from app.api.v1.test_run.schema import TestRunSchema, CombineSchema
 from app.enums import FILE_PATH, URL_SERVER
 from app.gateway import authorization_require
 from app.models import TestStep, TestCase, TestType, db, TestField, Setting, TestRun, TestExecution, \
-    TestCasesTestExecutions, TestStatus, TestStepDetail, Defects, TestEvidence, TestSet, Timer
+    TestCasesTestExecutions, TestStatus, TestStepDetail, Defects, TestEvidence, TestSet, Timer, TestActivity
 from app.utils import send_result, send_error, data_preprocessing, get_timestamp_now, validate_request
 from app.validator import CreateTestValidator, SettingSchema, DefectsSchema, TestStepTestRunSchema, UploadValidation, \
     EvidenceSchema, PostDefectSchema, TimerSchema
@@ -32,20 +32,96 @@ def change_status_test_run(test_run_id, new_name_status):
         project_id = token.get("projectId")
         cloud_id = token.get("cloudId")
         user_id = token.get("userId")
-        query = TestRun.query.filter(TestRun.id == test_run_id).first()
-        if not query:
-            return send_error(message="Test run is not exists")
-        status = TestStatus.query.filter(TestStatus.cloud_id == cloud_id, TestStatus.project_id == project_id,
-                                         TestStatus.name == new_name_status).first()
-        if not status:
-            return send_error(message="status is not exists")
-        query.test_status_id = status.id
-        db.session.flush()
+        body_request = request.get_json()
+        test_step_detail_id = body_request.get('test_step_detail_id', '')
+        if test_step_detail_id == '':
+            query = TestRun.query.filter(TestRun.id == test_run_id).first()
+            if not query:
+                return send_error(message="Test run is not exists")
+            test_status = TestStatus.query.filter(TestStatus.id == query.test_status_id).first()
+            status = TestStatus.query.filter(TestStatus.cloud_id == cloud_id, TestStatus.project_id == project_id,
+                                             TestStatus.name == new_name_status).first()
+            if not status:
+                return send_error(message="status is not exists")
+            detail = {"old_name": test_status.name,
+                      "new_name": new_name_status.upper()}
+            query.test_status_id = status.id
+            db.session.flush()
+            activity_test_run(user_id, test_run_id, detail, 1)
+        else:
+            query = TestStepDetail.query.filter(TestStepDetail.id == test_step_detail_id).first()
+            stt = stt_step_detail_id(cloud_id, project_id, test_run_id, [])
+            if not query:
+                return send_error(message="Test run is not exists")
+            test_status = TestStatus.query.filter(TestStatus.id == query.status_id).first()
+            status = TestStatus.query.filter(TestStatus.cloud_id == cloud_id, TestStatus.project_id == project_id,
+                                             TestStatus.name == new_name_status).first()
+            if not status:
+                return send_error(message="status is not exists")
+            detail = {"step": stt.index(test_step_detail_id) + 1,
+                      "old_name": test_status.name,
+                      "new_name": new_name_status.upper()}
+            query.status_id = status.id
+            db.session.flush()
+            activity_test_run(user_id, test_run_id, detail, 2)
         db.session.commit()
         return send_result(message="success")
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
+
+
+def activity_test_run(user_id: str, test_run_id: str, comment: dict, index: int):
+    if index == 1:
+        activity = TestActivity(
+            id=str(uuid.uuid4()),
+            test_run_id=test_run_id,
+            jira_user_id=user_id,
+            created_date=get_timestamp_now(),
+            status_change='Change final status of test run.',
+            comment=comment
+        )
+        db.session.add(activity)
+    elif index == 2:
+        activity = TestActivity(
+            id=str(uuid.uuid4()),
+            test_run_id=test_run_id,
+            jira_user_id=user_id,
+            created_date=get_timestamp_now(),
+            status_change='Change status of any step (not final status)',
+            comment=comment
+        )
+        db.session.add(activity)
+    elif index == 3:
+        activity = TestActivity(
+            id=str(uuid.uuid4()),
+            test_run_id=test_run_id,
+            jira_user_id=user_id,
+            created_date=get_timestamp_now(),
+            status_change='Change Actual result',
+            comment=comment
+        )
+        db.session.add(activity)
+    elif index == 4:
+        activity = TestActivity(
+            id=str(uuid.uuid4()),
+            test_run_id=test_run_id,
+            jira_user_id=user_id,
+            created_date=get_timestamp_now(),
+            status_change='Change comment of each step',
+            comment=comment
+        )
+        db.session.add(activity)
+    elif index == 5:
+        activity = TestActivity(
+            id=str(uuid.uuid4()),
+            test_run_id=test_run_id,
+            jira_user_id=user_id,
+            created_date=get_timestamp_now(),
+            status_change='Change comment of test run',
+            comment=comment
+        )
+        db.session.add(activity)
 
 
 # call change status mới call set time
@@ -116,77 +192,79 @@ def set_time_test_run(test_run_id):
         return send_error(message="failed")
 
 
-@api.route("/<test_execution_issue_id>/<test_case_issue_id>/<test_step_id>/comment", methods=["POST"])
+@api.route("/<test_run_id>/create", methods=["POST"])
 @authorization_require()
-def post_comment_test_detail(test_execution_issue_id, test_case_issue_id, test_step_id):
+def post_data_and_comment_test_detail(test_run_id):
     try:
         token = get_jwt_identity()
         cloud_id = token.get('cloudId')
         project_id = token.get('projectId')
+        user_id = token.get('userId')
         req = request.get_json()
-        comment = req.get('comment')
-        link = req.get('link')
+        data = req.get('data')
+        test_step_detail_id = req.get('test_step_detail_id', '')
+        where = request.args.get('where', 'comment', type=str)
+        if test_step_detail_id == '':
+            test_run = TestRun.query.filter(TestRun.cloud_id == cloud_id, TestRun.project_id == project_id,
+                                            TestRun.id == test_run_id).first()
+            if test_run is None:
+                return send_error("Not found test run")
+            test_run.comment = data
+            detail = {"new_value": data}
+            activity_test_run(user_id, test_run_id, detail, 5)
+        else:
+            test_run = TestRun.query.filter(TestRun.cloud_id == cloud_id, TestRun.project_id == project_id,
+                                            TestRun.id == test_run_id).first()
+            stt = stt_step_detail_id(cloud_id, project_id, test_run_id, [])
+            if test_run is None:
+                return send_error("Not found test run")
+            test_step_detail = TestStepDetail.query.filter(TestStepDetail.id == test_step_detail_id).first()
+            if test_step_detail is None:
+                return send_error("Not found test detail")
+            if where == 'comment':
+                test_step_detail.comment = data
+                db.session.flush()
+                detail = {"step": stt.index(test_step_detail_id)+1, "new_value": data}
+                activity_test_run(user_id, test_run_id, detail, 4)
+            elif where == 'actual':
+                test_step_detail.data = data
+                detail = {"step": stt.index(test_step_detail_id)+1, "new_value": data}
+                activity_test_run(user_id, test_run_id, detail, 3)
 
-        test_execution = TestExecution.query.filter(TestExecution.project_id == project_id,
-                                                    TestExecution.cloud_id == cloud_id,
-                                                    TestExecution.issue_id == test_execution_issue_id).first()
-        if test_execution is None:
-            return send_error(message="not found test execution")
-        test_case = TestCase.query.filter(TestCase.project_id == project_id,
-                                          TestCase.cloud_id == cloud_id,
-                                          TestCase.issue_id == test_case_issue_id).first()
-        if test_case is None:
-            return send_error(message="not found test case")
-        test_run = TestRun.query.filter(TestRun.cloud_id == cloud_id, TestRun.project_id == project_id,
-                                        TestRun.test_execution_id == test_execution.id,
-                                        TestRun.test_case_id == test_case.id).first()
-        if test_run is None:
-            return send_error("Not found test run")
-        test_step_detail = TestStepDetail.query.filter(TestStepDetail.test_step_id == test_step_id,
-                                                       TestStepDetail.link == link,
-                                                       TestStepDetail.test_run_id == test_run.id).first()
-        if test_step_detail is None:
-            return send_error("Not found test detail")
-        test_step_detail.comment = comment
-        db.session.flush()
+                db.session.flush()
+            else:
+                return send_error(message='Please check your request params')
         db.session.commit()
-        return send_result(message="Comment successfully")
+        return send_result(message="successfully")
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
 
 
-@api.route("/<test_execution_issue_id>/<test_case_issue_id>/<test_step_id>/get_comment", methods=["POST"])
+@api.route("/<test_run_id>/get_data", methods=["POST"])
 @authorization_require()
-def get_comment_test_detail(test_execution_issue_id, test_case_issue_id, test_step_id):
+def get_data_and_comment_test_detail(test_run_id):
     try:
         token = get_jwt_identity()
         cloud_id = token.get('cloudId')
         project_id = token.get('projectId')
         req = request.get_json()
-        link = req.get('link')
-        test_execution = TestExecution.query.filter(TestExecution.project_id == project_id,
-                                                    TestExecution.cloud_id == cloud_id,
-                                                    TestExecution.issue_id == test_execution_issue_id).first()
-        if test_execution is None:
-            return send_error(message="not found test execution")
-        test_case = TestCase.query.filter(TestCase.project_id == project_id,
-                                          TestCase.cloud_id == cloud_id,
-                                          TestCase.issue_id == test_case_issue_id).first()
-        if test_case is None:
-            return send_error(message="not found test case")
+        test_step_detail_id = req.get('test_step_detail_id')
+        where = request.args.get('where', 'comment', type=str)
         test_run = TestRun.query.filter(TestRun.cloud_id == cloud_id, TestRun.project_id == project_id,
-                                        TestRun.test_execution_id == test_execution.id,
-                                        TestRun.test_case_id == test_case.id).first()
+                                        TestRun.id == test_run_id).first()
         if test_run is None:
             return send_error("Not found test run")
-        test_step_detail = TestStepDetail.query.filter(TestStepDetail.test_step_id == test_step_id,
-                                                       TestStepDetail.link == link,
-                                                       TestStepDetail.test_run_id == test_run.id).first()
+        test_step_detail = TestStepDetail.query.filter(TestStepDetail.id == test_step_detail_id).first()
         if test_step_detail is None:
             return send_error("Not found test detail")
-        comment = test_step_detail.comment
-        return send_result(data=comment)
+        if where == 'comment':
+            data = test_step_detail.comment
+        elif where == 'actual':
+            data = test_step_detail.data
+        else:
+            return send_error(message='Please check your request params')
+        return send_result(data=data)
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
@@ -417,7 +495,7 @@ def load_test_run(issue_id, test_issue_id):
     if test_run is None:
         return send_error("Not found test run")
     test_steps = db.session.query(TestStep).filter(TestStep.project_id == project_id, TestStep.cloud_id == cloud_id,
-                                                   TestStep.test_case_id == test_case.id).order_by(asc(TestStep.index))\
+                                                   TestStep.test_case_id == test_case.id).order_by(asc(TestStep.index)) \
         .all()
     result = []
     for test_step in test_steps:
@@ -595,7 +673,7 @@ def get_evidence(test_run_id):
                     .order_by(asc(TestEvidence.created_date)).all()
                 files = EvidenceSchema(many=True).dump(files)
                 if len(files) > 0:
-                    dict_evidence[f'Step {i+1}'] = files
+                    dict_evidence[f'Step {i + 1}'] = files
             return send_result(data=dict_evidence)
         else:
             files = TestEvidence.query.filter(TestEvidence.test_run_id == test_run_id,
@@ -605,6 +683,29 @@ def get_evidence(test_run_id):
             return send_result(data=files)
     except Exception as ex:
         return send_error(message=str(ex))
+
+
+# lọc thứ tự step trong test run -> trả theo thứ tự
+def stt_step_detail_id(cloud_id, project_id, test_run_id, ids: list):
+    test_run = TestRun.query.filter(test_run_id == test_run_id).first()
+    # lọc thứ tự step trong test run -> trả theo thứ tự
+    test_steps = db.session.query(TestStep).filter(TestStep.project_id == project_id,
+                                                   TestStep.cloud_id == cloud_id,
+                                                   TestStep.test_case_id == test_run.test_case_id) \
+        .order_by(asc(TestStep.index)).all()
+    for test_step in test_steps:
+        link = test_step.id + "/"
+        if test_step.test_case_id_reference:
+            result_child = get_test_step_detail_id(cloud_id, project_id, test_step.test_case_id_reference, [],
+                                                   link, test_run_id)
+            ids = ids + result_child
+        else:
+            test_step_detail = TestStepDetail.query.filter(TestStepDetail.test_step_id == test_step.id,
+                                                           TestStepDetail.test_run_id == test_run_id,
+                                                           TestStepDetail.link == link).first()
+            data = test_step_detail.id
+            ids.append(data)
+    return ids
 
 
 # lấy tất cả id test step trong test case call
@@ -790,5 +891,3 @@ def get_time(test_run_id):
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
-
-

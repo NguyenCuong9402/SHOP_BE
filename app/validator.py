@@ -617,3 +617,4 @@ class PostDefectSchema(Schema):
     issue_id = fields.String()
     test_kind = fields.String()
     test_step_detail_id = fields.String()
+

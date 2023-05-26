@@ -494,6 +494,6 @@ def get_test_case_reference(cloud_id: str, project_id: str, test_case_id_referen
                                                         TestStep.test_case_id == test_case_id_reference).all()
     for test_step in test_step_call_test_case_id:
         set_id.add(test_step.test_case_id_reference)
-        set_id_child = get_test_case_id(cloud_id, project_id, test_step.test_case_id_reference, set_id)
+        set_id_child = get_test_case_reference(cloud_id, project_id, test_step.test_case_id_reference, set_id)
         set_id = set_id | set_id_child
     return set_id
