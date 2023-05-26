@@ -153,13 +153,13 @@ def get_test_step_from_test_case(issue_id):
     query = TestStep.query.filter(TestStep.project_id == project_id, TestStep.cloud_id == cloud_id,
                                   TestStep.test_case_id == test_case.id)
     query = query.order_by(desc(column_sorted)) if order == "desc" else query.order_by(asc(column_sorted))
-    test_runs = query.paginate(page=page, per_page=page_size, error_out=False).items
+    test_steps = query.paginate(page=page, per_page=page_size, error_out=False).items
     total = query.count()
     extra = 1 if (total % page_size) else 0
     total_pages = int(total / page_size) + extra
     try:
         results = {
-            "test_cases": TestCaseTestStepSchema(many=True).dump(test_runs),
+            "test_cases": TestCaseTestStepSchema(many=True).dump(test_steps),
             "total": total,
             "total_pages": total_pages
         }
