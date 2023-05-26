@@ -192,7 +192,7 @@ def set_time_test_run(test_run_id):
         return send_error(message="failed")
 
 
-@api.route("/<test_run_id>/create", methods=["POST"])
+@api.route("/<test_run_id>/create_data", methods=["POST"])
 @authorization_require()
 def post_data_and_comment_test_detail(test_run_id):
     try:
@@ -565,6 +565,8 @@ def upload_evidence(test_run_id):
             file = request.files['file']
         except Exception as ex:
             return send_error(message=str(ex))
+        if len(file.read()) > 100000000:
+            return send_error(message="Can not upload file(s) bigger than 100MB.", is_dynamic=True)
         file_name = secure_filename(file.filename)
         real_name = file.filename
         if test_step_detail_id == '':
