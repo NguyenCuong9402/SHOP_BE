@@ -43,7 +43,7 @@ def change_status_test_run(test_run_id, new_name_status):
                                              TestStatus.name == new_name_status).first()
             if not status:
                 return send_error(message="status is not exists")
-            detail = {"old_name": test_status.name,
+            detail = {"step": 0, "old_name": test_status.name,
                       "new_name": new_name_status.upper()}
             query.test_status_id = status.id
             db.session.flush()
@@ -343,21 +343,17 @@ def post_data_and_comment_test_detail(test_run_id):
         data = req.get('data')
         test_step_detail_id = req.get('test_step_detail_id', '')
         where = request.args.get('where', 'comment', type=str)
+        test_run = TestRun.query.filter(TestRun.cloud_id == cloud_id, TestRun.project_id == project_id,
+                                        TestRun.id == test_run_id).first()
+        if test_run is None:
+            return send_error("Not found test run")
         if test_step_detail_id == '':
-            test_run = TestRun.query.filter(TestRun.cloud_id == cloud_id, TestRun.project_id == project_id,
-                                            TestRun.id == test_run_id).first()
-            if test_run is None:
-                return send_error("Not found test run")
             test_run.comment = data
             detail = {"new_value": data}
             activity_test_run(user_id, test_run_id, detail, 5)
             db.session.flush()
         else:
-            test_run = TestRun.query.filter(TestRun.cloud_id == cloud_id, TestRun.project_id == project_id,
-                                            TestRun.id == test_run_id).first()
             stt = stt_step_detail_id(cloud_id, project_id, test_run_id, [])
-            if test_run is None:
-                return send_error("Not found test run")
             test_step_detail = TestStepDetail.query.filter(TestStepDetail.id == test_step_detail_id).first()
             if test_step_detail is None:
                 return send_error("Not found test detail")
@@ -902,6 +898,7 @@ def delete_evidence(test_run_id):
         token = get_jwt_identity()
         cloud_id = token.get('cloudId')
         project_id = token.get('projectId')
+        user_id = token.get('userId')
         req = request.get_json()
         url_file = req.get('url_file')
         test_step_detail_id = req.get('test_step_detail_id', '')
@@ -909,12 +906,16 @@ def delete_evidence(test_run_id):
             test = TestEvidence.query.filter(TestEvidence.test_run_id == test_run_id,
                                              TestEvidence.test_step_detail_id.is_(None),
                                              TestEvidence.url_file == url_file).first()
-            db.session.delete(test)
-            db.session.flush()
+            detail = {"step": 0, "name_file": test.name_file}
+            activity_test_run(user_id, test_run_id, detail, 16)
         else:
-            TestEvidence.query.filter(TestEvidence.test_run_id == test_run_id,
-                                      TestEvidence.test_step_detail_id == test_step_detail_id,
-                                      TestEvidence.url_file == url_file).delete()
+            test = TestEvidence.query.filter(TestEvidence.test_run_id == test_run_id,
+                                             TestEvidence.test_step_detail_id == test_step_detail_id,
+                                             TestEvidence.url_file == url_file).first()
+            stt = stt_step_detail_id(cloud_id, project_id, test_run_id, [])
+            detail = {"step": stt.index(test_step_detail_id) + 1, "real_name": test.name_file}
+            activity_test_run(user_id, test_run_id, detail, 11)
+        db.session.delete(test)
         db.session.flush()
         file_path = "app" + url_file
         if os.path.exists(os.path.join(file_path)):
@@ -1031,7 +1032,7 @@ def reset_time(test_run_id):
         test_timer.time_start = 0
         test_timer.delta_time = 0
         db.session.flush()
-        activity_test_run(user_id, test_run_id, {}, 7)
+        activity_test_run(user_id, test_run_id, {}, 8)
         db.session.commit()
         return send_result(message="oke")
 
