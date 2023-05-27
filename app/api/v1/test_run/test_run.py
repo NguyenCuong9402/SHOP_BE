@@ -82,6 +82,7 @@ def activity_test_run(user_id: str, test_run_id: str, comment: dict, index: int)
             comment=comment
         )
         db.session.add(activity)
+        db.session.flush()
     elif index == 2:
         activity = TestActivity(
             id=str(uuid.uuid4()),
@@ -92,6 +93,8 @@ def activity_test_run(user_id: str, test_run_id: str, comment: dict, index: int)
             comment=comment
         )
         db.session.add(activity)
+        db.session.flush()
+
     elif index == 3:
         activity = TestActivity(
             id=str(uuid.uuid4()),
@@ -102,6 +105,8 @@ def activity_test_run(user_id: str, test_run_id: str, comment: dict, index: int)
             comment=comment
         )
         db.session.add(activity)
+        db.session.flush()
+
     elif index == 4:
         activity = TestActivity(
             id=str(uuid.uuid4()),
@@ -112,6 +117,8 @@ def activity_test_run(user_id: str, test_run_id: str, comment: dict, index: int)
             comment=comment
         )
         db.session.add(activity)
+        db.session.flush()
+
     elif index == 5:
         activity = TestActivity(
             id=str(uuid.uuid4()),
@@ -122,6 +129,8 @@ def activity_test_run(user_id: str, test_run_id: str, comment: dict, index: int)
             comment=comment
         )
         db.session.add(activity)
+        db.session.flush()
+
     elif index == 6:
         activity = TestActivity(
             id=str(uuid.uuid4()),
@@ -132,6 +141,8 @@ def activity_test_run(user_id: str, test_run_id: str, comment: dict, index: int)
             comment=comment
         )
         db.session.add(activity)
+        db.session.flush()
+
     elif index == 7:
         activity = TestActivity(
             id=str(uuid.uuid4()),
@@ -142,6 +153,8 @@ def activity_test_run(user_id: str, test_run_id: str, comment: dict, index: int)
             comment=comment
         )
         db.session.add(activity)
+        db.session.flush()
+
     elif index == 8:
         activity = TestActivity(
             id=str(uuid.uuid4()),
@@ -152,6 +165,8 @@ def activity_test_run(user_id: str, test_run_id: str, comment: dict, index: int)
             comment=comment
         )
         db.session.add(activity)
+        db.session.flush()
+
     elif index == 9:
         activity = TestActivity(
             id=str(uuid.uuid4()),
@@ -162,6 +177,8 @@ def activity_test_run(user_id: str, test_run_id: str, comment: dict, index: int)
             comment=comment
         )
         db.session.add(activity)
+        db.session.flush()
+
     elif index == 10:
         activity = TestActivity(
             id=str(uuid.uuid4()),
@@ -172,26 +189,32 @@ def activity_test_run(user_id: str, test_run_id: str, comment: dict, index: int)
             comment=comment
         )
         db.session.add(activity)
+        db.session.flush()
+
     elif index == 11:
         activity = TestActivity(
             id=str(uuid.uuid4()),
             test_run_id=test_run_id,
             jira_user_id=user_id,
             created_date=get_timestamp_now(),
-            status_change='Remove evidence',
+            status_change='Remove evidence for each step',
             comment=comment
         )
         db.session.add(activity)
+        db.session.flush()
+
     elif index == 12:
         activity = TestActivity(
             id=str(uuid.uuid4()),
             test_run_id=test_run_id,
             jira_user_id=user_id,
             created_date=get_timestamp_now(),
-            status_change='Add evidence',
+            status_change='Add evidence for each step',
             comment=comment
         )
         db.session.add(activity)
+        db.session.flush()
+
     elif index == 13:
         activity = TestActivity(
             id=str(uuid.uuid4()),
@@ -202,6 +225,8 @@ def activity_test_run(user_id: str, test_run_id: str, comment: dict, index: int)
             comment=comment
         )
         db.session.add(activity)
+        db.session.flush()
+
     elif index == 14:
         activity = TestActivity(
             id=str(uuid.uuid4()),
@@ -212,6 +237,30 @@ def activity_test_run(user_id: str, test_run_id: str, comment: dict, index: int)
             comment=comment
         )
         db.session.add(activity)
+        db.session.flush()
+
+    elif index == 15:
+        activity = TestActivity(
+            id=str(uuid.uuid4()),
+            test_run_id=test_run_id,
+            jira_user_id=user_id,
+            created_date=get_timestamp_now(),
+            status_change='Add evidence Finding section',
+            comment=comment
+        )
+        db.session.add(activity)
+        db.session.flush()
+    elif index == 16:
+        activity = TestActivity(
+            id=str(uuid.uuid4()),
+            test_run_id=test_run_id,
+            jira_user_id=user_id,
+            created_date=get_timestamp_now(),
+            status_change='Remove evidence Finding section',
+            comment=comment
+        )
+        db.session.add(activity)
+        db.session.flush()
 
 
 # call change status mới call set time
@@ -439,7 +488,7 @@ def post_defect(test_run_id):
             )
             db.session.add(defect)
             db.session.flush()
-            detail = {"issue_key": issue_key}
+            detail = {"step": 0, "issue_key": issue_key}
             activity_test_run(user_id, test_run_id, detail, 9)
         else:
             test_detail = TestStepDetail.query.filter(TestStepDetail.id == test_step_detail_id,
@@ -462,7 +511,8 @@ def post_defect(test_run_id):
             )
             db.session.add(defect)
             db.session.flush()
-            detail = {"issue_key": issue_key}
+            stt = stt_step_detail_id(cloud_id, project_id, test_run_id, [])
+            detail = {"step": stt.index(test_step_detail_id) + 1, "issue_key": issue_key}
             activity_test_run(user_id, test_run_id, detail, 13)
         db.session.commit()
         return send_result(message="Successfully")
@@ -541,6 +591,7 @@ def delete_defect(test_run_id):
         token = get_jwt_identity()
         cloud_id = token.get('cloudId')
         project_id = token.get('projectId')
+        user_id = token.get('userId')
         is_valid, data, body_request = validate_request(PostDefectSchema(), request)
         test_step_detail_id = body_request.get('test_step_detail_id', '')
         if not is_valid:
@@ -556,6 +607,8 @@ def delete_defect(test_run_id):
                                  Defects.test_step_detail_id.is_(None),
                                  Defects.test_issue_key == issue_key).delete()
             db.session.flush()
+            detail = {"step": 0, "issue_key": issue_key}
+            activity_test_run(user_id, test_run_id, detail, 10)
         else:
             test_detail = TestStepDetail.query.filter(TestStepDetail.id == test_step_detail_id,
                                                       TestStepDetail.test_run_id == test_run_id).first()
@@ -565,6 +618,9 @@ def delete_defect(test_run_id):
                                  Defects.test_step_detail_id == test_step_detail_id,
                                  Defects.test_issue_key == issue_key).delete()
             db.session.flush()
+            stt = stt_step_detail_id(cloud_id, project_id, test_run_id, [])
+            detail = {"step": stt.index(test_step_detail_id) + 1, "issue_key": issue_key}
+            activity_test_run(user_id, test_run_id, detail, 14)
         db.session.commit()
         return send_result(message="Successfully")
     except Exception as ex:
@@ -650,6 +706,7 @@ def upload_evidence(test_run_id):
         token = get_jwt_identity()
         cloud_id = token.get('cloudId')
         project_id = token.get('projectId')
+        user_id = token.get('userId')
         prefix = request.args.get('prefix', "", type=str).strip()
         test_step_detail_id = request.form.get('test_step_detail_id', '')
         # validate request params
@@ -691,6 +748,8 @@ def upload_evidence(test_run_id):
                 created_date=get_timestamp_now())
             db.session.add(test_evidence)
             db.session.flush()
+            detail = {"step": 0, "real_name": real_name}
+            activity_test_run(user_id, test_run_id, detail, 15)
             db.session.commit()
         else:
             file_path = "{}/{}/{}/{}".format(prefix, test_run_id, test_step_detail_id, file_name)
@@ -718,6 +777,9 @@ def upload_evidence(test_run_id):
                 created_date=get_timestamp_now())
             db.session.add(test_evidence)
             db.session.flush()
+            stt = stt_step_detail_id(cloud_id, project_id, test_run_id, [])
+            detail = {"step": stt.index(test_step_detail_id)+1, "real_name": real_name}
+            activity_test_run(user_id, test_run_id, detail, 12)
             db.session.commit()
 
         dt = {
