@@ -118,7 +118,97 @@ def activity_test_run(user_id: str, test_run_id: str, comment: dict, index: int)
             test_run_id=test_run_id,
             jira_user_id=user_id,
             created_date=get_timestamp_now(),
-            status_change='Change comment of test run',
+            status_change='Change comment in Finding section.',
+            comment=comment
+        )
+        db.session.add(activity)
+    elif index == 6:
+        activity = TestActivity(
+            id=str(uuid.uuid4()),
+            test_run_id=test_run_id,
+            jira_user_id=user_id,
+            created_date=get_timestamp_now(),
+            status_change='Start the time',
+            comment=comment
+        )
+        db.session.add(activity)
+    elif index == 7:
+        activity = TestActivity(
+            id=str(uuid.uuid4()),
+            test_run_id=test_run_id,
+            jira_user_id=user_id,
+            created_date=get_timestamp_now(),
+            status_change='Pause the time',
+            comment=comment
+        )
+        db.session.add(activity)
+    elif index == 8:
+        activity = TestActivity(
+            id=str(uuid.uuid4()),
+            test_run_id=test_run_id,
+            jira_user_id=user_id,
+            created_date=get_timestamp_now(),
+            status_change='Reset timer',
+            comment=comment
+        )
+        db.session.add(activity)
+    elif index == 9:
+        activity = TestActivity(
+            id=str(uuid.uuid4()),
+            test_run_id=test_run_id,
+            jira_user_id=user_id,
+            created_date=get_timestamp_now(),
+            status_change='Add defect in Finding section',
+            comment=comment
+        )
+        db.session.add(activity)
+    elif index == 10:
+        activity = TestActivity(
+            id=str(uuid.uuid4()),
+            test_run_id=test_run_id,
+            jira_user_id=user_id,
+            created_date=get_timestamp_now(),
+            status_change='Remove defect in Finding section',
+            comment=comment
+        )
+        db.session.add(activity)
+    elif index == 11:
+        activity = TestActivity(
+            id=str(uuid.uuid4()),
+            test_run_id=test_run_id,
+            jira_user_id=user_id,
+            created_date=get_timestamp_now(),
+            status_change='Remove evidence',
+            comment=comment
+        )
+        db.session.add(activity)
+    elif index == 12:
+        activity = TestActivity(
+            id=str(uuid.uuid4()),
+            test_run_id=test_run_id,
+            jira_user_id=user_id,
+            created_date=get_timestamp_now(),
+            status_change='Add evidence',
+            comment=comment
+        )
+        db.session.add(activity)
+    elif index == 13:
+        activity = TestActivity(
+            id=str(uuid.uuid4()),
+            test_run_id=test_run_id,
+            jira_user_id=user_id,
+            created_date=get_timestamp_now(),
+            status_change='Add defect for each step',
+            comment=comment
+        )
+        db.session.add(activity)
+    elif index == 14:
+        activity = TestActivity(
+            id=str(uuid.uuid4()),
+            test_run_id=test_run_id,
+            jira_user_id=user_id,
+            created_date=get_timestamp_now(),
+            status_change='Remove defect for each step',
             comment=comment
         )
         db.session.add(activity)
@@ -212,6 +302,7 @@ def post_data_and_comment_test_detail(test_run_id):
             test_run.comment = data
             detail = {"new_value": data}
             activity_test_run(user_id, test_run_id, detail, 5)
+            db.session.flush()
         else:
             test_run = TestRun.query.filter(TestRun.cloud_id == cloud_id, TestRun.project_id == project_id,
                                             TestRun.id == test_run_id).first()
@@ -230,7 +321,6 @@ def post_data_and_comment_test_detail(test_run_id):
                 test_step_detail.data = data
                 detail = {"step": stt.index(test_step_detail_id)+1, "new_value": data}
                 activity_test_run(user_id, test_run_id, detail, 3)
-
                 db.session.flush()
             else:
                 return send_error(message='Please check your request params')
@@ -277,6 +367,7 @@ def post_defect(test_run_id):
         token = get_jwt_identity()
         cloud_id = token.get('cloudId')
         project_id = token.get('projectId')
+        user_id = token.get('userId')
         is_valid, data, body_request = validate_request(PostDefectSchema(), request)
         if not is_valid:
             return send_error(data=data, code=200, is_dynamic=True)
@@ -348,6 +439,8 @@ def post_defect(test_run_id):
             )
             db.session.add(defect)
             db.session.flush()
+            detail = {"issue_key": issue_key}
+            activity_test_run(user_id, test_run_id, detail, 9)
         else:
             test_detail = TestStepDetail.query.filter(TestStepDetail.id == test_step_detail_id,
                                                       TestStepDetail.test_run_id == test_run_id).first()
@@ -369,6 +462,8 @@ def post_defect(test_run_id):
             )
             db.session.add(defect)
             db.session.flush()
+            detail = {"issue_key": issue_key}
+            activity_test_run(user_id, test_run_id, detail, 13)
         db.session.commit()
         return send_result(message="Successfully")
     except Exception as ex:
@@ -794,6 +889,7 @@ def start_time(test_run_id):
         token = get_jwt_identity()
         cloud_id = token.get('cloudId')
         project_id = token.get('projectId')
+        user_id = token.get('userId')
         test_run = TestRun.query.filter(TestRun.id == test_run_id).first()
         if test_run is None:
             return send_error(message="Not found test run")
@@ -810,12 +906,16 @@ def start_time(test_run_id):
             )
             db.session.add(timer)
             db.session.flush()
+            detail = {"start": 0}
+            activity_test_run(user_id, test_run_id, detail, 6)
         else:
             if timer.time_type == 1:
                 return send_error(message="Timer is running")
             timer.time_type = 1
             timer.time_start = time_start
             db.session.flush()
+            detail = {"start": timer.delta_time}
+            activity_test_run(user_id, test_run_id, detail, 6)
         db.session.commit()
         return send_result(message="Oke")
     except Exception as ex:
@@ -830,6 +930,7 @@ def pause_time(test_run_id):
         token = get_jwt_identity()
         cloud_id = token.get('cloudId')
         project_id = token.get('projectId')
+        user_id = token.get('userId')
         test_run = TestRun.query.filter(TestRun.id == test_run_id).first()
         if test_run is None:
             return send_error(message="Not found test run")
@@ -839,9 +940,12 @@ def pause_time(test_run_id):
             return send_error(message="Not found")
         if timer.time_type == 2:
             return send_error(message="time stopped")
-        timer.delta_time = round(time_start - double(timer.time_start) + double(timer.delta_time), 3)
+        delta_time = round(time_start - double(timer.time_start) + double(timer.delta_time), 3)
+        timer.delta_time = delta_time
         timer.time_type = 2
         db.session.flush()
+        detail = {"pause": delta_time}
+        activity_test_run(user_id, test_run_id, detail, 7)
         db.session.commit()
         return send_result(message="oke")
     except Exception as ex:
@@ -856,6 +960,7 @@ def reset_time(test_run_id):
         token = get_jwt_identity()
         cloud_id = token.get('cloudId')
         project_id = token.get('projectId')
+        user_id = token.get('userId')
         test_run = TestRun.query.filter(TestRun.id == test_run_id).first()
         if test_run is None:
             return send_error(message="Not found test run")
@@ -864,6 +969,7 @@ def reset_time(test_run_id):
         test_timer.time_start = 0
         test_timer.delta_time = 0
         db.session.flush()
+        activity_test_run(user_id, test_run_id, {}, 7)
         db.session.commit()
         return send_result(message="oke")
 
