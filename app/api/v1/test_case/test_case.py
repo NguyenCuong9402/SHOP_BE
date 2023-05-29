@@ -573,20 +573,16 @@ def filter_test_run():
             TestEnvironment.name.in_(environments))
     if len(testrun_started) > 0:
         if testrun_started.get('from') and not testrun_started.get('to'):
-            query = query.join(TestTimer).filter(TestTimer.date_time >= testrun_started.get('from'),
-                                                 TestTimer.time_type == TestTimerType.START_TIME)
+            query = query.filter(TestRun.start_date >= testrun_started.get('from'))
         else:
-            query = query.join(TestTimer).filter(TestTimer.date_time >= testrun_started.get('from'),
-                                                 TestTimer.date_time <= testrun_started.get('to'),
-                                                 TestTimer.time_type == TestTimerType.START_TIME)
+            query = query.filter(TestRun.start_date >= testrun_started.get('from'),
+                                 TestRun.end_date <= testrun_started.get('to'))
     if len(testrun_finished) > 0:
         if testrun_finished.get('from') and not testrun_finished.get('to'):
-            query = query.join(TestTimer).filter(TestTimer.date_time >= testrun_finished.get('from'),
-                                                 TestTimer.time_type == TestTimerType.END_TIME)
+            query = query.filter(TestRun.start_date >= testrun_finished.get('from'))
         else:
-            query = query.join(TestTimer).filter(TestTimer.date_time >= testrun_finished.get('from'),
-                                                 TestTimer.date_time <= testrun_finished.get('to'),
-                                                 TestTimer.time_type == TestTimerType.END_TIME)
+            query = query.filter(TestRun.date_time >= testrun_finished.get('from'),
+                                 TestRun.end_date <= testrun_finished.get('to'))
 
     data = [test_run.issue_id for test_run in query.all()]
     return send_result(data=data)
