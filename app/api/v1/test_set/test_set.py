@@ -9,7 +9,7 @@ from app.api.v1.history_test import save_history_test_set
 from app.api.v1.test_run.schema import TestRunSchema
 from app.gateway import authorization_require
 from app.models import TestCase, db, TestRun, TestExecution, \
-    TestStatus, TestSet, TestCasesTestSets, TestType
+    TestStatus, TestSet, TestCasesTestSets, TestType, TestStep
 from app.utils import send_result, send_error, get_timestamp_now, escape_wildcard
 from app.validator import TestSetSchema, TestSetTestCasesSchema
 
@@ -335,6 +335,9 @@ def import_test_case():
                 }
             )
 
+        # create list test_step
+        test_step = data_input.get('test_step')
+
         # test case
         test_cases_new = data_input.get('test_cases')
         test_types_name = [item.get('test_type') for item in test_cases_new]
@@ -354,6 +357,19 @@ def import_test_case():
                 })
                 # add test case id to test_cases_test_sets_new
                 test_cases_test_sets_new[index].update({'test_case_id': test_case_id})
+
+                # update test case id to test_step
+                test_step[index].update(
+                    {
+                        "id": str(uuid.uuid4()),
+                        "cloud_id": cloud_id,
+                        "project_id": project_id,
+                        "index": 1,
+                        "test_case_id": test_case_id,
+                        "created_date": get_timestamp_now()
+                    }
+                )
+
             else:
                 # remove item not valid
                 test_cases_test_sets_new.pop(index)
@@ -363,6 +379,9 @@ def import_test_case():
         # add relationship testcase-testsets (test_cases_test_sets table)
         # insert many test_cases_test_sets
         db.session.bulk_insert_mappings(TestCasesTestSets, test_cases_test_sets_new)
+
+        # insert many test_step
+        db.session.bulk_insert_mappings(TestStep, test_step)
         try:
             db.session.commit()
         except:
