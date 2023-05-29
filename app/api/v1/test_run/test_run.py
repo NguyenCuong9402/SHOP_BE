@@ -283,6 +283,17 @@ def activity_test_run(user_id: str, test_run_id: str, comment: dict, index: int)
         )
         db.session.add(activity)
         db.session.flush()
+    elif index == 19:
+        activity = TestActivity(
+            id=str(uuid.uuid4()),
+            test_run_id=test_run_id,
+            jira_user_id=user_id,
+            created_date=get_timestamp_now(),
+            status_change='Change assignee of test run',
+            comment=comment
+        )
+        db.session.add(activity)
+        db.session.flush()
 
 
 # call change status mới call set time
@@ -1106,7 +1117,7 @@ def get_activity(test_run_id):
         return send_error(message=str(ex))
 
 
-@api.route("/<test_run_id>/update", methods=['GET'])
+@api.route("/<test_run_id>/update", methods=['PUT'])
 @authorization_require()
 def update_test_run(test_run_id):
     try:
@@ -1143,4 +1154,24 @@ def update_test_run(test_run_id):
             db.session.commit()
             return send_result(message="Execution data was reset successfully")
     except Exception as ex:
+        db.session.rollback()
         return send_error(message=str(ex))
+
+
+@api.route("/<test_run_id>/activity", methods=['POST'])
+@authorization_require()
+def post_activity_jira(test_run_id):
+    try:
+        token = get_jwt_identity()
+        cloud_id = token.get('cloudId')
+        project_id = token.get('projectId')
+        user_id = token.get('userId')
+        assignee_id = request.args.get('assignee_id', "", type=str)
+        detail = {"id": assignee_id}
+        activity_test_run(user_id, test_run_id, detail, 19)
+        db.session.flush()
+        db.session.commit()
+    except Exception as ex:
+        db.session.rollback()
+        return send_error(message=str(ex))
+

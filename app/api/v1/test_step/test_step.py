@@ -86,15 +86,12 @@ def add_test_step(issue_id):
         db.session.add(test_step)
         db.session.flush()
         # check test run
-        test_execution = TestCasesTestExecutions.query.filter(TestCasesTestExecutions.test_case_id
-                                                              == test_case.id).all()
-        test_execution_id = [item.test_execution_id for item in test_execution]
         test_runs = TestRun.query.filter(TestRun.project_id == project_id, TestRun.cloud_id == cloud_id,
-                                         TestRun.test_case_id == test_case.id,
-                                         TestRun.test_execution_id.in_(test_execution_id)).all()
+                                         TestRun.test_case_id == test_case.id).all()
         status = TestStatus.query.filter(TestStatus.cloud_id == cloud_id, TestStatus.project_id == project_id,
                                          TestStatus.name == 'TODO').first()
         for test_run in test_runs:
+            test_run.is_updated = 1
             test_step_detail = TestStepDetail(
                 id=str(uuid.uuid4()),
                 test_step_id=test_step_id,
@@ -145,6 +142,7 @@ def add_test_detail_for_test_case_call(cloud_id: str, project_id: str, test_case
                                              TestRun.project_id == project_id,
                                              TestRun.test_case_id == test_step.test_case_id).all()
             for test_run in test_runs:
+                test_run.is_updated = 1
                 test_step_detail = TestStepDetail(
                     id=str(uuid.uuid4()),
                     test_step_id=test_step.id,
@@ -217,6 +215,12 @@ def remove_test_step(test_step_id, issue_id):
                     shutil.rmtree(FILE_PATH+folder_path)
                 except Exception as ex:
                     return send_error(message=str(ex))
+        # update test_run.is_update = 1 => merge/reset
+        test_case_ids = get_test_case_id(cloud_id, project_id, test_case.id, {test_case.id})
+        for test_case_id in test_case_ids:
+            db.session.query(TestRun).filter(TestRun.project_id == project_id, TestRun.cloud_id == cloud_id,
+                                             TestRun.test_case_id == test_case_id).update({"is_updated": 1})
+            db.session.flush()
         # delete test_step
         TestStepDetail.query.filter(TestStepDetail.test_step_id == test_step_id).delete()
         db.session.flush()
@@ -277,6 +281,12 @@ def change_rank_test_step(issue_id):
                 .update(dict(index=TestStep.index - 1))
             index_drag_to_drop.index = index_drop
             db.session.flush()
+        # update test_run.is_update = 1 => merge/reset
+        test_case_ids = get_test_case_id(cloud_id, project_id, test_case.id, {test_case.id})
+        for test_case_id in test_case_ids:
+            db.session.query(TestRun).filter(TestRun.project_id == project_id, TestRun.cloud_id == cloud_id,
+                                             TestRun.test_case_id == test_case_id).update({"is_updated": 1})
+            db.session.flush()
         db.session.commit()
         # Save history
         save_history_test_step(test_case.id, user_id, 3, 2, {}, [index_drag, index_drop])
@@ -311,7 +321,6 @@ def call_test_case(issue_id, issue_id_reference):
         if len(check_up & check_down) > 0:
             return send_error(message="not allowed to call because test was called called test", code=200,
                               is_dynamic=True)
-
         count_index = TestStep.query.filter(TestStep.test_case_id == test_case.id).count()
         test_step = TestStep(
             id=str(uuid.uuid4()),
@@ -378,7 +387,11 @@ def call_test_case(issue_id, issue_id_reference):
                     else:
                         add_test_detail_for_test_case_call(cloud_id, project_id, step_call.test_case_id,
                                                            status.id, step_call.id + "/" + link_2)
-
+        # update test_run.is_update =1 -> merge/reset
+        for test_case_id in check_up:
+            db.session.query(TestRun).filter(TestRun.project_id == project_id, TestRun.cloud_id == cloud_id,
+                                             TestRun.test_case_id == test_case_id).update({"is_updated": 1})
+            db.session.flush()
         db.session.commit()
         # Create detail_of_action and Save history
         detail_of_action = {"Call test": test_case_reference.issue_key}
@@ -429,15 +442,12 @@ def clone_test_step(issue_id, test_step_id):
             or_(TestStepField.project_id == project_id, TestStepField.project_key == project_id),
             TestStepField.cloud_id == cloud_id).order_by(TestStepField.index.asc())
         # check test run
-        test_execution = TestCasesTestExecutions.query.filter(TestCasesTestExecutions.test_case_id
-                                                              == test_case.id).all()
-        test_execution_id = [item.test_execution_id for item in test_execution]
         test_runs = TestRun.query.filter(TestRun.project_id == project_id, TestRun.cloud_id == cloud_id,
-                                         TestRun.test_case_id == test_case.id,
-                                         TestRun.test_execution_id.in_(test_execution_id)).all()
+                                         TestRun.test_case_id == test_case.id).all()
         status = TestStatus.query.filter(TestStatus.cloud_id == cloud_id, TestStatus.project_id == project_id,
                                          TestStatus.name == 'TODO').first()
         for test_run in test_runs:
+            test_run.is_updated = 1
             test_step_detail = TestStepDetail(
                 id=str(uuid.uuid4()),
                 test_step_id=test_step_id,
@@ -472,6 +482,54 @@ def clone_test_step(issue_id, test_step_id):
         save_history_test_step(test_case.id, user_id, 4, 2, detail_of_action, [test_step.index + 1])
         return send_result(data='', message="Step clone successfully",
                            show=True)
+    except Exception as ex:
+        db.session.rollback()
+        return send_error(data='', message="Something was wrong!")
+
+
+@api.route("/<issue_id>/<test_step_id>", methods=["PUT"])
+@authorization_require()
+def update_test_step(issue_id, test_step_id):
+    try:
+        token = get_jwt_identity()
+        cloud_id = token.get('cloudId')
+        project_id = token.get('projectId')
+        user_id = token.get('userId')
+        test_case = TestCase.query.filter(TestCase.issue_id == issue_id, TestCase.project_id == project_id,
+                                          TestCase.cloud_id == cloud_id).first()
+        if test_case is None:
+            return send_error(
+                message="Test Case is not Exist", code=200,
+                show=False)
+        try:
+            json_req = request.get_json()
+        except Exception as ex:
+            return send_error(message="Request Body incorrect json format: " + str(ex), code=442)
+        # Strip body request
+        body_request = {}
+        for key, value in json_req.items():
+            if isinstance(value, str):
+                body_request.setdefault(key, value.strip())
+            else:
+                body_request.setdefault(key, value)
+        test_step = TestStep.query.filter(TestStep.test_case_id == test_case.id, TestStep.id == test_step_id).first()
+        if test_step is None:
+            return send_error(
+                message="Test Step is not exist", code=200,
+                show=False)
+        test_step.action = body_request.get('action'),
+        test_step.data = body_request.get('data'),
+        test_step.result = body_request.get('result'),
+        test_step.custom_fields = body_request.get('custom_fields')
+        db.session.flush()
+        # update test_run.is_update = 1 => merge/reset
+        test_case_ids = get_test_case_id(cloud_id, project_id, test_case.id, {test_case.id})
+        for test_case_id in test_case_ids:
+            db.session.query(TestRun).filter(TestRun.project_id == project_id, TestRun.cloud_id == cloud_id,
+                                             TestRun.test_case_id == test_case_id).update({"is_updated": 1})
+            db.session.flush()
+        db.session.commit()
+        return send_result(message=" Update successfully")
     except Exception as ex:
         db.session.rollback()
         return send_error(data='', message="Something was wrong!")

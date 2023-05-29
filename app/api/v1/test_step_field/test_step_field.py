@@ -10,7 +10,7 @@ from sqlalchemy import func, asc, and_
 from app.api.v1.setting.setting_validator import UpdateMiscellaneousRequest
 from app.api.v1.test_step_field.test_step_field_validator import CreateTestStepField, UpdateTestStepField
 from app.gateway import authorization_require
-from app.models import TestStep, TestType, db, TestField, Setting, TestStepField, TestRunField
+from app.models import TestStep, TestType, db, TestField, Setting, TestStepField, TestRunField, TestRun
 from app.utils import send_result, send_error, data_preprocessing, validate_request
 from app.validator import CreateTestValidator, SettingSchema, TestStepFieldSchema
 from app.parser import TestFieldSchema, TestStepSchema
@@ -118,6 +118,10 @@ def create_test_step(project_id):
             index=max_index + 1
         )
         db.session.add(test_step_field)
+        db.session.flush()
+        db.session.query(TestRun).filter(TestRun.project_id == project_id, TestRun.cloud_id == cloud_id)\
+            .update({"is_updated": 1})
+        db.session.flush()
         db.session.commit()
         return send_result(data=TestStepFieldSchema().dump(test_step_field), message="Test Step Field created",
                            show=True)
@@ -173,6 +177,10 @@ def update_test_step(project_id, test_step_id):
         update_data = body_request.items()
         for key, value in update_data:
             setattr(test_step, key, value)
+        db.session.flush()
+        db.session.query(TestRun).filter(TestRun.project_id == project_id, TestRun.cloud_id == cloud_id) \
+            .update({"is_updated": 1})
+        db.session.flush()
         db.session.commit()
         return send_result(data=TestStepFieldSchema().dump(test_step),
                            message="Test Step Fields were saved successfully", show=True)
@@ -217,6 +225,8 @@ def reorder(project_id):
 @authorization_require()
 def delete(project_id, test_step_id):
     try:
+        token = get_jwt_identity()
+        cloud_id = token.get('cloudId')
         test_step_field = TestStepField.get_by_id(test_step_id)
         if test_step_field is None:
             return send_error(
@@ -249,6 +259,8 @@ def delete(project_id, test_step_id):
         db.session.flush()
         db.session.delete(test_step_field)
         db.session.flush()
+        db.session.query(TestRun).filter(TestRun.project_id == project_id, TestRun.cloud_id == cloud_id) \
+            .update({"is_updated": 1})
         db.session.commit()
         return send_result(data="", message="Test step field removed successfully", code=200, show=True)
     except Exception as ex:
