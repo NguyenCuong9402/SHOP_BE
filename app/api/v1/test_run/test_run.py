@@ -261,6 +261,28 @@ def activity_test_run(user_id: str, test_run_id: str, comment: dict, index: int)
         )
         db.session.add(activity)
         db.session.flush()
+    elif index == 17:
+        activity = TestActivity(
+            id=str(uuid.uuid4()),
+            test_run_id=test_run_id,
+            jira_user_id=user_id,
+            created_date=get_timestamp_now(),
+            status_change='Merged Execution',
+            comment=comment
+        )
+        db.session.add(activity)
+        db.session.flush()
+    elif index == 18:
+        activity = TestActivity(
+            id=str(uuid.uuid4()),
+            test_run_id=test_run_id,
+            jira_user_id=user_id,
+            created_date=get_timestamp_now(),
+            status_change='Reseted Execution',
+            comment=comment
+        )
+        db.session.add(activity)
+        db.session.flush()
 
 
 # call change status mới call set time
@@ -360,11 +382,11 @@ def post_data_and_comment_test_detail(test_run_id):
             if where == 'comment':
                 test_step_detail.comment = data
                 db.session.flush()
-                detail = {"step": stt.index(test_step_detail_id)+1, "new_value": data}
+                detail = {"step": stt.index(test_step_detail_id) + 1, "new_value": data}
                 activity_test_run(user_id, test_run_id, detail, 4)
             elif where == 'actual':
                 test_step_detail.data = data
-                detail = {"step": stt.index(test_step_detail_id)+1, "new_value": data}
+                detail = {"step": stt.index(test_step_detail_id) + 1, "new_value": data}
                 activity_test_run(user_id, test_run_id, detail, 3)
                 db.session.flush()
             else:
@@ -549,7 +571,8 @@ def get_defect(test_run_id):
                 for test_step in test_steps:
                     link = test_step.id + "/"
                     if test_step.test_case_id_reference:
-                        result_child = get_test_step_detail_id(cloud_id, project_id, test_step.test_case_id_reference, [],
+                        result_child = get_test_step_detail_id(cloud_id, project_id, test_step.test_case_id_reference,
+                                                               [],
                                                                link, test_run_id)
                         test_detail_ids = test_detail_ids + result_child
                     else:
@@ -774,7 +797,7 @@ def upload_evidence(test_run_id):
             db.session.add(test_evidence)
             db.session.flush()
             stt = stt_step_detail_id(cloud_id, project_id, test_run_id, [])
-            detail = {"step": stt.index(test_step_detail_id)+1, "real_name": real_name}
+            detail = {"step": stt.index(test_step_detail_id) + 1, "real_name": real_name}
             activity_test_run(user_id, test_run_id, detail, 12)
             db.session.commit()
 
@@ -816,7 +839,8 @@ def get_evidence(test_run_id):
                 for test_step in test_steps:
                     link = test_step.id + "/"
                     if test_step.test_case_id_reference:
-                        result_child = get_test_step_detail_id(cloud_id, project_id, test_step.test_case_id_reference, [],
+                        result_child = get_test_step_detail_id(cloud_id, project_id, test_step.test_case_id_reference,
+                                                               [],
                                                                link, test_run_id)
                         test_detail_ids = test_detail_ids + result_child
                     else:
@@ -1075,8 +1099,48 @@ def get_activity(test_run_id):
         token = get_jwt_identity()
         cloud_id = token.get('cloudId')
         project_id = token.get('projectId')
-        test_activity=TestActivity.query.filter(TestActivity.test_run_id == test_run_id)\
+        test_activity = TestActivity.query.filter(TestActivity.test_run_id == test_run_id) \
             .order_by(desc(TestActivity.created_date)).all()
         return send_result(data=TestActivitySchema(many=True).dump(test_activity))
+    except Exception as ex:
+        return send_error(message=str(ex))
+
+
+@api.route("/<test_run_id>/update", methods=['GET'])
+@authorization_require()
+def update_test_run(test_run_id):
+    try:
+        token = get_jwt_identity()
+        cloud_id = token.get('cloudId')
+        project_id = token.get('projectId')
+        user_id = token.get('userId')
+        is_update = request.args.get('is_update', "", type=str)
+        if is_update not in ["merge", "reset"]:
+            return send_error(message="Please check your request params")
+        test_run = TestRun.query.filter(TestRun.id == test_run_id).first()
+        if test_run.is_updated == 0:
+            return send_result(data="Nothing to update")
+        if is_update == "merge":
+            test_run.is_updated = 0
+            db.session.flush()
+            activity_test_run(user_id, test_run_id, {}, 17)
+            db.session.commit()
+            return send_result(message="Execution data was merged successfully")
+        elif is_update == "reset":
+            test_status = TestStatus.query.filter(TestStatus.project_id == project_id, TestStatus.cloud_id == cloud_id,
+                                                  TestStatus.name == "TODO").first()
+            test_run.is_updated = 0
+            test_run.comment = None
+            test_run.test_status_id = test_status.id
+            db.session.query(TestStepDetail) \
+                .filter_by(test_run_id=test_run_id) \
+                .update({"status_id": test_status.id, "comment": None, "data": None})
+            TestEvidence.query.filter(TestEvidence.test_run_id == test_run_id).delete()
+            Defects.query.filter(Defects.test_run_id == test_run_id).delete()
+            Timer.query.filter(Timer.test_run_id == test_run_id).delete()
+            db.session.flush()
+            activity_test_run(user_id, test_run_id, {}, 18)
+            db.session.commit()
+            return send_result(message="Execution data was reset successfully")
     except Exception as ex:
         return send_error(message=str(ex))
