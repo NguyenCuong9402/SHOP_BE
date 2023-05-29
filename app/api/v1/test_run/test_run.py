@@ -1167,6 +1167,8 @@ def post_activity_jira(test_run_id):
         project_id = token.get('projectId')
         user_id = token.get('userId')
         assignee_id = request.args.get('assignee_id', "", type=str)
+        if assignee_id == '':
+            return send_error(message="Please check your request params")
         detail = {"id": assignee_id}
         activity_test_run(user_id, test_run_id, detail, 19)
         db.session.flush()

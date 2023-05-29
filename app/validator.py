@@ -543,7 +543,6 @@ class TestRunSchema(Schema):
     id = fields.String()
     cloud_id = fields.String()
     project_id = fields.String()
-
     issue_id = fields.String()
     issue_key = fields.String()
     test_case_id = fields.String()
@@ -619,3 +618,36 @@ class PostDefectSchema(Schema):
     test_kind = fields.String()
     test_step_detail_id = fields.String()
 
+
+class TestCaseTestRunSchema(Schema):
+    id = fields.String()
+    issue_id = fields.String()
+    issue_key = fields.String()
+    project_id = fields.String()
+    cloud_id = fields.String()
+    test_execution_created_date = fields.Integer()
+    test_run_id = fields.String()
+    test_run_issue_id = fields.String()
+    test_run_issue_key = fields.String()
+    created_date = fields.Integer()
+    test_status_id = fields.String()
+    is_updated = fields.Boolean()
+    start_date = fields.Integer()
+    end_date = fields.Integer()
+
+
+class TestExecutionTestRunSchema(Schema):
+    id = fields.String()
+    issue_id = fields.String()
+    issue_key = fields.String()
+    project_id = fields.String()
+    cloud_id = fields.String()
+    test_case_created_date = fields.Integer()
+    test_run_id = fields.String()
+    test_run_issue_id = fields.String()
+    test_run_issue_key = fields.String()
+    created_date = fields.Integer()
+    test_status_id = fields.String()
+    is_updated = fields.Boolean()
+    start_date = fields.Integer()
+    end_date = fields.Integer()
