@@ -279,12 +279,12 @@ def import_test_case():
         token = get_jwt_identity()
 
         cloud_id = token.get('cloudId')
-        project_id = token.get('projectId')
+        project_id = token.get('project_id')
         data = body_request.get('data_input')
 
         data_input = pd.DataFrame(data).to_dict(orient="list")
-        test_sets = data_input.get('test_sets')
-        test_set_issue_ids = list(set([test_set.get('issue_id') for test_set in data_input.get('test_sets')]))
+        test_sets = data_input.get('test_set')
+        test_set_issue_ids = list(set([test_set.get('issue_id') for test_set in data_input.get('test_set')]))
         # get all test set exist in my db
         test_sets_own = db.session.query(TestSet.issue_id, TestSet.id).filter(TestSet.issue_id.in_(test_set_issue_ids),
                                                                               TestSet.cloud_id == cloud_id,
@@ -298,7 +298,7 @@ def import_test_case():
         # create test set if have
         if test_sets_new:
             # handle data input
-            test_sets_dict = {item['issue_id']: item['issue_key'] for item in data_input.get('test_sets')}
+            test_sets_dict = {item['issue_id']: item['issue_key'] for item in data_input.get('test_set')}
             test_set_list = list()
             for test_set_issue_id in test_sets_new:
                 test_set_id = str(uuid.uuid4())
@@ -312,6 +312,7 @@ def import_test_case():
                     "issue_id": test_set_issue_id,
                     "issue_key": test_sets_dict.get(test_set_issue_id)
                 })
+
             # insert many test set
             db.session.bulk_insert_mappings(TestSet, test_set_list)
 
@@ -339,7 +340,7 @@ def import_test_case():
         test_step = data_input.get('test_step')
 
         # test case
-        test_cases_new = data_input.get('test_cases')
+        test_cases_new = data_input.get('test_case')
         test_types_name = [item.get('test_type') for item in test_cases_new]
         test_types = dict(db.session.query(TestType.name, TestType.id).filter(TestType.name.in_(test_types_name)).all())
         test_case_list = list()
