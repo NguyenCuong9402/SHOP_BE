@@ -14,12 +14,11 @@ from sqlalchemy.orm import joinedload
 from app.api.v1.history_test import save_history_test_case, save_history_test_execution
 from app.api.v1.test_execution.test_execution import add_test_step_id_by_test_case_id
 from app.api.v1.test_run.schema import TestRunSchema
-from app.enums import INVALID_PARAMETERS_ERROR, FILE_PATH, TestTimerType
+from app.enums import INVALID_PARAMETERS_ERROR, FILE_PATH
 from app.extensions import logger
 from app.gateway import authorization_require
 from app.models import TestStep, TestCase, TestType, db, TestField, Setting, TestRun, TestExecution, \
-    TestCasesTestExecutions, TestStatus, TestStepDetail, TestCasesTestSets, TestSet, TestEvidence, TestEnvironment, \
-    TestTimer
+    TestCasesTestExecutions, TestStatus, TestStepDetail, TestCasesTestSets, TestSet, TestEvidence, TestEnvironment
 from app.utils import send_result, send_error, data_preprocessing, get_timestamp_now
 from app.validator import TestCaseValidator, TestCaseSchema, TestSetSchema, TestCaseTestStepSchema, TestExecutionSchema, \
     TestCaseFilterValidator
@@ -289,13 +288,13 @@ def add_test_execution(test_issue_id):
                             status_id=default_status.id,
                             test_run_id=test_run.id,
                             created_date=get_timestamp_now(),
-                            link=test_step.id+"/",
+                            link=test_step.id + "/",
                         )
                         db.session.add(test_step_detail)
                         db.session.flush()
                     else:
                         add_test_step_id_by_test_case_id(cloud_id, project_id, test_step.test_case_id_reference,
-                                                         test_run.id, default_status.id, test_step.id+"/")
+                                                         test_run.id, default_status.id, test_step.id + "/")
             else:
                 return send_error(message='Some Test Executions were already associated with the Test',
                                   status=200, show=False)
@@ -325,7 +324,7 @@ def remove_test_execution(issue_id):
         test_case = TestCase.query.filter(TestCase.cloud_id == cloud_id, TestCase.project_id == project_id,
                                           TestCase.issue_id == issue_id).first()
         test_runs = TestRun.query.filter(TestRun.test_case_id == test_case.id) \
-                                 .filter(TestRun.test_execution_id.in_(test_execution_ids)).all()
+            .filter(TestRun.test_execution_id.in_(test_execution_ids)).all()
 
         test_run_id = [test_run.id for test_run in test_runs]
         for id_test_run in test_run_id:
@@ -551,7 +550,7 @@ def get_test_execution_from_test_case(issue_id):
     if test_case is None:
         return send_error("Not found test case")
     # sort
-    query = db.session.query(TestExecution).join(TestCasesTestExecutions)\
+    query = db.session.query(TestExecution).join(TestCasesTestExecutions) \
         .filter(TestCasesTestSets.test_case_id == test_case.id)
     column_sorted = getattr(TestExecution, order_by)
     query = query.order_by(desc(column_sorted)) if order == "desc" else query.order_by(asc(column_sorted))
@@ -599,20 +598,16 @@ def filter_test_run():
             TestEnvironment.name.in_(environments))
     if len(testrun_started) > 0:
         if testrun_started.get('from') and not testrun_started.get('to'):
-            query = query.join(TestTimer).filter(TestTimer.date_time >= testrun_started.get('from'),
-                                                 TestTimer.time_type == TestTimerType.START_TIME)
+            query = query.filter(TestRun.start_date >= testrun_started.get('from'))
         else:
-            query = query.join(TestTimer).filter(TestTimer.date_time >= testrun_started.get('from'),
-                                                 TestTimer.date_time <= testrun_started.get('to'),
-                                                 TestTimer.time_type == TestTimerType.START_TIME)
+            query = query.filter(TestRun.start_date >= testrun_started.get('from'),
+                                 TestRun.end_date <= testrun_started.get('to'))
     if len(testrun_finished) > 0:
         if testrun_finished.get('from') and not testrun_finished.get('to'):
-            query = query.join(TestTimer).filter(TestTimer.date_time >= testrun_finished.get('from'),
-                                                 TestTimer.time_type == TestTimerType.END_TIME)
+            query = query.filter(TestRun.start_date >= testrun_finished.get('from'))
         else:
-            query = query.join(TestTimer).filter(TestTimer.date_time >= testrun_finished.get('from'),
-                                                 TestTimer.date_time <= testrun_finished.get('to'),
-                                                 TestTimer.time_type == TestTimerType.END_TIME)
+            query = query.filter(TestRun.date_time >= testrun_finished.get('from'),
+                                 TestRun.end_date <= testrun_finished.get('to'))
 
     data = [test_run.issue_id for test_run in query.all()]
     return send_result(data=data)

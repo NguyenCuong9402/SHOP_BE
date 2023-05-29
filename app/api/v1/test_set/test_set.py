@@ -9,7 +9,7 @@ from app.api.v1.history_test import save_history_test_set
 from app.api.v1.test_run.schema import TestRunSchema
 from app.gateway import authorization_require
 from app.models import TestCase, db, TestRun, TestExecution, \
-    TestStatus, TestSet, TestCasesTestSets, TestType
+    TestStatus, TestSet, TestCasesTestSets, TestType, TestStep
 from app.utils import send_result, send_error, get_timestamp_now, escape_wildcard
 from app.validator import TestSetSchema, TestSetTestCasesSchema
 
@@ -279,12 +279,12 @@ def import_test_case():
         token = get_jwt_identity()
 
         cloud_id = token.get('cloudId')
-        project_id = token.get('projectId')
+        project_id = token.get('project_id')
         data = body_request.get('data_input')
 
         data_input = pd.DataFrame(data).to_dict(orient="list")
-        test_sets = data_input.get('test_sets')
-        test_set_issue_ids = list(set([test_set.get('issue_id') for test_set in data_input.get('test_sets')]))
+        test_sets = data_input.get('test_set')
+        test_set_issue_ids = list(set([test_set.get('issue_id') for test_set in data_input.get('test_set')]))
         # get all test set exist in my db
         test_sets_own = db.session.query(TestSet.issue_id, TestSet.id).filter(TestSet.issue_id.in_(test_set_issue_ids),
                                                                               TestSet.cloud_id == cloud_id,
@@ -298,7 +298,7 @@ def import_test_case():
         # create test set if have
         if test_sets_new:
             # handle data input
-            test_sets_dict = {item['issue_id']: item['issue_key'] for item in data_input.get('test_sets')}
+            test_sets_dict = {item['issue_id']: item['issue_key'] for item in data_input.get('test_set')}
             test_set_list = list()
             for test_set_issue_id in test_sets_new:
                 test_set_id = str(uuid.uuid4())
@@ -312,6 +312,7 @@ def import_test_case():
                     "issue_id": test_set_issue_id,
                     "issue_key": test_sets_dict.get(test_set_issue_id)
                 })
+
             # insert many test set
             db.session.bulk_insert_mappings(TestSet, test_set_list)
 
@@ -335,8 +336,11 @@ def import_test_case():
                 }
             )
 
+        # create list test_step
+        test_step = data_input.get('test_step')
+
         # test case
-        test_cases_new = data_input.get('test_cases')
+        test_cases_new = data_input.get('test_case')
         test_types_name = [item.get('test_type') for item in test_cases_new]
         test_types = dict(db.session.query(TestType.name, TestType.id).filter(TestType.name.in_(test_types_name)).all())
         test_case_list = list()
@@ -354,6 +358,19 @@ def import_test_case():
                 })
                 # add test case id to test_cases_test_sets_new
                 test_cases_test_sets_new[index].update({'test_case_id': test_case_id})
+
+                # update test case id to test_step
+                test_step[index].update(
+                    {
+                        "id": str(uuid.uuid4()),
+                        "cloud_id": cloud_id,
+                        "project_id": project_id,
+                        "index": 1,
+                        "test_case_id": test_case_id,
+                        "created_date": get_timestamp_now()
+                    }
+                )
+
             else:
                 # remove item not valid
                 test_cases_test_sets_new.pop(index)
@@ -363,6 +380,9 @@ def import_test_case():
         # add relationship testcase-testsets (test_cases_test_sets table)
         # insert many test_cases_test_sets
         db.session.bulk_insert_mappings(TestCasesTestSets, test_cases_test_sets_new)
+
+        # insert many test_step
+        db.session.bulk_insert_mappings(TestStep, test_step)
         try:
             db.session.commit()
         except:
