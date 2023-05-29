@@ -232,7 +232,7 @@ class TestActivity(db.Model):
     test_run_id = db.Column(db.String(50),
                             db.ForeignKey('test_run.id', ondelete='CASCADE', onupdate='CASCADE'),
                             nullable=True)
-    comment = db.Column(db.Text, nullable=True)
+    comment = db.Column(db.JSON, nullable=True)
     status_change = db.Column(db.Text, nullable=True)
     jira_user_id = db.Column(db.Text, nullable=True)
     created_date = db.Column(db.Integer, default=0, index=True)
@@ -515,7 +515,7 @@ class TestRun(db.Model):
     test_execution_id = db.Column(db.String(50),
                                   db.ForeignKey('test_execution.id', ondelete='CASCADE', onupdate='CASCADE'),
                                   nullable=False, primary_key=True)
-
+    comment = db.Column(db.String(50))
     # Test run data (in string_json format)
     activities = db.Text()
     test_steps = db.Text()

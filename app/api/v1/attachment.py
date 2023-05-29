@@ -32,6 +32,8 @@ def upload_attachment(test_step_id):
         file = request.files['file']
     except Exception as ex:
         return send_error(message=str(ex))
+    if len(file.read()) > 100000000:
+        return send_error(message="Can not upload file(s) bigger than 100MB.", is_dynamic=True)
     real_name = file.filename
     file_name = secure_filename(file.filename)
     file_path = "{}/{}".format(prefix, file_name)

@@ -14,14 +14,14 @@ from sqlalchemy.orm import joinedload
 from app.api.v1.history_test import save_history_test_case, save_history_test_execution
 from app.api.v1.test_execution.test_execution import add_test_step_id_by_test_case_id
 from app.api.v1.test_run.schema import TestRunSchema
-from app.enums import INVALID_PARAMETERS_ERROR, FILE_PATH
+from app.enums import INVALID_PARAMETERS_ERROR, FILE_PATH, TestTimerType
 from app.extensions import logger
 from app.gateway import authorization_require
 from app.models import TestStep, TestCase, TestType, db, TestField, Setting, TestRun, TestExecution, \
     TestCasesTestExecutions, TestStatus, TestStepDetail, TestCasesTestSets, TestSet, TestEvidence, TestEnvironment
 from app.utils import send_result, send_error, data_preprocessing, get_timestamp_now
 from app.validator import TestCaseValidator, TestCaseSchema, TestSetSchema, TestCaseTestStepSchema, TestExecutionSchema, \
-    TestCaseFilterValidator
+    TestCaseFilterValidator, TestCaseTestRunSchema
 
 DELETE_SUCCESS = 13
 ADD_SUCCESS = 16
@@ -89,46 +89,6 @@ def get_test_set_from_test_case(issue_id):
         return send_error(message=str(ex), data={})
 
 
-@api.route("/<issue_id>/test_run", methods=["GET"])
-@authorization_require()
-def get_test_run_from_test_case(issue_id):
-    token = get_jwt_identity()
-    cloud_id = token.get('cloudId')
-    project_id = token.get('projectId')
-    page = request.args.get('page', 1, type=int)
-    page_size = request.args.get('page_size', 10, type=int)
-    order_by = request.args.get('order_by', '', type=str)
-    order = request.args.get('order', 'asc', type=str)
-    if order_by == '':
-        order_by = "created_date"
-    else:
-        if order_by not in ["issue_id", "issue_key", "created_date"]:
-            return send_error("Not a valid")
-    column_sorted = getattr(TestRun, order_by)
-    # Get test case
-    test_case = TestCase.query.filter(TestCase.cloud_id == cloud_id, TestCase.issue_id == issue_id,
-                                      TestCase.project_id == project_id).first()
-    if test_case is None:
-        return send_error("Not found test case")
-    query = TestRun.query.filter(TestRun.cloud_id == cloud_id, TestRun.project_id == project_id,
-                                 TestRun.test_case_id == test_case.id)
-    query = query.order_by(desc(column_sorted)) if order == "desc" else query.order_by(asc(column_sorted))
-    test_runs = query.paginate(page=page, per_page=page_size, error_out=False).items
-    total = query.count()
-    extra = 1 if (total % page_size) else 0
-    total_pages = int(total / page_size) + extra
-    try:
-        results = {
-            "test_cases": TestRunSchema(many=True).dump(test_runs),
-            "total": total,
-            "total_pages": total_pages
-        }
-        return send_result(data=results)
-
-    except Exception as ex:
-        return send_error(message=str(ex))
-
-
 @api.route("/<issue_id>/test_step", methods=["GET"])
 @authorization_require()
 def get_test_step_from_test_case(issue_id):
@@ -153,13 +113,13 @@ def get_test_step_from_test_case(issue_id):
     query = TestStep.query.filter(TestStep.project_id == project_id, TestStep.cloud_id == cloud_id,
                                   TestStep.test_case_id == test_case.id)
     query = query.order_by(desc(column_sorted)) if order == "desc" else query.order_by(asc(column_sorted))
-    test_runs = query.paginate(page=page, per_page=page_size, error_out=False).items
+    test_steps = query.paginate(page=page, per_page=page_size, error_out=False).items
     total = query.count()
     extra = 1 if (total % page_size) else 0
     total_pages = int(total / page_size) + extra
     try:
         results = {
-            "test_cases": TestCaseTestStepSchema(many=True).dump(test_runs),
+            "test_cases": TestCaseTestStepSchema(many=True).dump(test_steps),
             "total": total,
             "total_pages": total_pages
         }
@@ -288,13 +248,13 @@ def add_test_execution(test_issue_id):
                             status_id=default_status.id,
                             test_run_id=test_run.id,
                             created_date=get_timestamp_now(),
-                            link=test_step.id + "/",
+                            link=test_step.id+"/",
                         )
                         db.session.add(test_step_detail)
                         db.session.flush()
                     else:
                         add_test_step_id_by_test_case_id(cloud_id, project_id, test_step.test_case_id_reference,
-                                                         test_run.id, default_status.id, test_step.id + "/")
+                                                         test_run.id, default_status.id, test_step.id+"/")
             else:
                 return send_error(message='Some Test Executions were already associated with the Test',
                                   status=200, show=False)
@@ -324,7 +284,7 @@ def remove_test_execution(issue_id):
         test_case = TestCase.query.filter(TestCase.cloud_id == cloud_id, TestCase.project_id == project_id,
                                           TestCase.issue_id == issue_id).first()
         test_runs = TestRun.query.filter(TestRun.test_case_id == test_case.id) \
-            .filter(TestRun.test_execution_id.in_(test_execution_ids)).all()
+                                 .filter(TestRun.test_execution_id.in_(test_execution_ids)).all()
 
         test_run_id = [test_run.id for test_run in test_runs]
         for id_test_run in test_run_id:
@@ -543,16 +503,31 @@ def get_test_execution_from_test_case(issue_id):
     # Get search params
     page = request.args.get('page', 1, type=int)
     page_size = request.args.get('page_size', 10, type=int)
-    order_by = request.args.get('order_by', "issue_key", type=str)
-    order = request.args.get('order', 'asc', type=str)
+    order_by = request.args.get('order_by', "", type=str)
+    order = request.args.get('order', "")
     test_case = TestCase.query.filter(TestCase.cloud_id == cloud_id, TestCase.issue_id == issue_id,
                                       TestCase.project_id == project_id).first()
+    if order_by == "":
+        order_by = "created_date"
+    if order == "":
+        order = "asc"
     if test_case is None:
         return send_error("Not found test case")
     # sort
-    query = db.session.query(TestExecution).join(TestCasesTestExecutions) \
-        .filter(TestCasesTestSets.test_case_id == test_case.id)
-    column_sorted = getattr(TestExecution, order_by)
+    query = db.session.query(TestExecution.id, TestExecution.issue_id, TestExecution.issue_key,
+                             TestExecution.project_id, TestExecution.cloud_id,
+                             TestExecution.created_date.label('test_execution_created_date'),
+                             TestRun.id.label('test_run_id'), TestRun.test_status_id, TestRun.is_updated,
+                             TestRun.start_date, TestRun.end_date, TestRun.issue_id.label('test_run_issue_id'),
+                             TestRun.issue_key.label('test_run_issue_key'), TestRun.created_date)\
+        .join(TestCasesTestExecutions, TestCasesTestExecutions.test_execution_id == TestExecution.id) \
+        .join(TestRun, (TestCasesTestExecutions.test_case_id == TestRun.test_case_id)
+              & (TestCasesTestExecutions.test_execution_id == TestRun.test_execution_id))\
+        .filter(TestCasesTestExecutions.test_case_id == test_case.id)
+    if order_by == "created_date":
+        column_sorted = getattr(TestRun, order_by)
+    else:
+        column_sorted = getattr(TestExecution, order_by)
     query = query.order_by(desc(column_sorted)) if order == "desc" else query.order_by(asc(column_sorted))
     test_executions = query.paginate(page=page, per_page=page_size, error_out=False).items
     total = query.count()
@@ -560,7 +535,7 @@ def get_test_execution_from_test_case(issue_id):
     total_pages = int(total / page_size) + extra
     try:
         results = {
-            "test_cases": TestExecutionSchema(many=True).dump(test_executions),
+            "test_cases": TestCaseTestRunSchema(many=True).dump(test_executions),
             "total": total,
             "total_pages": total_pages
         }

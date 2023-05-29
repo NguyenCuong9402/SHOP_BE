@@ -325,7 +325,7 @@ def upgrade():
     op.create_table('test_activity',
     sa.Column('id', sa.String(length=50), nullable=False),
     sa.Column('test_run_id', sa.String(length=50), nullable=True),
-    sa.Column('comment', sa.Text(), nullable=True),
+    sa.Column('comment', sa.JSON(), nullable=True),
     sa.Column('status_change', sa.Text(), nullable=True),
     sa.Column('jira_user_id', sa.Text(), nullable=True),
     sa.Column('created_date', sa.Integer(), nullable=True),
