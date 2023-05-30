@@ -28,7 +28,7 @@ def create_app():
     register_extensions(app)
     register_monitor(app)
     register_blueprints(app)
-    CORS(app)
+    CORS(app, resources={r"/api/v1/*": {"origins": "*"}})
 
     return app
 
