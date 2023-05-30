@@ -390,4 +390,4 @@ def import_test_case():
             return send_error()
         return send_result()
     except Exception as ex:
-        return send_error(message='Something wrong!')
+        return send_error(message='Something was wrong!')
