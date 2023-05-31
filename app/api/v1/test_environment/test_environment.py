@@ -109,26 +109,26 @@ def add_test_environment(project_id):
             return send_error(data=data, code=200, is_dynamic=True)
         ids_to_add = body_request['test_environment_ids']
         if len(ids_to_add) == 0:
-            return send_error(message="This field is required")
+            return send_error(message="This field is required", is_dynamic=True)
         check_id = TestEnvironment.query.filter(TestEnvironment.id.in_(ids_to_add),
                                                 TestEnvironment.parent_id.is_(None),
                                                 TestEnvironment.cloud_id == cloud_id,
                                                 TestEnvironment.project_id != project_id).count()
         if check_id < len(ids_to_add):
-            return send_error(message=f" Test Environment is not exist ")
+            return send_error(message=f" Test Environment is not exist", is_dynamic=True)
         check_parent_id = TestEnvironment.query.filter(TestEnvironment.cloud_id == cloud_id,
                                                        TestEnvironment.project_id == project_id,
                                                        TestEnvironment.parent_id.in_(ids_to_add)).count()
         if check_parent_id > 0:
             return send_error(message=f"{check_parent_id} in {len(ids_to_add)} Test Environment has been added "
-                                      f"\n Please refresh the page to view the changes")
+                                      f"\n Please refresh the page to view the changes", is_dynamic=True)
 
         query = TestEnvironment.query.filter(TestEnvironment.id.in_(ids_to_add)).all()
         for item in query:
             coincided = check_coincided_name(name=item.name, cloud_id=cloud_id, project_id=project_id)
             if coincided is True:
-                return send_error(code=200, data={"name": "Test Environment already exists. Please try again"},
-                                  message='Invalid request', show=False, is_dynamic=True)
+                return send_error(code=200, message='Test Environment already exists. Please try again',
+                                  show=False, is_dynamic=True)
 
             test_environment = TestEnvironment(
                 id=str(uuid.uuid4()),
