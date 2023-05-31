@@ -28,7 +28,7 @@ def get_user_setting():
                                            user_id=user_id)
             db.session.add(new_user_setting)
             db.session.commit()
-            user_setting = new_user_setting.copy()
+            user_setting = new_user_setting
         data = UserSettingSchema().dump(user_setting)
         return send_result(data=data)
     except Exception as ex:
