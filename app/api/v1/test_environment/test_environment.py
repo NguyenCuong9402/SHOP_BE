@@ -107,7 +107,7 @@ def add_test_environment(project_id):
         is_valid, data, body_request = validate_request(AddTestEnvironment(), request)
         if not is_valid:
             return send_error(data=data, code=200, is_dynamic=True)
-        ids_to_add = body_request['ids']
+        ids_to_add = body_request['test_environment_ids']
         if len(ids_to_add) == 0:
             return send_error(message="This field is required")
         check_id = TestEnvironment.query.filter(TestEnvironment.id.in_(ids_to_add),
