@@ -57,7 +57,7 @@ def get_test_case_from_test_set(issue_id):
     page_size = request.args.get('page_size', 10, type=int)
     order_by = request.args.get('order_by', '', type=str)
     order = request.args.get('order', 'asc', type=str)
-    test_set = TestSet.query.filter(TestSet.cloud_id == cloud_id, TestCase.issue_id == issue_id,
+    test_set = TestSet.query.filter(TestSet.cloud_id == cloud_id, TestSet.issue_id == issue_id,
                                     TestSet.project_id == project_id).first()
     if test_set is None:
         test_set = TestSet(
