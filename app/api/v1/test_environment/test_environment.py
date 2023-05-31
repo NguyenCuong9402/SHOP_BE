@@ -168,7 +168,7 @@ def create_test_environment(project_id):
         coincided = check_coincided_name(name=body_request.get('name'), cloud_id=cloud_id)
         if coincided is True:
             return send_error(code=200, data={"name": "Test Environment already exists. Please try again"},
-                              message='Invalid request', show=False, is_dynamic=True)
+                              message='Test Environment already exists. Please try again', show=False, is_dynamic=True)
 
         test_environment = TestEnvironment(
             id=str(uuid.uuid4()),
