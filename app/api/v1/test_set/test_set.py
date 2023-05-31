@@ -24,8 +24,21 @@ def get_test_set(issue_id):
     token = get_jwt_identity()
     cloud_id = token.get('cloudId')
     project_id = token.get('projectId')
+    issue_key = token.get('issue_key')
     test_set = TestSet.query.filter(TestSet.project_id == project_id, TestSet.cloud_id == cloud_id,
                                     TestSet.issue_id == issue_id).first()
+    if test_set is None:
+        test_set = TestSet(
+            id=str(uuid.uuid4()),
+            issue_id=issue_id,
+            issue_key=issue_key,
+            project_id=project_id,
+            cloud_id=cloud_id,
+            created_date=get_timestamp_now()
+        )
+        db.session.add(test_set)
+        db.session.flush()
+        db.session.commit()
     try:
         return send_result(data=TestSetSchema().dump(test_set), message="OK")
     except Exception:
@@ -38,6 +51,7 @@ def get_test_case_from_test_set(issue_id):
     token = get_jwt_identity()
     cloud_id = token.get('cloudId')
     project_id = token.get('projectId')
+    issue_key = token.get('issue_key')
     # Get search params
     page = request.args.get('page', 1, type=int)
     page_size = request.args.get('page_size', 10, type=int)
@@ -46,7 +60,16 @@ def get_test_case_from_test_set(issue_id):
     test_set = TestSet.query.filter(TestSet.cloud_id == cloud_id, TestCase.issue_id == issue_id,
                                     TestSet.project_id == project_id).first()
     if test_set is None:
-        return send_error("Not found test set")
+        test_set = TestSet(
+            id=str(uuid.uuid4()),
+            issue_id=issue_id,
+            issue_key=issue_key,
+            project_id=project_id,
+            cloud_id=cloud_id,
+            created_date=get_timestamp_now()
+        )
+        db.session.add(test_set)
+        db.session.flush()
     # sort
     if order_by == "index" or order_by == '':
         order_by = "index"

@@ -176,28 +176,31 @@ def remove_test_step(test_step_id, issue_id):
         if test_step is None:
             return send_error(
                 message="Test Step is not exist",
-                code=200, show=False)
+                code=200, show=False, is_dynamic=True)
         # create detail_of_action
         detail_of_action = {}
         test_step_fields = db.session.query(TestStepField).filter(
             or_(TestStepField.project_id == project_id, TestStepField.project_key == project_id),
             TestStepField.cloud_id == cloud_id).order_by(TestStepField.index.asc())
-        field_name = [item.name for item in test_step_fields]
+        field_name = []
+        for item in test_step_fields:
+            if item.name not in ["Action  (action)", "Data (data)", "Expected Result (result)"]:
+                field_name.append(item.name)
         detail_of_action['Action'] = test_step.action
         detail_of_action['Data'] = test_step.data
         detail_of_action['Expected Result'] = test_step.result
-        if len(field_name) > (len(test_step.custom_fields) + 3):
+        if len(field_name) > len(test_step.custom_fields):
             for i, name in enumerate(test_step.custom_fields):
-                detail_of_action[field_name[3 + i]] = name
-            number = len(field_name) - (len(test_step.custom_fields) + 3)
+                detail_of_action[field_name[i]] = name
+            number = len(field_name) - len(test_step.custom_fields)
             if number == 1:
                 detail_of_action[field_name[len(field_name) - 1]] = ''
             if number == 2:
                 detail_of_action[field_name[len(field_name) - 2]] = ''
                 detail_of_action[field_name[len(field_name) - 1]] = ''
-        elif len(field_name) == (len(test_step.custom_fields) + 3):
+        elif len(field_name) == len(test_step.custom_fields):
             for i, name in enumerate(test_step.custom_fields):
-                detail_of_action[field_name[3 + i]] = name
+                detail_of_action[field_name[i]] = name
         index = test_step.index
         # Xóa file trong test step của test detail
         files = Attachment.query.filter(Attachment.cloud_id == cloud_id, Attachment.project_id,
@@ -253,7 +256,7 @@ def change_rank_test_step(issue_id):
         query = TestStep.query.filter(or_(TestStep.project_id == project_id, TestStep.project_key == project_id),
                                       TestStep.cloud_id == cloud_id, TestStep.test_case_id == test_case.id).all()
         if query is None:
-            return send_error(message='PROJECT DOES NOT EXIST', status=404, show=False)
+            return send_error(message='PROJECT DOES NOT EXIST', status=404, show=False, is_dynamic=True)
 
         json_req = request.get_json()
         index_drag = json_req['index_drag']
@@ -264,11 +267,12 @@ def change_rank_test_step(issue_id):
         # vị trí drag to drop
         index_drag_to_drop = TestStep.query.filter(
             or_(TestStep.project_id == project_id, TestStep.project_key == project_id), TestStep.cloud_id == cloud_id,
-                                                                                        TestStep.test_case_id == test_case.id).filter(
+                TestStep.test_case_id == test_case.id).filter(
             TestStep.index == index_drag).first()
         if index_drag > index_drop:
             if index_drop < 1:
-                return send_error(message=f'Must be a value between 1 and {index_max}', status=404, show=False)
+                return send_error(message=f'Must be a value between 1 and {index_max}', status=404, show=False,
+                                  is_dynamic=True)
             TestStep.query.filter(or_(TestStep.project_id == project_id, TestStep.project_key == project_id),
                                   TestStep.cloud_id == cloud_id, TestStep.test_case_id == test_case.id) \
                 .filter(TestStep.index > index_drop - 1, TestStep.index < index_drag) \
@@ -277,7 +281,8 @@ def change_rank_test_step(issue_id):
             db.session.flush()
         else:
             if index_drop > index_max:
-                return send_error(message=f'Must be a value between 1 and {index_max}', status=404, show=False)
+                return send_error(message=f'Must be a value between 1 and {index_max}', status=404,
+                                  show=False, is_dynamic=True)
             TestStep.query.filter(or_(TestStep.project_id == project_id, TestStep.project_key == project_id),
                                   TestStep.cloud_id == cloud_id, TestStep.test_case_id == test_case.id) \
                 .filter(TestStep.index < index_drop + 1, TestStep.index > index_drag) \
@@ -316,7 +321,7 @@ def call_test_case(issue_id, issue_id_reference):
             return send_error(
                 message="Test Case is not Exist", code=200, show=False)
         if test_case_reference is None:
-            return send_error(message="Call test case reference fail", code=200, show=False)
+            return send_error(message="Call test case reference fail", code=200, show=False, is_dynamic=True)
         # Đệ quy tìm test case id là reference
         check_up = get_test_case_id(cloud_id, project_id, test_case.id, {test_case.id})
         # Dệ quy tìm test case refence là  test case id
@@ -399,7 +404,7 @@ def call_test_case(issue_id, issue_id_reference):
         # Create detail_of_action and Save history
         detail_of_action = {"Call test": test_case_reference.issue_key}
         save_history_test_step(test_case.id, user_id, 5, 2, detail_of_action, [test_step.index + 1])
-        return send_result(data='call success')
+        return send_result(data='Call success', show=True)
     except Exception as ex:
         db.session.rollback()
         return send_error(data='', message=str(ex))
@@ -419,7 +424,7 @@ def clone_test_step(issue_id, test_step_id):
         if test_step is None:
             return send_error(
                 message="Test Step is not exist", code=200,
-                show=False)
+                show=False, is_dynamic=True)
         # Sắp xếp lại index khi clone
         TestStep.query.filter(TestStep.test_case_id == test_case.id) \
             .filter(TestStep.index > test_step.index) \
