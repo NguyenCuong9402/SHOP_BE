@@ -228,30 +228,37 @@ def delete(project_id, test_step_id):
         token = get_jwt_identity()
         cloud_id = token.get('cloudId')
         test_step_field = TestStepField.get_by_id(test_step_id)
+
         if test_step_field is None:
             return send_error(
                 message="Test Step Fields have been changed \n Please refresh the page to view the changes", code=200,
                 show=False, is_dynamic=True)
-        if test_step_field.index > 3:
-            index = test_step_field.index - 4
-            test_steps = TestStep.query.filter(TestStep.custom_fields.isnot(None), func.json_length(
-                TestStep.custom_fields) >= index + 1).all()
-            for test_step in test_steps:
-                custom_fields = test_step.custom_fields.copy()
-                if custom_fields:
-                    if len(custom_fields) == 3:
-                        del custom_fields[index]
-                        test_step.custom_fields = custom_fields
-                        db.session.flush()
-                    # index (list) : 0 ,1 ,2
-                    elif len(custom_fields) == 2 and index <= 1:
-                        del custom_fields[index]
-                        test_step.custom_fields = custom_fields
-                        db.session.flush()
-                    elif len(custom_fields) == 1 and index == 0:
-                        del custom_fields[index]
-                        test_step.custom_fields = custom_fields
-                        db.session.flush()
+        default_name = ["Action  (action)", "Data (data)", "Expected Result (result)"]
+        if test_step_field.name in default_name:
+            return send_error(message="not allowed to delete this test step field", is_dynamic=True)
+        test_step_field_project = TestStepField.query.filter(TestStepField.cloud_id == cloud_id,
+                                                             TestStepField.project_id == project_id,
+                                                             TestStepField.name.notin_(default_name)).all()
+        custom_field = [item.name for item in test_step_field_project]
+        index = custom_field.index(test_step_field.name)
+        test_steps = TestStep.query.filter(TestStep.custom_fields.isnot(None),
+                                           func.json_length(TestStep.custom_fields) >= index + 1).all()
+        for test_step in test_steps:
+            custom_fields = test_step.custom_fields.copy()
+            if custom_fields:
+                if len(custom_fields) == 3:
+                    del custom_fields[index]
+                    test_step.custom_fields = custom_fields
+                    db.session.flush()
+                # index (list) : 0 ,1 ,2
+                elif len(custom_fields) == 2 and index <= 1:
+                    del custom_fields[index]
+                    test_step.custom_fields = custom_fields
+                    db.session.flush()
+                elif len(custom_fields) == 1 and index == 0:
+                    del custom_fields[index]
+                    test_step.custom_fields = custom_fields
+                    db.session.flush()
         # update index Test Step field
         db.session.query(TestStepField).filter(TestStepField.cloud_id == test_step_field.cloud_id,
                                                TestStepField.project_id == project_id)\
@@ -279,14 +286,18 @@ def number_test_delete(project_id, test_step_field_id):
             return send_error(
                 message="Test Step Fields have been changed \n Please refresh the page to view the changes", code=200,
                 show=False, is_dynamic=True)
-        if test_step_field.index <= 3:
+        default_name = ["Action  (action)", "Data (data)", "Expected Result (result)"]
+        if test_step_field.name in default_name:
             return send_error(message="not allowed to delete this test step field")
         # SQLAlchemy để tính tổng trực tiếp trong câu truy vấn
-        index = test_step_field.index - 3
+        test_step_field_project = TestStepField.query.filter(TestStepField.cloud_id == cloud_id,
+                                                             TestStepField.project_id == project_id,
+                                                             TestStepField.name.notin_(default_name)).all()
+        custom_field = [item.name for item in test_step_field_project]
         count = TestStep.query.with_entities(func.count())\
             .filter(TestStep.cloud_id == cloud_id, TestStep.project_id == project_id,
                     TestStep.custom_fields.isnot(None),
-                    func.json_length(TestStep.custom_fields) >= index).scalar()
+                    func.json_length(TestStep.custom_fields) >= custom_field.index(test_step_field.name)+1).scalar()
         return send_result(message=f'There are {count} Test(s) with steps using the Test Step Field.')
     except Exception as ex:
         return send_error(data='', message=str(ex))

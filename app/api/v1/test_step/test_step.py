@@ -105,22 +105,25 @@ def add_test_step(issue_id):
         # Tạo test details cho test case khác call test case này
         add_test_detail_for_test_case_call(cloud_id, project_id, test_case.id, status.id, test_step.id + "/")
         detail_of_action = {}
-        field_name = [item.name for item in test_step_fields]
+        field_name = []
+        for item in test_step_fields:
+            if item.name not in ["Action  (action)", "Data (data)", "Expected Result (result)"]:
+                field_name.append(item.name)
         detail_of_action['Action'] = test_step.action
         detail_of_action['Data'] = test_step.data
         detail_of_action['Expected Result'] = test_step.result
-        if len(field_name) > (len(test_step.custom_fields) + 3):
+        if len(field_name) > len(test_step.custom_fields):
             for i, name in enumerate(test_step.custom_fields):
-                detail_of_action[field_name[3 + i]] = name
-            number = len(field_name) - (len(test_step.custom_fields) + 3)
+                detail_of_action[field_name[i]] = name
+            number = len(field_name) - len(test_step.custom_fields)
             if number == 1:
                 detail_of_action[field_name[len(field_name) - 1]] = ''
             if number == 2:
                 detail_of_action[field_name[len(field_name) - 2]] = ''
                 detail_of_action[field_name[len(field_name) - 1]] = ''
-        elif len(field_name) == (len(test_step.custom_fields) + 3):
+        elif len(field_name) == len(test_step.custom_fields):
             for i, name in enumerate(test_step.custom_fields):
-                detail_of_action[field_name[3 + i]] = name
+                detail_of_action[field_name[i]] = name
         db.session.commit()
         # Save history
         save_history_test_step(test_case.id, user_id, 1, 2, detail_of_action, [count_index + 1])
@@ -463,22 +466,25 @@ def clone_test_step(issue_id, test_step_id):
         db.session.commit()
         # Create detail_of_action and Save history
         detail_of_action = {}
-        field_name = [item.name for item in test_step_fields]
+        field_name = []
+        for item in test_step_fields:
+            if item.name not in ["Action  (action)", "Data (data)", "Action  (action)"]:
+                field_name.append(item.name)
         detail_of_action['Action'] = test_step.action
         detail_of_action['Data'] = test_step.data
         detail_of_action['Expected Result'] = test_step.result
-        if len(field_name) > (len(test_step.custom_fields) + 3):
+        if len(field_name) > len(test_step.custom_fields):
             for i, name in enumerate(test_step.custom_fields):
-                detail_of_action[field_name[3 + i]] = name
-            number = len(field_name) - (len(test_step.custom_fields) + 3)
+                detail_of_action[field_name[i]] = name
+            number = len(field_name) - len(test_step.custom_fields)
             if number == 1:
                 detail_of_action[field_name[len(field_name) - 1]] = ''
             if number == 2:
                 detail_of_action[field_name[len(field_name) - 2]] = ''
                 detail_of_action[field_name[len(field_name) - 1]] = ''
-        elif len(field_name) == (len(test_step.custom_fields) + 3):
+        elif len(field_name) == len(test_step.custom_fields):
             for i, name in enumerate(test_step.custom_fields):
-                detail_of_action[field_name[3 + i]] = name
+                detail_of_action[field_name[i]] = name
         save_history_test_step(test_case.id, user_id, 4, 2, detail_of_action, [test_step.index + 1])
         return send_result(data='', message="Step clone successfully",
                            show=True)
