@@ -107,7 +107,7 @@ def add_test_environment(project_id):
         is_valid, data, body_request = validate_request(AddTestEnvironment(), request)
         if not is_valid:
             return send_error(data=data, code=200, is_dynamic=True)
-        ids_to_add = body_request['ids']
+        ids_to_add = body_request['test_environment_ids']
         if len(ids_to_add) == 0:
             return send_error(message="This field is required")
         check_id = TestEnvironment.query.filter(TestEnvironment.id.in_(ids_to_add),
@@ -167,8 +167,8 @@ def create_test_environment(project_id):
         # Check coincided name
         coincided = check_coincided_name(name=body_request.get('name'), cloud_id=cloud_id)
         if coincided is True:
-            return send_error(code=200, data={"name": "Test Environment already exists. Please try again"},
-                              message='Invalid request', show=False, is_dynamic=True)
+            return send_error(code=200, message='Test Environment already exists. Please try again',
+                              show=False, is_dynamic=True)
 
         test_environment = TestEnvironment(
             id=str(uuid.uuid4()),
