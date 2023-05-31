@@ -18,18 +18,53 @@ def get_history(id_reference, history_category):
         token = get_jwt_identity()
         cloud_id = token.get('cloudId')
         project_id = token.get('projectId')
+        issue_key = token.get('issue_key')
         user_id = token.get('userId')
         # 1:Test Set , 2: Test Case , 3: Test Execution
         if history_category == '1':
             test = TestSet.query.filter(TestSet.project_id == project_id, TestSet.cloud_id == cloud_id,
                                         TestSet.issue_id == id_reference).first()
+            if test is None:
+                test_execution = TestSet(
+                    id=str(uuid.uuid4()),
+                    issue_id=id_reference,
+                    issue_key=issue_key,
+                    project_id=project_id,
+                    cloud_id=cloud_id,
+                    created_date=get_timestamp_now()
+                )
+                db.session.add(test_execution)
+                db.session.flush()
         elif history_category == '2':
             test = TestCase.query.filter(TestCase.project_id == project_id, TestCase.cloud_id == cloud_id,
                                          TestCase.issue_id == id_reference).first()
+            if test is None:
+                test_case = TestExecution(
+                    id=str(uuid.uuid4()),
+                    issue_id=id_reference,
+                    issue_key=issue_key,
+                    project_id=project_id,
+                    cloud_id=cloud_id,
+                    created_date=get_timestamp_now()
+                )
+                db.session.add(test_case)
+                db.session.flush()
         elif history_category == '3':
             test = TestExecution.query.filter(TestExecution.project_id == project_id,
                                               TestExecution.cloud_id == cloud_id,
                                               TestExecution.issue_id == id_reference).first()
+            if test is None:
+                test_execution = TestExecution(
+                    id=str(uuid.uuid4()),
+                    issue_id=id_reference,
+                    issue_key=issue_key,
+                    project_id=project_id,
+                    cloud_id=cloud_id,
+                    created_date=get_timestamp_now()
+                )
+                db.session.add(test_execution)
+                db.session.flush()
+
         else:
             return send_error(message="Error ")
         query = HistoryTest.query.filter(HistoryTest.id_reference == test.id,
