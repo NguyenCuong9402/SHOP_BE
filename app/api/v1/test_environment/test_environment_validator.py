@@ -38,4 +38,4 @@ class AddTestEnvironment(Schema):
         Create Date: 5/5/2023
         Marshmallow Schema
         """
-    ids = fields.List(fields.String)
+    test_environment_ids = fields.List(fields.String)
