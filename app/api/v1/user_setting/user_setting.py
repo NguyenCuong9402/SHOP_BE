@@ -21,7 +21,14 @@ def get_user_setting():
         user_id = token.get('userId')
         user_setting = UserSetting.query.filter(UserSetting.user_id == user_id).first()
         if not user_setting:
-            return send_error(message='user no have setting')
+            new_user_setting = UserSetting(id=str(uuid.uuid4()),
+                                           display_column=json.dumps(SETTING_DEFAULT),
+                                           created_date=get_timestamp_now(),
+                                           modified_date=get_timestamp_now(),
+                                           user_id=user_id)
+            db.session.add(new_user_setting)
+            db.session.commit()
+            user_setting = new_user_setting.copy()
         data = UserSettingSchema().dump(user_setting)
         return send_result(data=data)
     except Exception as ex:
@@ -59,3 +66,39 @@ def update_user_setting():
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
+
+
+SETTING_DEFAULT = {
+    "panelTestSet": [
+        {
+            "key": "issuekey",
+            "name": "Key"
+        },
+        {
+            "key": "summary",
+            "name": "Summary"
+        },
+        {
+            "key": "status",
+            "name": "Status"
+        }
+    ],
+    "panelDetailTestSet": [
+        {
+            "key": "issuekey",
+            "name": "Key"
+        },
+        {
+            "key": "summary",
+            "name": "Summary"
+        },
+        {
+            "key": "status",
+            "name": "Status"
+        },
+        {
+            "key": "assignee",
+            "name": "Assignee"
+        }
+    ]
+}
