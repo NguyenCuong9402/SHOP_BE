@@ -25,7 +25,7 @@ def get_history(id_reference, history_category):
             test = TestSet.query.filter(TestSet.project_id == project_id, TestSet.cloud_id == cloud_id,
                                         TestSet.issue_id == id_reference).first()
             if test is None:
-                test_execution = TestSet(
+                test = TestSet(
                     id=str(uuid.uuid4()),
                     issue_id=id_reference,
                     issue_key=issue_key,
@@ -33,13 +33,13 @@ def get_history(id_reference, history_category):
                     cloud_id=cloud_id,
                     created_date=get_timestamp_now()
                 )
-                db.session.add(test_execution)
+                db.session.add(test)
                 db.session.flush()
         elif history_category == '2':
             test = TestCase.query.filter(TestCase.project_id == project_id, TestCase.cloud_id == cloud_id,
                                          TestCase.issue_id == id_reference).first()
             if test is None:
-                test_case = TestExecution(
+                test = TestExecution(
                     id=str(uuid.uuid4()),
                     issue_id=id_reference,
                     issue_key=issue_key,
@@ -47,14 +47,14 @@ def get_history(id_reference, history_category):
                     cloud_id=cloud_id,
                     created_date=get_timestamp_now()
                 )
-                db.session.add(test_case)
+                db.session.add(test)
                 db.session.flush()
         elif history_category == '3':
             test = TestExecution.query.filter(TestExecution.project_id == project_id,
                                               TestExecution.cloud_id == cloud_id,
                                               TestExecution.issue_id == id_reference).first()
             if test is None:
-                test_execution = TestExecution(
+                test = TestExecution(
                     id=str(uuid.uuid4()),
                     issue_id=id_reference,
                     issue_key=issue_key,
@@ -62,7 +62,7 @@ def get_history(id_reference, history_category):
                     cloud_id=cloud_id,
                     created_date=get_timestamp_now()
                 )
-                db.session.add(test_execution)
+                db.session.add(test)
                 db.session.flush()
 
         else:
