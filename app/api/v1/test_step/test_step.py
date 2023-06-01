@@ -572,22 +572,30 @@ def update_test_step(issue_id, test_step_id):
 
 
 def get_test_case_id(cloud_id: str, project_id: str, test_case_id: str, set_id: set):
-    test_step_call_test_case_id = TestStep.query.filter(TestStep.cloud_id == cloud_id,
-                                                        TestStep.project_id == project_id,
-                                                        TestStep.test_case_id_reference == test_case_id).all()
-    for test_step in test_step_call_test_case_id:
-        set_id.add(test_step.test_case_id)
-        set_id_child = get_test_case_id(cloud_id, project_id, test_step.test_case_id, set_id)
-        set_id = set_id | set_id_child
+    stack = [test_case_id]
+    while True:
+        if not stack:
+            break
+        current_test_id = stack.pop()
+        test_step_call_test_case_id = TestStep.query.filter(TestStep.cloud_id == cloud_id,
+                                                            TestStep.project_id == project_id,
+                                                            TestStep.test_case_id_reference == current_test_id).all()
+        for test_step in test_step_call_test_case_id:
+            set_id.add(test_step.test_case_id)
+            stack.append(test_step.test_case_id)
     return set_id
 
 
 def get_test_case_reference(cloud_id: str, project_id: str, test_case_id_reference: str, set_id: set):
-    test_step_call_test_case_id = TestStep.query.filter(TestStep.cloud_id == cloud_id,
-                                                        TestStep.project_id == project_id,
-                                                        TestStep.test_case_id == test_case_id_reference).all()
-    for test_step in test_step_call_test_case_id:
-        set_id.add(test_step.test_case_id_reference)
-        set_id_child = get_test_case_reference(cloud_id, project_id, test_step.test_case_id_reference, set_id)
-        set_id = set_id | set_id_child
+    stack = [test_case_id_reference]
+    while True:
+        if not stack:
+            break
+        current_test_id = stack.pop()
+        test_step_test_case_id_call = TestStep.query.filter(TestStep.cloud_id == cloud_id,
+                                                            TestStep.project_id == project_id,
+                                                            TestStep.test_case_id == current_test_id).all()
+        for test_step in test_step_test_case_id_call:
+            set_id.add(test_step.test_case_id_reference)
+            stack.append(test_step.test_case_id_reference)
     return set_id
