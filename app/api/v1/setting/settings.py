@@ -96,7 +96,9 @@ def enable_miscellaneous_setting(project_id):
         project_setting.miscellaneous = json.dumps(miscellaneous)
         db.session.commit()
 
-        return send_result(data=SettingSchema().dump(project_setting), message="OK")
+        return send_result(data=SettingSchema().dump(project_setting),
+                           message="The miscellaneous settings were saved successfully",
+                           show=True)
     except Exception as ex:
         return send_error(data='', message="Something was wrong!")
 
