@@ -59,6 +59,55 @@ def create_repo():
         return send_error(message=str(ex))
 
 
+@api.route("/", methods=["PUT"])
+@authorization_require()
+def rename_repo():
+    try:
+        token = get_jwt_identity()
+        cloud_id = token.get('cloudId')
+        project_id = token.get('projectId')
+        user_id = token.get('userId')
+        body_request = request.get_json()
+        name = body_request.get('name', '')
+        repository_id = body_request.get('repository_id', '')
+        if repository_id == '':
+            return send_error(message="Check your params")
+        if name == '':
+            return send_error(message="Folder name must not be empty.", is_dynamic=True)
+        repo = Repository.query.filter(Repository.id == repository_id).first()
+        if repo is None:
+            return send_error(message="Not found folder, refresh the page to view the changes.", is_dynamic=True)
+        repo.name = name
+        db.session.flush()
+        db.session.commit()
+    except Exception as ex:
+        db.session.rollback()
+        return send_error(message=str(ex))
+
+
+@api.route("/", methods=["DELETE"])
+@authorization_require()
+def remove_repo():
+    try:
+        token = get_jwt_identity()
+        cloud_id = token.get('cloudId')
+        project_id = token.get('projectId')
+        user_id = token.get('userId')
+        body_request = request.get_json()
+        repository_id = body_request.get('repository_id', '')
+        if repository_id == '':
+            return send_error(message="Check your params")
+        repo = Repository.query.filter(Repository.id == repository_id).first()
+        if repo is None:
+            return send_error(message="Not found folder, refresh the page to view the changes.", is_dynamic=True)
+        db.session.delete(repo)
+        db.session.flush()
+        db.session.commit()
+    except Exception as ex:
+        db.session.rollback()
+        return send_error(message=str(ex))
+
+
 @api.route("/move-test", methods=["POST"])
 @authorization_require()
 def move_test_to_repo():
@@ -99,10 +148,43 @@ def move_test_to_repo():
             test_now.repository_id = repository_id_new
             test_now.create_date = get_timestamp_now()
             db.session.flush()
+            TestRepository.query.filter(TestRepository.repository_id == test_now.repository_id)\
+                .filter(TestRepository.index > test_now.index) \
+                .update(dict(index=TestRepository.index - 1))
             db.session.commit()
             if check:
                 return send_result(message="Please refresh the page to view the changes.| Move success", show=True)
         return send_result(message="Move success", show=True)
+    except Exception as ex:
+        db.session.rollback()
+        return send_error(message=str(ex))
+
+
+@api.route("/remove-test", methods=["DELETE"])
+@authorization_require()
+def remove_test_to_repo():
+    try:
+        token = get_jwt_identity()
+        cloud_id = token.get('cloudId')
+        project_id = token.get('projectId')
+        user_id = token.get('userId')
+        body_request = request.get_json()
+        test_id = body_request.get('test_id', '')
+        repository_id = body_request.get('repository_id', '')
+        if test_id == "":
+            return send_error(message="Check validate request")
+        repo = Repository.query.filter(Repository.id == repository_id).first()
+        test_repo = TestRepository.query.filter(TestRepository.test_id == test_id,
+                                                TestRepository.repository_id == repository_id).first()
+        if repo is None or test_repo is None:
+            return send_error(message="Please refresh the page to view the changes.", is_dynamic=True)
+        TestRepository.query.filter(TestRepository.repository_id == test_repo.repository_id) \
+            .filter(TestRepository.index > test_repo.index) \
+            .update(dict(index=TestRepository.index - 1))
+        db.session.delete(test_repo)
+        db.session.flush()
+        db.session.commit()
+        return send_result(message="Remove success")
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
