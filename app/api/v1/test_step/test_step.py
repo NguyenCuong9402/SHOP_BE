@@ -28,12 +28,20 @@ def add_test_step(issue_id):
         cloud_id = token.get('cloudId')
         project_id = token.get('projectId')
         user_id = token.get('userId')
+        issue_key = token.get('issue_key')
         test_case = TestCase.query.filter(TestCase.issue_id == issue_id, TestCase.project_id == project_id,
                                           TestCase.cloud_id == cloud_id).first()
         if test_case is None:
-            return send_error(
-                message="Test Case is not Exist", code=200,
-                show=False)
+            test_case = TestCase(
+                id=str(uuid.uuid4()),
+                issue_id=issue_id,
+                issue_key=issue_key,
+                project_id=project_id,
+                cloud_id=cloud_id,
+                created_date=get_timestamp_now()
+            )
+            db.session.add(test_case)
+            db.session.flush()
         try:
             json_req = request.get_json()
         except Exception as ex:
@@ -312,14 +320,23 @@ def call_test_case(issue_id, issue_id_reference):
         cloud_id = token.get('cloudId')
         project_id = token.get('projectId')
         user_id = token.get('userId')
+        issue_key = token.get('issue_key')
         test_case = TestCase.query.filter(TestCase.issue_id == issue_id, TestCase.project_id == project_id,
                                           TestCase.cloud_id == cloud_id).first()
         test_case_reference = TestCase.query.filter(TestCase.issue_id == issue_id_reference,
                                                     TestCase.project_id == project_id,
                                                     TestCase.cloud_id == cloud_id).first()
         if test_case is None:
-            return send_error(
-                message="Test Case is not Exist", code=200, show=False)
+            test_case = TestCase(
+                id=str(uuid.uuid4()),
+                issue_id=issue_id,
+                issue_key=issue_key,
+                project_id=project_id,
+                cloud_id=cloud_id,
+                created_date=get_timestamp_now()
+            )
+            db.session.add(test_case)
+            db.session.flush()
         if test_case_reference is None:
             return send_error(message="Call test case reference fail", code=200, show=False, is_dynamic=True)
         # Đệ quy tìm test case id là reference
@@ -506,12 +523,20 @@ def update_test_step(issue_id, test_step_id):
         cloud_id = token.get('cloudId')
         project_id = token.get('projectId')
         user_id = token.get('userId')
+        issue_key = token.get('issue_key')
         test_case = TestCase.query.filter(TestCase.issue_id == issue_id, TestCase.project_id == project_id,
                                           TestCase.cloud_id == cloud_id).first()
         if test_case is None:
-            return send_error(
-                message="Test Case is not Exist", code=200,
-                show=False)
+            test_case = TestCase(
+                id=str(uuid.uuid4()),
+                issue_id=issue_id,
+                issue_key=issue_key,
+                project_id=project_id,
+                cloud_id=cloud_id,
+                created_date=get_timestamp_now()
+            )
+            db.session.add(test_case)
+            db.session.flush()
         try:
             json_req = request.get_json()
         except Exception as ex:

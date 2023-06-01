@@ -61,15 +61,26 @@ def get_test_set_from_test_case(issue_id):
     token = get_jwt_identity()
     cloud_id = token.get('cloudId')
     project_id = token.get('projectId')
+    issue_key = token.get('issue_key')
     # Get search params
     page = request.args.get('page', 1, type=int)
     page_size = request.args.get('page_size', 10, type=int)
     order_by = request.args.get('order_by', "issue_key", type=str)
     order = request.args.get('order', 'asc', type=str)
+
     test_case = TestCase.query.filter(TestCase.cloud_id == cloud_id, TestCase.issue_id == issue_id,
                                       TestCase.project_id == project_id).first()
     if test_case is None:
-        return send_error("Not found test case")
+        test_case = TestCase(
+            id=str(uuid.uuid4()),
+            issue_id=issue_id,
+            issue_key=issue_key,
+            project_id=project_id,
+            cloud_id=cloud_id,
+            created_date=get_timestamp_now()
+        )
+        db.session.add(test_case)
+        db.session.flush()
     # sort
     query = db.session.query(TestSet).join(TestCasesTestSets).filter(TestCasesTestSets.test_case_id == test_case.id)
     column_sorted = getattr(TestSet, order_by)
