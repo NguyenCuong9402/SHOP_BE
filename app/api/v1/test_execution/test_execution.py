@@ -159,23 +159,7 @@ def add_test_to_test_execution(test_execution_issue_id):
                 db.session.add(test_run)
                 db.session.flush()
                 # Tạo test details
-                test_steps = TestStep.query.filter(TestStep.project_id == project_id, TestStep.cloud_id == cloud_id,
-                                                   TestStep.test_case_id == test_case.id).all()
-                for test_step in test_steps:
-                    if test_step.test_case_id_reference is None:
-                        test_step_detail = TestStepDetail(
-                            id=str(uuid.uuid4()),
-                            test_step_id=test_step.id,
-                            status_id=default_status.id,
-                            test_run_id=test_run.id,
-                            created_date=get_timestamp_now(),
-                            link=test_step.id+"/"
-                        )
-                        db.session.add(test_step_detail)
-                        db.session.flush()
-                    else:
-                        add_test_step_id_by_test_case_id(cloud_id, project_id, test_step.test_case_id_reference,
-                                                         test_run.id, default_status.id, test_step.id+"/")
+                add_test_step_id_by_test_case_id_2(cloud_id, project_id, test_case.id, test_run.id, default_status.id,'')
             else:
                 return send_error(message='Test Executions were already associated with the Test',
                                   status=200, show=False)
@@ -208,6 +192,31 @@ def add_test_step_id_by_test_case_id(cloud_id: str, project_id: str, test_case_i
         else:
             add_test_step_id_by_test_case_id(cloud_id, project_id, step.test_case_id_reference, test_run_id, status_id,
                                              new_link)
+
+
+def add_test_step_id_by_test_case_id_2(cloud_id: str, project_id: str, test_case_id: str,
+                                       test_run_id, status_id, link: str):
+    stack = [(test_case_id, link)]
+    while stack:
+        curr_id, current_link = stack.pop()
+        step_calls = TestStep.query.filter(TestStep.cloud_id == cloud_id, TestStep.project_id == project_id,
+                                           TestStep.test_case_id == curr_id) \
+            .order_by(desc(TestStep.index)).all()
+        for step in step_calls:
+            new_link = current_link + step.id + "/"
+            if step.test_case_id_reference is None:
+                test_step_detail = TestStepDetail(
+                    id=str(uuid.uuid4()),
+                    test_step_id=step.id,
+                    status_id=status_id,
+                    test_run_id=test_run_id,
+                    created_date=get_timestamp_now(),
+                    link=new_link
+                )
+                db.session.add(test_step_detail)
+                db.session.flush()
+            else:
+                stack.append((step.test_case_id_reference, new_link))
 
 
 @api.route("/<test_execution_issue_id>", methods=["DELETE"])

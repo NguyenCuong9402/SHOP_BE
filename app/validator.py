@@ -412,12 +412,18 @@ class RepositorySchema(Schema):
     Marshmallow Schema
     """
     id = fields.String()
-    folder_id = fields.String()
     parent_id = fields.String()
     name = fields.String()
     index = fields.Integer()
+    created_date = fields.Integer()
     children_folder = fields.List(fields.Nested(lambda: RepositorySchema()))
-    map_test_repo = fields.List(fields.Nested(MapRepoSchema))
+    count_test = fields.Integer()
+
+
+class RepositoryProjectSchema(Schema):
+    id = fields.String()
+    name = fields.String()
+    children_folder = fields.List(fields.Nested(lambda: RepositorySchema()))
 
 
 class TestExecutionSchema(Schema):

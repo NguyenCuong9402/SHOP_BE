@@ -296,10 +296,18 @@ class Repository(db.Model):
     modified_date = db.Column(db.Integer, default=0)
 
     @hybrid_property
-    def map_test_repo(self):
-        map_test_repo = TestRepository.query.filter_by(test_repo_id=self.id).order_by(
-            TestRepository.index.asc()).all()
-        return map_test_repo
+    def count_test(self):
+        stack = [self.id]  # Khởi tạo stack và thêm (test_case_id_reference, link) vào stack
+        test_count = 0
+        while len(stack) > 0:
+            current_id = stack.pop()  # Lấy phần tử cuối cùng từ stack
+            test_repo = TestRepository.query.filter(TestRepository.repository_id == current_id).count()
+            test_count = test_count + test_repo
+            repos = Repository.query.filter(Repository.parent_id == current_id).all()
+            for repo in repos:
+                if repo.parent_id is not None:
+                    stack.append(repo.id)
+        return test_count
 
     @hybrid_property
     def children_folder(self):

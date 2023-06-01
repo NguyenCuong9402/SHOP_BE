@@ -12,7 +12,7 @@ from sqlalchemy import desc, asc
 from sqlalchemy.orm import joinedload
 
 from app.api.v1.history_test import save_history_test_case, save_history_test_execution
-from app.api.v1.test_execution.test_execution import add_test_step_id_by_test_case_id
+from app.api.v1.test_execution.test_execution import add_test_step_id_by_test_case_id_2
 from app.api.v1.test_run.schema import TestRunSchema
 from app.enums import INVALID_PARAMETERS_ERROR, FILE_PATH
 from app.extensions import logger
@@ -249,23 +249,25 @@ def add_test_execution(test_issue_id):
                 db.session.add(test_run)
                 db.session.flush()
                 # Tạo test details
-                test_steps = TestStep.query.filter(TestStep.project_id == project_id, TestStep.cloud_id == cloud_id,
-                                                   TestStep.test_case_id == test_case.id).all()
-                for test_step in test_steps:
-                    if test_step.test_case_id_reference is None:
-                        test_step_detail = TestStepDetail(
-                            id=str(uuid.uuid4()),
-                            test_step_id=test_step.id,
-                            status_id=default_status.id,
-                            test_run_id=test_run.id,
-                            created_date=get_timestamp_now(),
-                            link=test_step.id+"/",
-                        )
-                        db.session.add(test_step_detail)
-                        db.session.flush()
-                    else:
-                        add_test_step_id_by_test_case_id(cloud_id, project_id, test_step.test_case_id_reference,
-                                                         test_run.id, default_status.id, test_step.id+"/")
+                add_test_step_id_by_test_case_id_2(cloud_id, project_id, test_case.id, test_run.id,
+                                                   default_status.id, '')
+                # test_steps = TestStep.query.filter(TestStep.project_id == project_id, TestStep.cloud_id == cloud_id,
+                #                                    TestStep.test_case_id == test_case.id).all()
+                # for test_step in test_steps:
+                #     if test_step.test_case_id_reference is None:
+                #         test_step_detail = TestStepDetail(
+                #             id=str(uuid.uuid4()),
+                #             test_step_id=test_step.id,
+                #             status_id=default_status.id,
+                #             test_run_id=test_run.id,
+                #             created_date=get_timestamp_now(),
+                #             link=test_step.id+"/",
+                #         )
+                #         db.session.add(test_step_detail)
+                #         db.session.flush()
+                #     else:
+                #         add_test_step_id_by_test_case_id(cloud_id, project_id, test_step.test_case_id_reference,
+                #                                          test_run.id, default_status.id, test_step.id+"/")
             else:
                 return send_error(message='Some Test Executions were already associated with the Test',
                                   status=200, show=False)
