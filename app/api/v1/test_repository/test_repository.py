@@ -5,11 +5,12 @@ import uuid
 from operator import or_
 from flask import Blueprint, request
 from flask_jwt_extended import get_jwt_identity
-from sqlalchemy import func, asc, and_
+from sqlalchemy import func, asc, and_, desc
 
 from app.gateway import authorization_require
 from app.models import db, TestRepository, Repository, TestCase
 from app.utils import send_result, send_error, get_timestamp_now
+from app.validator import TestCaseSchema
 
 api = Blueprint('test_repository', __name__)
 
@@ -80,6 +81,7 @@ def rename_repo():
         repo.name = name
         db.session.flush()
         db.session.commit()
+        return send_result(message="Rename success", show=True)
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
@@ -100,12 +102,29 @@ def remove_repo():
         repo = Repository.query.filter(Repository.id == repository_id).first()
         if repo is None:
             return send_error(message="Not found folder, refresh the page to view the changes.", is_dynamic=True)
-        db.session.delete(repo)
+        # check repo là parent ID nào
+        repo_ids = get_child_repo_id(cloud_id, project_id, repository_id, [repository_id])
+        Repository.query.filter(Repository.id.in_(repo_ids)).delete()
         db.session.flush()
         db.session.commit()
+        return send_result(message="Remove success")
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
+
+
+def get_child_repo_id(cloud_id: str, project_id: str, repo_id: str, list_repo_id: list):
+    stack = [repo_id]
+    while True:
+        if not stack:
+            break
+        current_repo_id = stack.pop()
+        parents = Repository.query.filter(Repository.cloud_id == cloud_id, Repository.project_id == project_id,
+                                          Repository.parent_id == current_repo_id).all()
+        for parent in parents:
+            list_repo_id.append(parent.id)
+            stack.append(parent.id)
+    return list_repo_id
 
 
 @api.route("/move-test", methods=["POST"])
@@ -187,6 +206,24 @@ def remove_test_to_repo():
         return send_result(message="Remove success")
     except Exception as ex:
         db.session.rollback()
+        return send_error(message=str(ex))
+
+
+@api.route("/", methods=["GET"])
+@authorization_require()
+def get_test_in_repo_0():
+    try:
+        token = get_jwt_identity()
+        cloud_id = token.get('cloudId')
+        project_id = token.get('projectId')
+        repos = Repository.query.filter(Repository.cloud_id == cloud_id, Repository.project_id == project_id).all()
+        repo_id = [repo.id for repo in repos]
+        test_repos = TestRepository.query.filter(TestRepository.repository_id.notin_(repo_id)).all()
+        test_ids = [test_repo.test_id for test_repo in test_repos]
+        test_cases = TestCase.query.filter(TestCase.id.in_(test_ids)).order_by(desc(TestCase.issue_key)).all()
+        tests = TestCaseSchema(many=True).dump(test_cases)
+        return send_result(data={"test_cases": tests, "Count": len(tests)})
+    except Exception as ex:
         return send_error(message=str(ex))
 
 

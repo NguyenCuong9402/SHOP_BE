@@ -289,7 +289,6 @@ class Repository(db.Model):
     folder_id = db.Column(db.String(50), unique=True)
     parent_id = db.Column(db.String(50))
     name = db.Column(db.String(500))
-    create_date = db.Column(INTEGER(unsigned=True), default=0, index=True)
     project_id = db.Column(db.String(50))
     index = db.Column(db.Integer)
     cloud_id = db.Column(db.String(255), nullable=True)
@@ -304,15 +303,15 @@ class Repository(db.Model):
 
     @hybrid_property
     def children_folder(self):
-        children_repo = Repository.query.filter_by(parent_id=self.folder_id).order_by(Repository.index.asc()).all()
+        children_repo = Repository.query.filter_by(parent_id=self.id).order_by(Repository.index.asc()).all()
         return children_repo
 
 
 class TestRepository(db.Model):
     __tablename__ = 'test_case_repositories'
     id = db.Column(db.String(50), primary_key=True)
-    test_id = db.Column(ForeignKey('test_case.id', ondelete='SET NULL', onupdate='CASCADE'), index=True)
-    repository_id = db.Column(ForeignKey('repository.id', ondelete='SET NULL', onupdate='CASCADE'), index=True)
+    test_id = db.Column(ForeignKey('test_case.id', ondelete='CASCADE', onupdate='CASCADE'), index=True)
+    repository_id = db.Column(ForeignKey('repository.id', ondelete='CASCADE', onupdate='CASCADE'), index=True)
     create_date = db.Column(INTEGER(unsigned=True), default=0, index=True)
     index = db.Column(db.Integer)
 
