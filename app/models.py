@@ -298,8 +298,8 @@ class Repository(db.Model):
 
     @hybrid_property
     def map_test_repo(self):
-        map_test_repo = Test_Repository.query.filter_by(test_repo_id=self.id).order_by(
-            Test_Repository.index.asc()).all()
+        map_test_repo = TestRepository.query.filter_by(test_repo_id=self.id).order_by(
+            TestRepository.index.asc()).all()
         return map_test_repo
 
     @hybrid_property
@@ -308,7 +308,7 @@ class Repository(db.Model):
         return children_repo
 
 
-class Test_Repository(db.Model):
+class TestRepository(db.Model):
     __tablename__ = 'test_case_repositories'
     id = db.Column(db.String(50), primary_key=True)
     test_id = db.Column(ForeignKey('test_case.id', ondelete='SET NULL', onupdate='CASCADE'), index=True)

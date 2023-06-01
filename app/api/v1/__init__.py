@@ -14,4 +14,4 @@ from app.api.v1.test_set import test_set
 from app.api.v1.user_setting import user_setting
 from app.api.v1.test_step import test_step
 from app.api.v1 import history_test
-from app.api.v1 import test_repository
+from app.api.v1.test_repository import test_repository
