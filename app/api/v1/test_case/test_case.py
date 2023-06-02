@@ -291,8 +291,8 @@ def add_test_execution(test_issue_id):
         save_history_test_case(test_case.id, user_id, 4, 2, test_execution_ids, [])
         db.session.commit()
         if len(test_execution_ids) == 0:
-            return send_result(message="The test execution(s) already exists in test case",show=True)
-        return send_result(message=f'Add {len(test_execution_ids)} test execution(s) to test case successfully', show=True)
+            return send_result(message="The test execution(s) already exists in test case", show=True)
+        return send_result(message=f'Test(s) successfully added to {len(test_execution_ids)} Test Execution(s)', show=True)
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
@@ -523,7 +523,8 @@ def add_tests_set_for_testcase(issue_id):
         db.session.commit()
         if len(test_set_ids) == 0:
             return send_result(message="The Test Set(s) already exist in the Test Case", show=True)
-        return send_result(message_id=ADD_SUCCESS, message=f'{len(test_set_ids)} Test Set(s) added to the Test', show=True)
+        return send_result(message_id=ADD_SUCCESS,
+                           message=f'Test(s) successfully added to {len(test_set_ids)} Test Set(s)', show=True)
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))

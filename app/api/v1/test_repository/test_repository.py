@@ -30,7 +30,7 @@ def create_repo():
             return send_error(message="Folder name must not be empty.", is_dynamic=True)
         coincided = check_coincided_name(name=name, cloud_id=cloud_id, project_id=project_id, parent_id=parent_id)
         if coincided:
-            return send_error(message=f"Duplicate folder name, '{name}' already exists at this location",
+            return send_error(message=f"{name} already exists at this location",
                               is_dynamic=True)
         if parent_id == '' or parent_id == "-1":
             index = Repository.query.filter(Repository.cloud_id == cloud_id, Repository.project_id == project_id,
@@ -76,12 +76,15 @@ def rename_repo():
         if name == '':
             return send_error(message="Folder name must not be empty.", is_dynamic=True)
         repo = Repository.query.filter(Repository.id == repository_id).first()
+        old_name = repo.name
         if repo is None:
-            return send_error(message="Not found folder, refresh the page to view the changes.", is_dynamic=True)
+            return send_error(message="Test Repository has been changed \n "
+                                      "Please refresh the page to view the changes.", is_dynamic=True)
+
         repo.name = name
         db.session.flush()
         db.session.commit()
-        return send_result(message="Rename success", show=True)
+        return send_result(message=f"Folder {old_name} renamed to {name}", show=True)
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
@@ -101,13 +104,15 @@ def remove_repo():
             return send_error(message="Must not delete")
         repo = Repository.query.filter(Repository.id == repository_id).first()
         if repo is None:
-            return send_error(message="Not found folder, refresh the page to view the changes.", is_dynamic=True)
+            return send_error(message="Test Repository has been changed \n "
+                                      "Please refresh the page to view the changes.", is_dynamic=True)
+        name = repo.name
         # check repo là parent ID nào
         repo_ids = get_child_repo_id(cloud_id, project_id, repository_id, [repository_id])
         Repository.query.filter(Repository.id.in_(repo_ids)).delete()
         db.session.flush()
         db.session.commit()
-        return send_result(message="Remove success")
+        return send_result(message=f"Folder {name} removed")
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
@@ -150,14 +155,18 @@ def move_test_to_repo():
             if test_now.repository_id != "-1":
                 db.session.delete(test_now)
                 db.session.flush()
+            message = "Test(s) moved to Test Repository Root."
         else:
             repo = Repository.query.filter(Repository.id == repository_id_new).first()
             if repo is None:
-                return send_error(message="Not found Folder, refresh the page to view the changes.", is_dynamic=True)
+                return send_error(message="Test Repository has been changed"
+                                          " \nrefresh the page to view the changes.", is_dynamic=True)
 
             test_now = TestRepository.query.filter(TestRepository.test_id == test_id).first()
             if test_now is None:
                 index = TestRepository.query.filter(TestRepository.repository_id == repository_id_new).count()
+                test_repo = TestRepository.query.filter(TestRepository.repository_id == repository_id_new).first()
+                repo = Repository.query.filter(Repository.id == test_repo.repository_id).first()
                 test_to_repo = TestRepository(
                     id=str(uuid.uuid4()),
                     test_id=test_id,
@@ -167,7 +176,10 @@ def move_test_to_repo():
                 )
                 db.session.add(test_to_repo)
                 db.session.flush()
+                message = f"Test(s) moved to folder {repo.name}"
             else:
+                test_repo = TestRepository.query.filter(TestRepository.repository_id == repository_id_new).first()
+                repo = Repository.query.filter(Repository.id == test_repo.repository_id).first()
                 check = False if test_now.repository_id == repository_id_old else True
                 test_now.repository_id = repository_id_new
                 test_now.create_date = get_timestamp_now()
@@ -178,8 +190,9 @@ def move_test_to_repo():
                 db.session.commit()
                 if check:
                     return send_result(message="Please refresh the page to view the changes.| Move success", show=True)
+                message = f"Test(s) moved to folder {repo.name}"
         db.session.commit()
-        return send_result(message="Move success", show=True)
+        return send_result(message=message, show=True)
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
