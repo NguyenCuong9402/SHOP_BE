@@ -330,12 +330,14 @@ def change_repo():
         project_id = token.get('projectId')
         body_request = request.get_json()
         parent_id = body_request.get('parent_id', '')
-        index_drop = body_request.get('index_drop', 0, type=int)
+        index_drop = body_request.get('index_drop')
         repository_id = body_request.get('repository_id', '')
         if repository_id == "" or repository_id == "-1":
             return send_error(message="Must not change")
         repo_now = Repository.query.filter(TestRepository.id == repository_id).first()
         if repo_now.parent_id == parent_id:
+            if index_drop == 0 or index_drop == "":
+                return send_result(message="No change")
             if repo_now.index < index_drop:
                 Repository.query.filter(Repository.cloud_id == cloud_id, Repository.project_id == project_id,
                                         Repository.parent_id == parent_id) \
@@ -351,10 +353,11 @@ def change_repo():
                 repo_now.index = index_drop
                 db.session.flush()
         else:
-            pass
+            repo_now = Repository.query.filter(TestRepository.id == repository_id).first()
+            repo_parent = Repository.query.filter(TestRepository.id == parent_id).all()
         db.session.commit()
     except Exception as ex:
-        return send_error(message="")
+        return send_error(message=str(ex))
 
 
 def check_coincided_name(name='', self_id=None, project_id='', cloud_id='', parent_id=''):
