@@ -321,6 +321,28 @@ def get_repo():
         return send_error(message=str(ex))
 
 
+@api.route("/change-repository", methods=["PUT"])
+@authorization_require()
+def change_repo():
+    try:
+        token = get_jwt_identity()
+        cloud_id = token.get('cloudId')
+        project_id = token.get('projectId')
+        body_request = request.get_json()
+        parent_id = body_request.get('parent_id', '')
+        index = body_request.get('index', 0, type=int)
+        repository_id = body_request.get('repository_id', '')
+        if repository_id == "" or repository_id == "-1":
+            return send_error(message="Must not change")
+        repo_now = Repository.query.filter(TestRepository.id == repository_id).first()
+        if repo_now.parent_id == parent_id:
+            pass
+        else:
+            pass
+    except Exception as ex:
+        return send_error(message="")
+
+
 def check_coincided_name(name='', self_id=None, project_id='', cloud_id='', parent_id=''):
     if parent_id == '':
         existed_test_step = Repository.query.filter(
