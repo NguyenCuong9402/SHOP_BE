@@ -8,7 +8,7 @@ from flask_jwt_extended import get_jwt_identity
 from sqlalchemy import func, asc, and_, desc
 
 from app.gateway import authorization_require
-from app.models import db, TestRepository, Repository, TestCase
+from app.models import db, TestRepository, Repository, TestCase, TestCasesTestSets
 from app.utils import send_result, send_error, get_timestamp_now
 from app.validator import TestCaseSchema, RepositorySchema, RepositoryProjectSchema
 
@@ -215,7 +215,7 @@ def remove_test_to_repo():
         return send_error(message=str(ex))
 
 
-@api.route("/get-test", methods=["GET"])
+@api.route("/get-test", methods=["POST"])
 @authorization_require()
 def get_test_in_repo():
     try:
@@ -223,6 +223,9 @@ def get_test_in_repo():
         cloud_id = token.get('cloudId')
         project_id = token.get('projectId')
         repository_id = request.args.get('repository_id', '', type=str)
+        body_request = request.get_json()
+        test_types = body_request.get("test_types", [])
+        test_sets = body_request.get("test_sets", [])
         if repository_id == '' or repository_id == "-1":
             count_repo = Repository.query.filter(Repository.cloud_id == cloud_id, Repository.project_id).count()
             if count_repo == 0:
@@ -241,8 +244,14 @@ def get_test_in_repo():
             test_repos = TestRepository.query.filter(TestRepository.repository_id.in_(repo_id)).all()
             test_ids = [test_repo.test_id for test_repo in test_repos]
             test_cases_not_in_repo = TestCase.query.filter(TestCase.id.notin_(test_ids)).order_by(
-                desc(TestCase.issue_key)).all()
-            tests = TestCaseSchema(many=True).dump(test_cases_not_in_repo)
+                desc(TestCase.issue_key))
+            if len(test_types) > 0:
+                test_cases_not_in_repo = test_cases_not_in_repo.filter(TestCase.test_type_id.in_(test_types))
+            if len(test_sets) > 0:
+                test_cases_not_in_repo = test_cases_not_in_repo.join(TestCasesTestSets, test_cases_not_in_repo.id ==
+                                                                     TestCasesTestSets.test_case_id)\
+                    .filter(TestCasesTestSets.test_set_id.in_(test_sets))
+            tests = TestCaseSchema(many=True).dump(test_cases_not_in_repo.all())
             return send_result(data={"test_cases": tests, "repository_id": "-1"})
         else:
             repo = Repository.query.filter(Repository.cloud_id == cloud_id, Repository.project_id == project_id,
@@ -250,8 +259,14 @@ def get_test_in_repo():
             test_repos = TestRepository.query.filter(TestRepository.repository_id == repo.id).all()
             test_ids = [test_repo.test_id for test_repo in test_repos]
             test_cases_in_repo = TestCase.query.filter(TestCase.id.in_(test_ids))\
-                .order_by(desc(TestCase.issue_id)).all()
-            tests = TestCaseSchema(many=True).dump(test_cases_in_repo)
+                .order_by(desc(TestCase.issue_id))
+            if len(test_types) > 0:
+                test_cases_in_repo = test_cases_in_repo.filter(TestCase.test_type_id.in_(test_types))
+            if len(test_sets) > 0:
+                test_cases_in_repo = test_cases_in_repo.join(TestCasesTestSets,
+                                                             test_cases_in_repo.id == TestCasesTestSets.test_case_id)\
+                    .filter(TestCasesTestSets.test_set_id.in_(test_sets))
+            tests = TestCaseSchema(many=True).dump(test_cases_in_repo.all())
             return send_result(data={"test_cases": tests, "repository_id": repository_id})
     except Exception as ex:
         db.session.rollback()
