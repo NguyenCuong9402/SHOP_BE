@@ -278,7 +278,6 @@ def get_repo():
             db.session.commit()
         repos = Repository.query.filter(Repository.cloud_id == cloud_id, Repository.project_id == project_id,
                                         Repository.id != DEFAULT_DATA['id']).all()
-        repository = RepositorySchema(many=True).dump(repos)
         # set data -> repo_0
         repo_0 = Repository.query.filter(Repository.cloud_id == cloud_id, Repository.project_id == project_id,
                                          Repository.id == DEFAULT_DATA['id']).first()
@@ -288,7 +287,7 @@ def get_repo():
         test_ids = [test_repo.test_id for test_repo in test_repos]
         count_test_repo_0 = TestCase.query.filter(TestCase.id.notin_(test_ids)).count()
         repository_0['count_test'] = count_test_repo_0
-        return send_result(data=[repository_0]+repository)
+        return send_result(data=[repository_0])
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
