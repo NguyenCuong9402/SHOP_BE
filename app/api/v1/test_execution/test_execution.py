@@ -166,8 +166,8 @@ def add_test_to_test_execution(test_execution_issue_id):
             else:
                 return send_error(message='Test Executions were already associated with the Test',
                                   status=200, show=False)
-        db.session.commit()
         save_history_test_execution(test_execution.id, user_id, 1, 3, test_case_ids)
+        db.session.commit()
         return send_result(message=f'Add {len(test_case_ids)} test case to execution case successfully')
     except Exception as ex:
         db.session.rollback()
@@ -264,8 +264,8 @@ def remove_test_to_test_execution(test_execution_issue_id):
             TestCasesTestExecutions.test_execution_id == test_execution.id) \
             .filter(TestCasesTestExecutions.test_case_id.in_(test_case_ids)).delete()
         db.session.flush()
-        db.session.commit()
         save_history_test_execution(test_execution.id, user_id, 2, 3, test_case_ids)
+        db.session.commit()
         return send_result(message=f'Remove {len(test_case_ids)} test to test case execution successfully')
     except Exception as ex:
         db.session.rollback()
