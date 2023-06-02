@@ -7,6 +7,7 @@ import pandas as pd
 
 from app.api.v1.history_test import save_history_test_set
 from app.api.v1.test_run.schema import TestRunSchema
+from app.api.v1.test_type.test_type import get_test_type_default
 from app.gateway import authorization_require
 from app.models import TestCase, db, TestRun, TestExecution, \
     TestStatus, TestSet, TestCasesTestSets, TestType, TestStep
@@ -111,7 +112,7 @@ def add_test_to_test_set(test_set_issue_id):
         test_set = TestSet.query.filter(TestSet.issue_id == test_set_issue_id,
                                         TestSet.cloud_id == cloud_id,
                                         TestSet.project_id == project_id).first()
-
+        test_type_id = get_test_type_default(cloud_id, project_id)
         if test_set is None:
             test_set = TestSet(
                 id=str(uuid.uuid4()),
@@ -140,7 +141,8 @@ def add_test_to_test_set(test_set_issue_id):
                     issue_key=test_case_issue_key,
                     project_id=project_id,
                     cloud_id=cloud_id,
-                    created_date=get_timestamp_now()
+                    created_date=get_timestamp_now(),
+                    test_type_id=test_type_id
                 )
                 db.session.add(test_case)
                 db.session.flush()

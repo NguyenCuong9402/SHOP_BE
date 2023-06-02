@@ -12,6 +12,7 @@ from werkzeug.utils import secure_filename, send_file
 
 from app.api.v1.setting.setting_validator import UpdateMiscellaneousRequest
 from app.api.v1.test_run.schema import TestRunSchema, CombineSchema
+from app.api.v1.test_type.test_type import get_test_type_default
 from app.enums import FILE_PATH, URL_SERVER
 from app.gateway import authorization_require
 from app.models import TestStep, TestCase, TestType, db, TestField, Setting, TestRun, TestExecution, \
@@ -459,6 +460,7 @@ def post_defect(test_run_id):
             return send_error("Not found test run")
         # 1 : test case  2: test set  3:test_execution
         if type_kind == "Test Case":
+            test_type_id = get_test_type_default(cloud_id, project_id)
             test_case = TestCase.query.filter(TestCase.cloud_id == cloud_id, TestCase.project_id == project_id,
                                               TestCase.issue_id == issue_id, TestCase.issue_key == issue_key).first()
             if test_case is None:
@@ -468,7 +470,8 @@ def post_defect(test_run_id):
                     issue_key=issue_key,
                     project_id=project_id,
                     cloud_id=cloud_id,
-                    created_date=get_timestamp_now()
+                    created_date=get_timestamp_now(),
+                    test_type_id=test_type_id
                 )
                 db.session.add(test_case)
                 db.session.flush()

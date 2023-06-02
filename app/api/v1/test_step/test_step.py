@@ -9,6 +9,7 @@ from sqlalchemy import func, asc, and_, desc
 
 from app.api.v1.history_test import save_history_test_step
 from app.api.v1.test_execution.test_execution import add_test_step_id_by_test_case_id_2
+from app.api.v1.test_type.test_type import get_test_type_default
 from app.enums import FILE_PATH
 from app.gateway import authorization_require
 from app.models import TestStep, db, TestStepField, TestRunField, TestCase, TestStepDetail, HistoryTest, TestRun, \
@@ -31,6 +32,7 @@ def add_test_step(issue_id):
         issue_key = token.get('issue_key')
         test_case = TestCase.query.filter(TestCase.issue_id == issue_id, TestCase.project_id == project_id,
                                           TestCase.cloud_id == cloud_id).first()
+        test_type_id = get_test_type_default(cloud_id, project_id)
         if test_case is None:
             test_case = TestCase(
                 id=str(uuid.uuid4()),
@@ -38,7 +40,8 @@ def add_test_step(issue_id):
                 issue_key=issue_key,
                 project_id=project_id,
                 cloud_id=cloud_id,
-                created_date=get_timestamp_now()
+                created_date=get_timestamp_now(),
+                test_type_id=test_type_id
             )
             db.session.add(test_case)
             db.session.flush()
@@ -328,6 +331,7 @@ def call_test_case(issue_id, issue_id_reference):
         test_case_reference = TestCase.query.filter(TestCase.issue_id == issue_id_reference,
                                                     TestCase.project_id == project_id,
                                                     TestCase.cloud_id == cloud_id).first()
+        test_type_id = get_test_type_default(cloud_id, project_id)
         if test_case is None:
             test_case = TestCase(
                 id=str(uuid.uuid4()),
@@ -335,7 +339,8 @@ def call_test_case(issue_id, issue_id_reference):
                 issue_key=issue_key,
                 project_id=project_id,
                 cloud_id=cloud_id,
-                created_date=get_timestamp_now()
+                created_date=get_timestamp_now(),
+                test_type_id=test_type_id
             )
             db.session.add(test_case)
             db.session.flush()
@@ -529,6 +534,8 @@ def update_test_step(issue_id, test_step_id):
         issue_key = token.get('issue_key')
         test_case = TestCase.query.filter(TestCase.issue_id == issue_id, TestCase.project_id == project_id,
                                           TestCase.cloud_id == cloud_id).first()
+        test_type_id = get_test_type_default(cloud_id, project_id)
+
         if test_case is None:
             test_case = TestCase(
                 id=str(uuid.uuid4()),
@@ -536,7 +543,8 @@ def update_test_step(issue_id, test_step_id):
                 issue_key=issue_key,
                 project_id=project_id,
                 cloud_id=cloud_id,
-                created_date=get_timestamp_now()
+                created_date=get_timestamp_now(),
+                test_type_id=test_type_id
             )
             db.session.add(test_case)
             db.session.flush()

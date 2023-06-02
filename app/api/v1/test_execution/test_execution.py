@@ -11,6 +11,7 @@ from sqlalchemy import desc, asc
 from sqlalchemy.orm import joinedload
 from app.api.v1.history_test import save_history_test_execution
 from app.api.v1.test_run.schema import TestRunSchema
+from app.api.v1.test_type.test_type import get_test_type_default
 from app.enums import FILE_PATH
 from app.gateway import authorization_require
 from app.models import TestStep, TestCase, TestType, db, TestField, Setting, TestRun, TestExecution, \
@@ -103,6 +104,7 @@ def add_test_to_test_execution(test_execution_issue_id):
             db.session.add(test_execution)
             db.session.flush()
         test_case_ids = []
+        test_type_id = get_test_type_default(cloud_id, project_id)
         for test_case_issue_id, test_case_issue_key in test_cases.items():
             """
                Get test execution, create new if not exist
@@ -117,7 +119,8 @@ def add_test_to_test_execution(test_execution_issue_id):
                     issue_key=test_case_issue_key,
                     project_id=project_id,
                     cloud_id=cloud_id,
-                    created_date=get_timestamp_now()
+                    created_date=get_timestamp_now(),
+                    test_type_id=test_type_id
                 )
                 db.session.add(test_case)
                 db.session.flush()

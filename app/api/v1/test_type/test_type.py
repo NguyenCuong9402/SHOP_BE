@@ -195,3 +195,24 @@ DEFAULT_DATA = {
     "is_default": True,
     "index": 0
 }
+
+
+def get_test_type_default(cloud_id: str, project_id: str):
+    test_type = TestType.query.filter(TestType.cloud_id == cloud_id, project_id == project_id).count()
+    if test_type == 0:
+        test_type = TestType(
+            id=str(uuid.uuid4()),
+            name=DEFAULT_DATA['name'],
+            kind=DEFAULT_DATA['kind'],
+            is_default=DEFAULT_DATA['is_default'],
+            index=DEFAULT_DATA['index'],
+            project_id=project_id,
+            cloud_id=cloud_id,
+            created_date=get_timestamp_now()
+        )
+        db.session.add(test_type)
+        db.session.flush()
+    test_type_default = TestType.query.filter(TestType.cloud_id == cloud_id, project_id == project_id,
+                                              TestType.is_default == 1).first()
+    return test_type_default.id
+
