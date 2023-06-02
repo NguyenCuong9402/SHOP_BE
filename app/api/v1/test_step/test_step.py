@@ -135,9 +135,9 @@ def add_test_step(issue_id):
         elif len(field_name) == len(test_step.custom_fields):
             for i, name in enumerate(test_step.custom_fields):
                 detail_of_action[field_name[i]] = name
-        db.session.commit()
         # Save history
         save_history_test_step(test_case.id, user_id, 1, 2, detail_of_action, [count_index + 1])
+        db.session.commit()
         return send_result(data='add success')
     except Exception as ex:
         db.session.rollback()
@@ -247,9 +247,9 @@ def remove_test_step(test_step_id, issue_id):
             .update(dict(index=TestStep.index - 1))
         db.session.delete(test_step)
         db.session.flush()
-        db.session.commit()
         # Save history
         save_history_test_step(test_case.id, user_id, 2, 2, detail_of_action, [index])
+        db.session.commit()
         return send_result(data="", message="Test step removed successfully", code=200, show=True)
     except Exception as ex:
         db.session.rollback()
@@ -308,9 +308,9 @@ def change_rank_test_step(issue_id):
             db.session.query(TestRun).filter(TestRun.project_id == project_id, TestRun.cloud_id == cloud_id,
                                              TestRun.test_case_id == test_case_id).update({"is_updated": 1})
             db.session.flush()
-        db.session.commit()
         # Save history
         save_history_test_step(test_case.id, user_id, 3, 2, {}, [index_drag, index_drop])
+        db.session.commit()
         return send_result(data="", message="success", code=200, show=True)
     except Exception as ex:
         db.session.rollback()
@@ -425,10 +425,10 @@ def call_test_case(issue_id, issue_id_reference):
             db.session.query(TestRun).filter(TestRun.project_id == project_id, TestRun.cloud_id == cloud_id,
                                              TestRun.test_case_id == test_case_id).update({"is_updated": 1})
             db.session.flush()
-        db.session.commit()
         # Create detail_of_action and Save history
         detail_of_action = {"Call test": test_case_reference.issue_key}
         save_history_test_step(test_case.id, user_id, 5, 2, detail_of_action, [test_step.index + 1])
+        db.session.commit()
         return send_result(data='Call success', show=True)
     except Exception as ex:
         db.session.rollback()
@@ -516,6 +516,7 @@ def clone_test_step(issue_id, test_step_id):
             for i, name in enumerate(test_step.custom_fields):
                 detail_of_action[field_name[i]] = name
         save_history_test_step(test_case.id, user_id, 4, 2, detail_of_action, [test_step.index + 1])
+        db.session.commit()
         return send_result(data='', message="Step clone successfully",
                            show=True)
     except Exception as ex:
