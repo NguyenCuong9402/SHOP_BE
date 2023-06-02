@@ -330,15 +330,29 @@ def change_repo():
         project_id = token.get('projectId')
         body_request = request.get_json()
         parent_id = body_request.get('parent_id', '')
-        index = body_request.get('index', 0, type=int)
+        index_drop = body_request.get('index_drop', 0, type=int)
         repository_id = body_request.get('repository_id', '')
         if repository_id == "" or repository_id == "-1":
             return send_error(message="Must not change")
         repo_now = Repository.query.filter(TestRepository.id == repository_id).first()
         if repo_now.parent_id == parent_id:
-            pass
+            if repo_now.index < index_drop:
+                Repository.query.filter(Repository.cloud_id == cloud_id, Repository.project_id == project_id,
+                                        Repository.parent_id == parent_id) \
+                    .filter(Repository.index < index_drop + 1).filter(Repository.index > repo_now.index)\
+                    .update(dict(index=Repository.index - 1))
+                repo_now.index = index_drop
+                db.session.flush()
+            else:
+                Repository.query.filter(Repository.cloud_id == cloud_id, Repository.project_id == project_id,
+                                        Repository.parent_id == parent_id) \
+                    .filter(Repository.index < repo_now.index).filter(Repository.index > index_drop - 1) \
+                    .update(dict(index=Repository.index + 1))
+                repo_now.index = index_drop
+                db.session.flush()
         else:
             pass
+        db.session.commit()
     except Exception as ex:
         return send_error(message="")
 
