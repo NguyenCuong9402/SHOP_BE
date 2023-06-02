@@ -175,8 +175,8 @@ def change_test_type(issue_id, test_type_id):
         old_type_name = old_type.name
         test_case.test_type_id = new_type.id
         db.session.flush()
-        db.session.commit()
         save_history_test_case(test_case.id, user_id, 2, [old_type_name, new_type.name])
+        db.session.commit()
         return send_result(message="success")
 
     except Exception as ex:
@@ -288,10 +288,11 @@ def add_test_execution(test_issue_id):
             else:
                 return send_error(message='Some Test Executions were already associated with the Test',
                                   status=200, show=False)
-
-        db.session.commit()
         save_history_test_case(test_case.id, user_id, 4, 2, test_execution_ids, [])
-        return send_result(message=f'Add {len(test_execution_ids)} test execution to test case successfully', show=True)
+        db.session.commit()
+        if len(test_execution_ids) == 0:
+            return send_result(message="The test execution(s) already exists in test case",show=True)
+        return send_result(message=f'Add {len(test_execution_ids)} test execution(s) to test case successfully', show=True)
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
@@ -339,9 +340,9 @@ def remove_test_execution(issue_id):
             TestCasesTestExecutions.test_case_id == test_case.id) \
             .filter(TestCasesTestExecutions.test_execution_id.in_(test_execution_ids)).delete()
         db.session.flush()
-        db.session.commit()
         save_history_test_case(test_case.id, user_id, 5, 2, test_execution_ids, [])
-        return send_result(message=f'Remove {len(test_execution_ids)} test to test case execution successfully')
+        db.session.commit()
+        return send_result(message=f'Remove {len(test_execution_ids)} test(s) to test case execution successfully')
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
@@ -449,9 +450,9 @@ def delete_tests_set_from_testcase(issue_id):
             db.session.flush()
             ids_to_delete = ids
         db.session.commit()
-        message = f'{number_test_set} Test Set(s) removed from the Test'
         # save history
         save_history_test_case(test_case.id, user_id, 3, 2, ids_to_delete, [])
+        message = f'{number_test_set} Test Set(s) removed from the Test'
         return send_result(message_id=DELETE_SUCCESS, message=message, show=True)
     except Exception as ex:
         db.session.rollback()
@@ -517,11 +518,12 @@ def add_tests_set_for_testcase(issue_id):
                 test_set_ids.append(test_set.id)
                 db.session.add(test_set_test_case)
                 db.session.flush()
-        db.session.commit()
         # save history
         save_history_test_case(test_case.id, user_id, 2, 2, test_set_ids, [])
-        message = f'{len(test_set_ids)} Test Set(s) added to the Test'
-        return send_result(message_id=ADD_SUCCESS, message=message, show=True)
+        db.session.commit()
+        if len(test_set_ids) == 0:
+            return send_result(message="The Test Set(s) already exist in the Test Case", show=True)
+        return send_result(message_id=ADD_SUCCESS, message=f'{len(test_set_ids)} Test Set(s) added to the Test', show=True)
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
