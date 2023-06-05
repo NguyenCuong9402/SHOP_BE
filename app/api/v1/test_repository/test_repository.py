@@ -431,27 +431,21 @@ def change_repo():
                 repo_now.index = index_drop
                 db.session.flush()
         else:
-            repo_now_is_parent = Repository.query.filter(Repository.cloud_id == cloud_id,
-                                                         Repository.project_id == project_id,
-                                                         Repository.parent_id == repository_id).all()
-            if len(repo_now_is_parent) == 0:
-                Repository.query.filter(Repository.cloud_id == cloud_id, Repository.project_id == project_id,
-                                        Repository.parent_id == repo_now.parent_id) \
-                    .filter(Repository.index > repo_now.index)\
-                    .update(dict(index=Repository.index - 1))
-                repo_parent_count = Repository.query.filter(Repository.parent_id == parent_id, Repository.cloud_id == cloud_id,
-                                                            Repository.project_id).count()
-                if index_drop < 1 or index_drop > repo_parent_count + 1:
-                    return send_error(message=f'Must be a value between 1 and {repo_parent_count}')
-                Repository.query.filter(Repository.cloud_id == cloud_id, Repository.project_id == project_id,
-                                        Repository.parent_id == parent_id) \
-                    .filter(Repository.index > index_drop - 1) \
-                    .update(dict(index=Repository.index + 1))
-                repo_now.index = index_drop
-                repo_now.parent_id = parent_id
-                db.session.flush()
-            else:
-                pass
+            Repository.query.filter(Repository.cloud_id == cloud_id, Repository.project_id == project_id,
+                                    Repository.parent_id == repo_now.parent_id) \
+                .filter(Repository.index > repo_now.index)\
+                .update(dict(index=Repository.index - 1))
+            repo_parent_count = Repository.query.filter(Repository.parent_id == parent_id, Repository.cloud_id == cloud_id,
+                                                        Repository.project_id).count()
+            if index_drop < 1 or index_drop > repo_parent_count + 1:
+                return send_error(message=f'Must be a value between 1 and {repo_parent_count}')
+            Repository.query.filter(Repository.cloud_id == cloud_id, Repository.project_id == project_id,
+                                    Repository.parent_id == parent_id) \
+                .filter(Repository.index > index_drop - 1) \
+                .update(dict(index=Repository.index + 1))
+            repo_now.index = index_drop
+            repo_now.parent_id = parent_id
+            db.session.flush()
         db.session.commit()
         return send_result(message="change oke")
     except Exception as ex:
