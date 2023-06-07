@@ -5,10 +5,11 @@ import uuid
 from operator import or_
 from flask import Blueprint, request
 from flask_jwt_extended import get_jwt_identity
-from sqlalchemy import func, asc, and_
+from sqlalchemy import func, asc, and_, desc
 
 from app.api.v1.history_test import save_history_test_step
-from app.api.v1.test_execution.test_execution import add_test_step_id_by_test_case_id
+from app.api.v1.test_execution.test_execution import add_test_step_id_by_test_case_id_2
+from app.api.v1.test_type.test_type import get_test_type_default
 from app.enums import FILE_PATH
 from app.gateway import authorization_require
 from app.models import TestStep, db, TestStepField, TestRunField, TestCase, TestStepDetail, HistoryTest, TestRun, \
@@ -31,6 +32,7 @@ def add_test_step(issue_id):
         issue_key = token.get('issue_key')
         test_case = TestCase.query.filter(TestCase.issue_id == issue_id, TestCase.project_id == project_id,
                                           TestCase.cloud_id == cloud_id).first()
+        test_type_id = get_test_type_default(cloud_id, project_id)
         if test_case is None:
             test_case = TestCase(
                 id=str(uuid.uuid4()),
@@ -38,7 +40,8 @@ def add_test_step(issue_id):
                 issue_key=issue_key,
                 project_id=project_id,
                 cloud_id=cloud_id,
-                created_date=get_timestamp_now()
+                created_date=get_timestamp_now(),
+                test_type_id=test_type_id
             )
             db.session.add(test_case)
             db.session.flush()
@@ -132,9 +135,9 @@ def add_test_step(issue_id):
         elif len(field_name) == len(test_step.custom_fields):
             for i, name in enumerate(test_step.custom_fields):
                 detail_of_action[field_name[i]] = name
-        db.session.commit()
         # Save history
         save_history_test_step(test_case.id, user_id, 1, 2, detail_of_action, [count_index + 1])
+        db.session.commit()
         return send_result(data='add success')
     except Exception as ex:
         db.session.rollback()
@@ -144,30 +147,32 @@ def add_test_step(issue_id):
 def add_test_detail_for_test_case_call(cloud_id: str, project_id: str, test_case_id_reference: str,
                                        status_id: str, link: str):
     try:
-        test_steps = TestStep.query.filter(TestStep.cloud_id == cloud_id, TestStep.project_id == project_id,
-                                           TestStep.test_case_id_reference == test_case_id_reference) \
-            .order_by(asc(TestStep.created_date)).all()
-        for test_step in test_steps:
-            new_link = test_step.id + "/" + link
-            test_runs = TestRun.query.filter(TestRun.cloud_id == cloud_id,
-                                             TestRun.project_id == project_id,
-                                             TestRun.test_case_id == test_step.test_case_id).all()
-            for test_run in test_runs:
-                test_run.is_updated = 1
-                test_step_detail = TestStepDetail(
-                    id=str(uuid.uuid4()),
-                    test_step_id=test_step.id,
-                    status_id=status_id,
-                    test_run_id=test_run.id,
-                    created_date=get_timestamp_now(),
-                    link=new_link
-                )
-                db.session.add(test_step_detail)
-                db.session.flush()
-            add_test_detail_for_test_case_call(cloud_id, project_id, test_step.test_case_id, status_id, new_link)
-        db.session.commit()
+        stack = [(test_case_id_reference, link)]  # Khởi tạo stack và thêm (test_case_id_reference, link) vào stack
+        while len(stack) > 0:
+            current_test_case_id, current_link = stack.pop()  # Lấy phần tử cuối cùng từ stack
+            test_steps = TestStep.query.filter(TestStep.cloud_id == cloud_id, TestStep.project_id == project_id,
+                                               TestStep.test_case_id_reference == current_test_case_id) \
+                .order_by(desc(TestStep.index)).all()
+            for test_step in test_steps:
+                new_link = test_step.id + "/" + current_link
+                test_runs = TestRun.query.filter(TestRun.cloud_id == cloud_id,
+                                                 TestRun.project_id == project_id,
+                                                 TestRun.test_case_id == test_step.test_case_id).all()
+                for test_run in test_runs:
+                    test_run.is_updated = 1
+                    test_step_detail = TestStepDetail(
+                        id=str(uuid.uuid4()),
+                        test_step_id=test_step.id,
+                        status_id=status_id,
+                        test_run_id=test_run.id,
+                        created_date=get_timestamp_now(),
+                        link=new_link
+                    )
+                    db.session.add(test_step_detail)
+                    db.session.flush()
+                stack.append((test_step.test_case_id, new_link))  # Thêm (test_case_id liên quan, new_link) vào stack
     except Exception as ex:
-        db.session.rollback()
+        return send_error(message=str(ex))
 
 
 @api.route("/<issue_id>/<test_step_id>", methods=["DELETE"])
@@ -242,9 +247,9 @@ def remove_test_step(test_step_id, issue_id):
             .update(dict(index=TestStep.index - 1))
         db.session.delete(test_step)
         db.session.flush()
-        db.session.commit()
         # Save history
         save_history_test_step(test_case.id, user_id, 2, 2, detail_of_action, [index])
+        db.session.commit()
         return send_result(data="", message="Test step removed successfully", code=200, show=True)
     except Exception as ex:
         db.session.rollback()
@@ -303,9 +308,9 @@ def change_rank_test_step(issue_id):
             db.session.query(TestRun).filter(TestRun.project_id == project_id, TestRun.cloud_id == cloud_id,
                                              TestRun.test_case_id == test_case_id).update({"is_updated": 1})
             db.session.flush()
-        db.session.commit()
         # Save history
         save_history_test_step(test_case.id, user_id, 3, 2, {}, [index_drag, index_drop])
+        db.session.commit()
         return send_result(data="", message="success", code=200, show=True)
     except Exception as ex:
         db.session.rollback()
@@ -326,6 +331,7 @@ def call_test_case(issue_id, issue_id_reference):
         test_case_reference = TestCase.query.filter(TestCase.issue_id == issue_id_reference,
                                                     TestCase.project_id == project_id,
                                                     TestCase.cloud_id == cloud_id).first()
+        test_type_id = get_test_type_default(cloud_id, project_id)
         if test_case is None:
             test_case = TestCase(
                 id=str(uuid.uuid4()),
@@ -333,7 +339,8 @@ def call_test_case(issue_id, issue_id_reference):
                 issue_key=issue_key,
                 project_id=project_id,
                 cloud_id=cloud_id,
-                created_date=get_timestamp_now()
+                created_date=get_timestamp_now(),
+                test_type_id=test_type_id
             )
             db.session.add(test_case)
             db.session.flush()
@@ -382,9 +389,10 @@ def call_test_case(issue_id, issue_id_reference):
                     db.session.add(test_step_detail)
                     db.session.flush()
                 else:
-                    add_test_step_id_by_test_case_id(cloud_id, project_id, test_step.test_case_id_reference,
+                    add_test_step_id_by_test_case_id_2(cloud_id, project_id, test_step.test_case_id_reference,
                                                      test_run.id, status.id, link)
-        # Add test details những test run tạo bởi test case có  test case id call  là reference
+        # Add test details những test run tạo bởi test case có  test case id call  là reference /
+        # cần sửa vì link = test call + call + test dc call ( mới làm đến test call + call)
         test_steps = TestStep.query.filter(TestStep.cloud_id == cloud_id, TestStep.project_id == project_id,
                                            TestStep.test_case_id_reference == test_case.id).all()
         test_case_ids = [item.test_case_id for item in test_steps]
@@ -417,10 +425,10 @@ def call_test_case(issue_id, issue_id_reference):
             db.session.query(TestRun).filter(TestRun.project_id == project_id, TestRun.cloud_id == cloud_id,
                                              TestRun.test_case_id == test_case_id).update({"is_updated": 1})
             db.session.flush()
-        db.session.commit()
         # Create detail_of_action and Save history
         detail_of_action = {"Call test": test_case_reference.issue_key}
         save_history_test_step(test_case.id, user_id, 5, 2, detail_of_action, [test_step.index + 1])
+        db.session.commit()
         return send_result(data='Call success', show=True)
     except Exception as ex:
         db.session.rollback()
@@ -508,6 +516,7 @@ def clone_test_step(issue_id, test_step_id):
             for i, name in enumerate(test_step.custom_fields):
                 detail_of_action[field_name[i]] = name
         save_history_test_step(test_case.id, user_id, 4, 2, detail_of_action, [test_step.index + 1])
+        db.session.commit()
         return send_result(data='', message="Step clone successfully",
                            show=True)
     except Exception as ex:
@@ -526,6 +535,8 @@ def update_test_step(issue_id, test_step_id):
         issue_key = token.get('issue_key')
         test_case = TestCase.query.filter(TestCase.issue_id == issue_id, TestCase.project_id == project_id,
                                           TestCase.cloud_id == cloud_id).first()
+        test_type_id = get_test_type_default(cloud_id, project_id)
+
         if test_case is None:
             test_case = TestCase(
                 id=str(uuid.uuid4()),
@@ -533,7 +544,8 @@ def update_test_step(issue_id, test_step_id):
                 issue_key=issue_key,
                 project_id=project_id,
                 cloud_id=cloud_id,
-                created_date=get_timestamp_now()
+                created_date=get_timestamp_now(),
+                test_type_id=test_type_id
             )
             db.session.add(test_case)
             db.session.flush()
@@ -572,22 +584,30 @@ def update_test_step(issue_id, test_step_id):
 
 
 def get_test_case_id(cloud_id: str, project_id: str, test_case_id: str, set_id: set):
-    test_step_call_test_case_id = TestStep.query.filter(TestStep.cloud_id == cloud_id,
-                                                        TestStep.project_id == project_id,
-                                                        TestStep.test_case_id_reference == test_case_id).all()
-    for test_step in test_step_call_test_case_id:
-        set_id.add(test_step.test_case_id)
-        set_id_child = get_test_case_id(cloud_id, project_id, test_step.test_case_id, set_id)
-        set_id = set_id | set_id_child
+    stack = [test_case_id]
+    while True:
+        if not stack:
+            break
+        current_test_id = stack.pop()
+        test_step_call_test_case_id = TestStep.query.filter(TestStep.cloud_id == cloud_id,
+                                                            TestStep.project_id == project_id,
+                                                            TestStep.test_case_id_reference == current_test_id).all()
+        for test_step in test_step_call_test_case_id:
+            set_id.add(test_step.test_case_id)
+            stack.append(test_step.test_case_id)
     return set_id
 
 
 def get_test_case_reference(cloud_id: str, project_id: str, test_case_id_reference: str, set_id: set):
-    test_step_call_test_case_id = TestStep.query.filter(TestStep.cloud_id == cloud_id,
-                                                        TestStep.project_id == project_id,
-                                                        TestStep.test_case_id == test_case_id_reference).all()
-    for test_step in test_step_call_test_case_id:
-        set_id.add(test_step.test_case_id_reference)
-        set_id_child = get_test_case_reference(cloud_id, project_id, test_step.test_case_id_reference, set_id)
-        set_id = set_id | set_id_child
+    stack = [test_case_id_reference]
+    while True:
+        if not stack:
+            break
+        current_test_id = stack.pop()
+        test_step_test_case_id_call = TestStep.query.filter(TestStep.cloud_id == cloud_id,
+                                                            TestStep.project_id == project_id,
+                                                            TestStep.test_case_id == current_test_id).all()
+        for test_step in test_step_test_case_id_call:
+            set_id.add(test_step.test_case_id_reference)
+            stack.append(test_step.test_case_id_reference)
     return set_id

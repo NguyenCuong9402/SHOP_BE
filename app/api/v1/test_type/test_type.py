@@ -9,7 +9,7 @@ from sqlalchemy import func, asc, and_
 
 from app.api.v1.test_type.test_type_validator import CreateTestType, UpdateTestType
 from app.gateway import authorization_require
-from app.models import TestType, db
+from app.models import TestType, db, TestCase
 from app.utils import send_result, send_error, validate_request, get_timestamp_now
 from app.validator import TestTypeSchema
 
@@ -195,3 +195,41 @@ DEFAULT_DATA = {
     "is_default": True,
     "index": 0
 }
+
+
+def get_test_type_default(cloud_id: str, project_id: str):
+    test_type = TestType.query.filter(TestType.cloud_id == cloud_id, project_id == project_id).count()
+    if test_type == 0:
+        test_type = TestType(
+            id=str(uuid.uuid4()),
+            name=DEFAULT_DATA['name'],
+            kind=DEFAULT_DATA['kind'],
+            is_default=DEFAULT_DATA['is_default'],
+            index=DEFAULT_DATA['index'],
+            project_id=project_id,
+            cloud_id=cloud_id,
+            created_date=get_timestamp_now()
+        )
+        db.session.add(test_type)
+        db.session.flush()
+    test_type_default = TestType.query.filter(TestType.cloud_id == cloud_id, project_id == project_id,
+                                              TestType.is_default == 1).first()
+    return test_type_default.id
+
+
+@api.route("/<project_id>", methods=["PUT"])
+@authorization_require()
+def set_default_type_to_test(project_id):
+    try:
+        token = get_jwt_identity()
+        cloud_id = token.get('cloudId')
+        test_type_id = get_test_type_default(cloud_id, project_id)
+        TestCase.query.filter(TestCase.project_id == project_id, TestCase.cloud_id == cloud_id,
+                              TestCase.test_type_id.is_(None))\
+            .update({"test_type_id": test_type_id})
+        db.session.flush()
+        db.session.commit()
+        return send_result(message="oke")
+    except Exception:
+        db.session.rollback()
+        return send_error(data='', message="Something was wrong!")

@@ -11,6 +11,7 @@ from sqlalchemy import desc, asc
 from sqlalchemy.orm import joinedload
 from app.api.v1.history_test import save_history_test_execution
 from app.api.v1.test_run.schema import TestRunSchema
+from app.api.v1.test_type.test_type import get_test_type_default
 from app.enums import FILE_PATH
 from app.gateway import authorization_require
 from app.models import TestStep, TestCase, TestType, db, TestField, Setting, TestRun, TestExecution, \
@@ -103,6 +104,7 @@ def add_test_to_test_execution(test_execution_issue_id):
             db.session.add(test_execution)
             db.session.flush()
         test_case_ids = []
+        test_type_id = get_test_type_default(cloud_id, project_id)
         for test_case_issue_id, test_case_issue_key in test_cases.items():
             """
                Get test execution, create new if not exist
@@ -117,7 +119,8 @@ def add_test_to_test_execution(test_execution_issue_id):
                     issue_key=test_case_issue_key,
                     project_id=project_id,
                     cloud_id=cloud_id,
-                    created_date=get_timestamp_now()
+                    created_date=get_timestamp_now(),
+                    test_type_id=test_type_id
                 )
                 db.session.add(test_case)
                 db.session.flush()
@@ -159,28 +162,12 @@ def add_test_to_test_execution(test_execution_issue_id):
                 db.session.add(test_run)
                 db.session.flush()
                 # Tạo test details
-                test_steps = TestStep.query.filter(TestStep.project_id == project_id, TestStep.cloud_id == cloud_id,
-                                                   TestStep.test_case_id == test_case.id).all()
-                for test_step in test_steps:
-                    if test_step.test_case_id_reference is None:
-                        test_step_detail = TestStepDetail(
-                            id=str(uuid.uuid4()),
-                            test_step_id=test_step.id,
-                            status_id=default_status.id,
-                            test_run_id=test_run.id,
-                            created_date=get_timestamp_now(),
-                            link=test_step.id+"/"
-                        )
-                        db.session.add(test_step_detail)
-                        db.session.flush()
-                    else:
-                        add_test_step_id_by_test_case_id(cloud_id, project_id, test_step.test_case_id_reference,
-                                                         test_run.id, default_status.id, test_step.id+"/")
+                add_test_step_id_by_test_case_id_2(cloud_id, project_id, test_case.id, test_run.id, default_status.id,'')
             else:
                 return send_error(message='Test Executions were already associated with the Test',
                                   status=200, show=False)
-        db.session.commit()
         save_history_test_execution(test_execution.id, user_id, 1, 3, test_case_ids)
+        db.session.commit()
         return send_result(message=f'Add {len(test_case_ids)} test case to execution case successfully')
     except Exception as ex:
         db.session.rollback()
@@ -208,6 +195,31 @@ def add_test_step_id_by_test_case_id(cloud_id: str, project_id: str, test_case_i
         else:
             add_test_step_id_by_test_case_id(cloud_id, project_id, step.test_case_id_reference, test_run_id, status_id,
                                              new_link)
+
+
+def add_test_step_id_by_test_case_id_2(cloud_id: str, project_id: str, test_case_id: str,
+                                       test_run_id, status_id, link: str):
+    stack = [(test_case_id, link)]
+    while stack:
+        curr_id, current_link = stack.pop()
+        step_calls = TestStep.query.filter(TestStep.cloud_id == cloud_id, TestStep.project_id == project_id,
+                                           TestStep.test_case_id == curr_id) \
+            .order_by(desc(TestStep.index)).all()
+        for step in step_calls:
+            new_link = current_link + step.id + "/"
+            if step.test_case_id_reference is None:
+                test_step_detail = TestStepDetail(
+                    id=str(uuid.uuid4()),
+                    test_step_id=step.id,
+                    status_id=status_id,
+                    test_run_id=test_run_id,
+                    created_date=get_timestamp_now(),
+                    link=new_link
+                )
+                db.session.add(test_step_detail)
+                db.session.flush()
+            else:
+                stack.append((step.test_case_id_reference, new_link))
 
 
 @api.route("/<test_execution_issue_id>", methods=["DELETE"])
@@ -252,8 +264,8 @@ def remove_test_to_test_execution(test_execution_issue_id):
             TestCasesTestExecutions.test_execution_id == test_execution.id) \
             .filter(TestCasesTestExecutions.test_case_id.in_(test_case_ids)).delete()
         db.session.flush()
-        db.session.commit()
         save_history_test_execution(test_execution.id, user_id, 2, 3, test_case_ids)
+        db.session.commit()
         return send_result(message=f'Remove {len(test_case_ids)} test to test case execution successfully')
     except Exception as ex:
         db.session.rollback()

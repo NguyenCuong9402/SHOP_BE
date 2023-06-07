@@ -289,30 +289,38 @@ class Repository(db.Model):
     folder_id = db.Column(db.String(50), unique=True)
     parent_id = db.Column(db.String(50))
     name = db.Column(db.String(500))
-    create_date = db.Column(INTEGER(unsigned=True), default=0, index=True)
     project_id = db.Column(db.String(50))
     index = db.Column(db.Integer)
     cloud_id = db.Column(db.String(255), nullable=True)
     created_date = db.Column(db.Integer, default=0)
     modified_date = db.Column(db.Integer, default=0)
+    type = db.Column(db.Boolean, default=0)
 
     @hybrid_property
-    def map_test_repo(self):
-        map_test_repo = Test_Repository.query.filter_by(test_repo_id=self.id).order_by(
-            Test_Repository.index.asc()).all()
-        return map_test_repo
+    def count_test(self):
+        stack = [self.id]  # Khởi tạo stack và thêm (test_case_id_reference, link) vào stack
+        test_count = 0
+        while len(stack) > 0:
+            current_id = stack.pop()  # Lấy phần tử cuối cùng từ stack
+            test_repo = TestRepository.query.filter(TestRepository.repository_id == current_id).count()
+            test_count = test_count + test_repo
+            repos = Repository.query.filter(Repository.parent_id == current_id).all()
+            for repo in repos:
+                if repo.parent_id is not None:
+                    stack.append(repo.id)
+        return test_count
 
     @hybrid_property
     def children_folder(self):
-        children_repo = Repository.query.filter_by(parent_id=self.folder_id).order_by(Repository.index.asc()).all()
+        children_repo = Repository.query.filter_by(parent_id=self.id).order_by(Repository.index.asc()).all()
         return children_repo
 
 
-class Test_Repository(db.Model):
+class TestRepository(db.Model):
     __tablename__ = 'test_case_repositories'
     id = db.Column(db.String(50), primary_key=True)
-    test_id = db.Column(ForeignKey('test_case.id', ondelete='SET NULL', onupdate='CASCADE'), index=True)
-    repository_id = db.Column(ForeignKey('repository.id', ondelete='SET NULL', onupdate='CASCADE'), index=True)
+    test_id = db.Column(ForeignKey('test_case.id', ondelete='CASCADE', onupdate='CASCADE'), index=True)
+    repository_id = db.Column(ForeignKey('repository.id', ondelete='CASCADE', onupdate='CASCADE'), index=True)
     create_date = db.Column(INTEGER(unsigned=True), default=0, index=True)
     index = db.Column(db.Integer)
 

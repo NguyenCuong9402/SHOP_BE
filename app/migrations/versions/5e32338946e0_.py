@@ -215,8 +215,8 @@ def upgrade():
     sa.Column('repository_id', sa.String(length=50), nullable=True),
     sa.Column('create_date', mysql.INTEGER(unsigned=True), nullable=True),
     sa.Column('index', sa.Integer(), nullable=True),
-    sa.ForeignKeyConstraint(['repository_id'], ['repository.id'], onupdate='CASCADE', ondelete='SET NULL'),
-    sa.ForeignKeyConstraint(['test_id'], ['test_case.id'], onupdate='CASCADE', ondelete='SET NULL'),
+    sa.ForeignKeyConstraint(['repository_id'], ['repository.id'], onupdate='CASCADE', ondelete='CASCADE'),
+    sa.ForeignKeyConstraint(['test_id'], ['test_case.id'], onupdate='CASCADE', ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_test_case_repositories_create_date'), 'test_case_repositories', ['create_date'], unique=False)

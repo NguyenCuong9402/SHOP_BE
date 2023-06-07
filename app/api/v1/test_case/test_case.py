@@ -10,9 +10,9 @@ from benedict import benedict
 from marshmallow import ValidationError
 from sqlalchemy import desc, asc
 from sqlalchemy.orm import joinedload
-
+from app.api.v1.test_type.test_type import get_test_type_default
 from app.api.v1.history_test import save_history_test_case, save_history_test_execution
-from app.api.v1.test_execution.test_execution import add_test_step_id_by_test_case_id
+from app.api.v1.test_execution.test_execution import add_test_step_id_by_test_case_id_2
 from app.api.v1.test_run.schema import TestRunSchema
 from app.enums import INVALID_PARAMETERS_ERROR, FILE_PATH
 from app.extensions import logger
@@ -37,6 +37,7 @@ def get_test_case(issue_id, issue_key):
     project_id = token.get('projectId')
     test_case = TestCase.query.filter(TestCase.project_id == project_id, TestCase.cloud_id == cloud_id,
                                       TestCase.issue_id == issue_id).first()
+    test_type_id = get_test_type_default(cloud_id, project_id)
     if test_case is None:
         test_case = TestCase(
             id=str(uuid.uuid4()),
@@ -44,7 +45,8 @@ def get_test_case(issue_id, issue_key):
             issue_key=issue_key,
             project_id=project_id,
             cloud_id=cloud_id,
-            created_date=get_timestamp_now()
+            created_date=get_timestamp_now(),
+            test_type_id=test_type_id
         )
         db.session.add(test_case)
         db.session.flush()
@@ -70,6 +72,7 @@ def get_test_set_from_test_case(issue_id):
 
     test_case = TestCase.query.filter(TestCase.cloud_id == cloud_id, TestCase.issue_id == issue_id,
                                       TestCase.project_id == project_id).first()
+    test_type_id = get_test_type_default(cloud_id, project_id)
     if test_case is None:
         test_case = TestCase(
             id=str(uuid.uuid4()),
@@ -77,7 +80,8 @@ def get_test_set_from_test_case(issue_id):
             issue_key=issue_key,
             project_id=project_id,
             cloud_id=cloud_id,
-            created_date=get_timestamp_now()
+            created_date=get_timestamp_now(),
+            test_type_id=test_type_id
         )
         db.session.add(test_case)
         db.session.flush()
@@ -106,6 +110,7 @@ def get_test_step_from_test_case(issue_id):
     token = get_jwt_identity()
     cloud_id = token.get('cloudId')
     project_id = token.get('projectId')
+    issue_key = token.get('issue_key')
     page = request.args.get('page', 1, type=int)
     page_size = request.args.get('page_size', 10, type=int)
     order_by = request.args.get('order_by', '', type=str)
@@ -117,10 +122,21 @@ def get_test_step_from_test_case(issue_id):
             return send_error("Not a valid")
     column_sorted = getattr(TestStep, order_by)
     # Get test case
+    test_type_id = get_test_type_default(cloud_id, project_id)
     test_case = TestCase.query.filter(TestCase.cloud_id == cloud_id, TestCase.issue_id == issue_id,
                                       TestCase.project_id == project_id).first()
     if test_case is None:
-        return send_error("Not found test case")
+        test_case = TestCase(
+            id=str(uuid.uuid4()),
+            issue_id=issue_id,
+            issue_key=issue_key,
+            project_id=project_id,
+            cloud_id=cloud_id,
+            created_date=get_timestamp_now(),
+            test_type_id=test_type_id
+        )
+        db.session.add(test_case)
+        db.session.flush()
     query = TestStep.query.filter(TestStep.project_id == project_id, TestStep.cloud_id == cloud_id,
                                   TestStep.test_case_id == test_case.id)
     query = query.order_by(desc(column_sorted)) if order == "desc" else query.order_by(asc(column_sorted))
@@ -159,8 +175,8 @@ def change_test_type(issue_id, test_type_id):
         old_type_name = old_type.name
         test_case.test_type_id = new_type.id
         db.session.flush()
-        db.session.commit()
         save_history_test_case(test_case.id, user_id, 2, [old_type_name, new_type.name])
+        db.session.commit()
         return send_result(message="success")
 
     except Exception as ex:
@@ -179,7 +195,7 @@ def add_test_execution(test_issue_id):
         user_id = token.get('userId')
         test_executions = body_request.get('test_executions')
         test_case_issue_key = body_request.get('test_case_issue_key')
-
+        test_type_id = get_test_type_default(cloud_id, project_id)
         test_case = TestCase.query.filter(TestCase.issue_id == test_issue_id,
                                           TestCase.cloud_id == cloud_id,
                                           TestExecution.project_id == project_id).first()
@@ -190,7 +206,8 @@ def add_test_execution(test_issue_id):
                 issue_key=test_case_issue_key,
                 project_id=project_id,
                 cloud_id=cloud_id,
-                created_date=get_timestamp_now()
+                created_date=get_timestamp_now(),
+                test_type_id=test_type_id
             )
             db.session.add(test_case)
             db.session.flush()
@@ -249,30 +266,33 @@ def add_test_execution(test_issue_id):
                 db.session.add(test_run)
                 db.session.flush()
                 # Tạo test details
-                test_steps = TestStep.query.filter(TestStep.project_id == project_id, TestStep.cloud_id == cloud_id,
-                                                   TestStep.test_case_id == test_case.id).all()
-                for test_step in test_steps:
-                    if test_step.test_case_id_reference is None:
-                        test_step_detail = TestStepDetail(
-                            id=str(uuid.uuid4()),
-                            test_step_id=test_step.id,
-                            status_id=default_status.id,
-                            test_run_id=test_run.id,
-                            created_date=get_timestamp_now(),
-                            link=test_step.id+"/",
-                        )
-                        db.session.add(test_step_detail)
-                        db.session.flush()
-                    else:
-                        add_test_step_id_by_test_case_id(cloud_id, project_id, test_step.test_case_id_reference,
-                                                         test_run.id, default_status.id, test_step.id+"/")
+                add_test_step_id_by_test_case_id_2(cloud_id, project_id, test_case.id, test_run.id,
+                                                   default_status.id, '')
+                # test_steps = TestStep.query.filter(TestStep.project_id == project_id, TestStep.cloud_id == cloud_id,
+                #                                    TestStep.test_case_id == test_case.id).all()
+                # for test_step in test_steps:
+                #     if test_step.test_case_id_reference is None:
+                #         test_step_detail = TestStepDetail(
+                #             id=str(uuid.uuid4()),
+                #             test_step_id=test_step.id,
+                #             status_id=default_status.id,
+                #             test_run_id=test_run.id,
+                #             created_date=get_timestamp_now(),
+                #             link=test_step.id+"/",
+                #         )
+                #         db.session.add(test_step_detail)
+                #         db.session.flush()
+                #     else:
+                #         add_test_step_id_by_test_case_id(cloud_id, project_id, test_step.test_case_id_reference,
+                #                                          test_run.id, default_status.id, test_step.id+"/")
             else:
                 return send_error(message='Some Test Executions were already associated with the Test',
                                   status=200, show=False)
-
-        db.session.commit()
         save_history_test_case(test_case.id, user_id, 4, 2, test_execution_ids, [])
-        return send_result(message=f'Add {len(test_execution_ids)} test execution to test case successfully', show=True)
+        db.session.commit()
+        if len(test_execution_ids) == 0:
+            return send_result(message="The test execution(s) already exists in test case", show=True)
+        return send_result(message=f'Test(s) successfully added to {len(test_execution_ids)} Test Execution(s)', show=True)
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
@@ -320,9 +340,9 @@ def remove_test_execution(issue_id):
             TestCasesTestExecutions.test_case_id == test_case.id) \
             .filter(TestCasesTestExecutions.test_execution_id.in_(test_execution_ids)).delete()
         db.session.flush()
-        db.session.commit()
         save_history_test_case(test_case.id, user_id, 5, 2, test_execution_ids, [])
-        return send_result(message=f'Remove {len(test_execution_ids)} test to test case execution successfully')
+        db.session.commit()
+        return send_result(message=f'Remove {len(test_execution_ids)} test(s) to test case execution successfully')
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
@@ -337,13 +357,15 @@ def create_test_case():
         issue_id = token.get('issueId')
         issue_key = token.get('issueKey')
         project_id = token.get('projectId')
+        test_type_id = get_test_type_default(cloud_id, project_id)
         test_case = TestCase(
             id=str(uuid.uuid4()),
             issue_id=issue_id,
             issue_key=issue_key,
             project_id=project_id,
             cloud_id=cloud_id,
-            created_date=get_timestamp_now()
+            created_date=get_timestamp_now(),
+            test_type_id=test_type_id
         )
         db.session.add(test_case)
         db.session.flush()
@@ -428,9 +450,9 @@ def delete_tests_set_from_testcase(issue_id):
             db.session.flush()
             ids_to_delete = ids
         db.session.commit()
-        message = f'{number_test_set} Test Set(s) removed from the Test'
         # save history
         save_history_test_case(test_case.id, user_id, 3, 2, ids_to_delete, [])
+        message = f'{number_test_set} Test Set(s) removed from the Test'
         return send_result(message_id=DELETE_SUCCESS, message=message, show=True)
     except Exception as ex:
         db.session.rollback()
@@ -450,7 +472,7 @@ def add_tests_set_for_testcase(issue_id):
         test_case_issue_key = body_request.get("test_case_issue_key")
         test_case = TestCase.query.filter(TestCase.issue_id == issue_id, TestCase.cloud_id == cloud_id,
                                           TestCase.project_id == project_id).first()
-
+        test_type_id = get_test_type_default(cloud_id, project_id)
         if test_case is None:
             test_case = TestCase(
                 id=str(uuid.uuid4()),
@@ -458,7 +480,8 @@ def add_tests_set_for_testcase(issue_id):
                 issue_key=test_case_issue_key,
                 project_id=project_id,
                 cloud_id=cloud_id,
-                created_date=get_timestamp_now()
+                created_date=get_timestamp_now(),
+                test_type_id=test_type_id
             )
             db.session.add(test_case)
             db.session.flush()
@@ -495,11 +518,13 @@ def add_tests_set_for_testcase(issue_id):
                 test_set_ids.append(test_set.id)
                 db.session.add(test_set_test_case)
                 db.session.flush()
-        db.session.commit()
         # save history
         save_history_test_case(test_case.id, user_id, 2, 2, test_set_ids, [])
-        message = f'{len(test_set_ids)} Test Set(s) added to the Test'
-        return send_result(message_id=ADD_SUCCESS, message=message, show=True)
+        db.session.commit()
+        if len(test_set_ids) == 0:
+            return send_result(message="The Test Set(s) already exist in the Test Case", show=True)
+        return send_result(message_id=ADD_SUCCESS,
+                           message=f'Test(s) successfully added to {len(test_set_ids)} Test Set(s)', show=True)
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
@@ -511,6 +536,7 @@ def get_test_execution_from_test_case(issue_id):
     token = get_jwt_identity()
     cloud_id = token.get('cloudId')
     project_id = token.get('projectId')
+    issue_key = token.get('issue_key')
     # Get search params
     page = request.args.get('page', 1, type=int)
     page_size = request.args.get('page_size', 10, type=int)
@@ -518,12 +544,23 @@ def get_test_execution_from_test_case(issue_id):
     order = request.args.get('order', "")
     test_case = TestCase.query.filter(TestCase.cloud_id == cloud_id, TestCase.issue_id == issue_id,
                                       TestCase.project_id == project_id).first()
+    test_type_id = get_test_type_default(cloud_id, project_id)
     if order_by == "":
         order_by = "created_date"
     if order == "":
         order = "asc"
     if test_case is None:
-        return send_error("Not found test case")
+        test_case = TestCase(
+            id=str(uuid.uuid4()),
+            issue_id=issue_id,
+            issue_key=issue_key,
+            project_id=project_id,
+            cloud_id=cloud_id,
+            created_date=get_timestamp_now(),
+            test_type_id=test_type_id
+        )
+        db.session.add(test_case)
+        db.session.flush()
     # sort
     query = db.session.query(TestExecution.id, TestExecution.issue_id, TestExecution.issue_key,
                              TestExecution.project_id, TestExecution.cloud_id,
