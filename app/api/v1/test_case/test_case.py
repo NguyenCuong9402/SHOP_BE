@@ -12,7 +12,7 @@ from sqlalchemy import desc, asc
 from sqlalchemy.orm import joinedload
 from app.api.v1.test_type.test_type import get_test_type_default
 from app.api.v1.history_test import save_history_test_case, save_history_test_execution
-from app.api.v1.test_execution.test_execution import add_test_step_id_by_test_case_id_2
+from app.api.v1.test_execution.test_execution import add_test_step_id_by_test_case_id
 from app.api.v1.test_run.schema import TestRunSchema
 from app.enums import INVALID_PARAMETERS_ERROR, FILE_PATH
 from app.extensions import logger
@@ -266,7 +266,7 @@ def add_test_execution(test_issue_id):
                 db.session.add(test_run)
                 db.session.flush()
                 # Tạo test details
-                add_test_step_id_by_test_case_id_2(cloud_id, project_id, test_case.id, test_run.id,
+                add_test_step_id_by_test_case_id(cloud_id, project_id, test_case.id, test_run.id,
                                                    default_status.id, '')
                 # test_steps = TestStep.query.filter(TestStep.project_id == project_id, TestStep.cloud_id == cloud_id,
                 #                                    TestStep.test_case_id == test_case.id).all()
