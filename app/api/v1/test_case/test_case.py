@@ -594,7 +594,7 @@ def filter_test_run():
     testrun_started = body_req.get("testrun_started", {})
     testrun_finished = body_req.get("testrun_finished", {})
     token = get_jwt_identity()
-    issue_id = token.get('issue_id')
+    issue_id = token.get('issueId')
 
     query = db.session.query(TestRun.issue_id).join(TestCase, TestCase.id == TestRun.test_case_id).filter(
         TestCase.issue_id == issue_id)
