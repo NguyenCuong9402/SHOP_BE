@@ -145,7 +145,7 @@ def add_test_environment(project_id):
         return send_result(message=f"{len(ids_to_add)} Test Environments added", show=True)
     except Exception as ex:
         db.session.rollback()
-        return send_error(data='', message=str(ex))
+        return send_error(message=str(ex))
 
 
 @api.route("/<project_id>", methods=["POST"])
@@ -188,7 +188,7 @@ def create_test_environment(project_id):
                            show=True)
     except Exception as ex:
         db.session.rollback()
-        return send_error(data='', message="Something was wrong!")
+        return send_error(data='', message=str(ex))
 
 
 @api.route("/<project_id>", methods=["DELETE"])

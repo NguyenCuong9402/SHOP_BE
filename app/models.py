@@ -20,29 +20,6 @@ class User(db.Model):
     password_hash = db.Column(db.String(255), nullable=False)
 
 
-# class Test(db.Model):
-#     __tablename__ = 'tests'
-#
-#     id = db.Column(db.String(50), primary_key=True)
-#     cucumber = db.Column(db.String(255), nullable=True)
-#     generic = db.Column(db.String(255), nullable=True)
-#     issue_id = db.Column(db.String(255), nullable=False)
-#     cloud_id = db.Column(db.String(255), nullable=False)
-#     issue_jira_id = db.Column(db.String(255), nullable=True)
-#     key = db.Column(db.String(255), nullable=True)
-#     name = db.Column(db.String(255), nullable=True)
-#     self = db.Column(db.String(255), nullable=True)
-#     test_repo = db.Column(db.String(255), nullable=True)
-#     project_id = db.Column(db.String(50), nullable=False)
-#     test_type_id = db.Column(db.String(50), db.ForeignKey('test_type.id'), nullable=True)
-#     test_steps = db.relationship('TestStep', backref='test_steps', lazy=True)
-#     test_type = db.relationship('TestType', backref='test_types', lazy=True)
-#     test_sets = db.relationship('TestSets', secondary=test_testsets, lazy='subquery',
-#                                 backref=db.backref('test_sets', lazy=True), viewonly=True)
-#     created_date = db.Column(db.Integer, default=0)
-#     modified_date = db.Column(db.Integer, default=0)
-
-
 class ProjectSetting(db.Model):
     __tablename__ = 'project_setting'
 
@@ -264,7 +241,7 @@ class TestEvidence(db.Model):
     test_step_detail_id = db.Column(db.String(50),
                                     db.ForeignKey('test_step_detail.id', ondelete='CASCADE', onupdate='CASCADE'),
                                     nullable=True)
-    name_file = db.Column(db.Text, nullable=True)
+    name_file = db.Column(db.String(250, collation='utf8mb4_unicode_ci'), nullable=True)
     url_file = db.Column(db.Text, nullable=True)
     created_date = db.Column(db.Integer, default=0, index=True)
     modified_date = db.Column(db.Integer, default=0)
@@ -338,7 +315,6 @@ class Setting(db.Model):
     index = db.Column(db.Integer)
     project_id = db.Column(db.String(50))
     project_key = db.Column(db.String(50))
-    index = db.Column(db.Integer)
     cloud_id = db.Column(db.String(255), nullable=True)
     site_url = db.Column(db.String(255), nullable=True)
     created_date = db.Column(db.Integer, default=0)
@@ -349,9 +325,9 @@ class TestEnvironment(db.Model):
     __tablename__ = 'test_environment'
     id = db.Column(db.String(50), primary_key=True)
     parent_id = db.Column(db.String(50), nullable=True, default=None)
-    name = db.Column(db.String(250))
+    name = db.Column(db.String(250, collation='utf8mb4_unicode_ci'))
     description = db.Column(db.String(250))
-    url = db.Column(db.String(250))
+    url = db.Column(db.Text(collation='utf8mb4_unicode_ci'), nullable=True)
     cloud_id = db.Column(db.String(50), nullable=True)
     project_id = db.Column(db.String(50))
     created_date = db.Column(db.Integer, default=0)
@@ -586,6 +562,9 @@ class HistoryTest(db.Model):
     detail_of_action = db.Column(db.JSON, nullable=False)
     created_date = db.Column(db.Integer, default=0, index=True)
     id_reference = db.Column(db.String(50), nullable=False)
+
+
+
 
 
 
