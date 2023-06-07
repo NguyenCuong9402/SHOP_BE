@@ -29,6 +29,8 @@ def get_test_case_from_test_execution(issue_id):
     token = get_jwt_identity()
     cloud_id = token.get('cloudId')
     project_id = token.get('projectId')
+    # issue_key = token.get('issue_key')
+    issue_key = request.args.get('issue_key')
     # Get search params
     page = request.args.get('page', 1, type=int)
     page_size = request.args.get('page_size', 10, type=int)
@@ -37,24 +39,36 @@ def get_test_case_from_test_execution(issue_id):
     test_execution = TestExecution.query.filter(TestExecution.cloud_id == cloud_id, TestExecution.issue_id == issue_id,
                                                 TestExecution.project_id == project_id).first()
     if order_by == "":
-        order_by = "created_date"
+        order_by = "index"
     if order == "":
         order = "asc"
     if test_execution is None:
-        return send_error("Not found test execution")
+        test_execution = TestExecution(
+            id=str(uuid.uuid4()),
+            issue_id=issue_id,
+            issue_key=issue_key,
+            project_id=project_id,
+            cloud_id=cloud_id,
+            created_date=get_timestamp_now()
+        )
+        db.session.add(test_execution)
+        db.session.flush()
     # sort
     query = db.session.query(TestCase.id, TestCase.issue_id, TestCase.issue_key,
                              TestCase.project_id, TestCase.cloud_id,
                              TestCase.created_date.label('test_case_created_date'),
                              TestRun.id.label('test_run_id'), TestRun.test_status_id, TestRun.is_updated,
                              TestRun.start_date, TestRun.end_date, TestRun.issue_id.label('test_run_issue_id'),
-                             TestRun.issue_key.label('test_run_issue_key'), TestRun.created_date)\
+                             TestRun.issue_key.label('test_run_issue_key'), TestRun.created_date,
+                             TestCasesTestExecutions.index)\
         .join(TestCasesTestExecutions, TestCasesTestExecutions.test_case_id == TestCase.id) \
         .join(TestRun, (TestCasesTestExecutions.test_case_id == TestRun.test_case_id)
               & (TestCasesTestExecutions.test_execution_id == TestRun.test_execution_id))\
         .filter(TestCasesTestExecutions.test_execution_id == test_execution.id)
     if order_by == "created_date":
         column_sorted = getattr(TestRun, order_by)
+    elif order_by == "index":
+        column_sorted = getattr(TestCasesTestExecutions, order_by)
     else:
         column_sorted = getattr(TestCase, order_by)
     query = query.order_by(desc(column_sorted)) if order == "desc" else query.order_by(asc(column_sorted))
@@ -298,3 +312,45 @@ def create_test_execution():
 
     except Exception as ex:
         print(ex)
+
+
+@api.route("/<issue_id>/test_case", methods=["PUT"])
+@authorization_require()
+def change_rank_test_case_in_test_execution(issue_id):
+    try:
+        token = get_jwt_identity()
+        user_id = token.get("userId")
+        cloud_id = token.get("cloudId")
+        project_id = token.get("projectId")
+        json_req = request.get_json()
+        index_drag = json_req['index_drag']
+        index_drop = json_req['index_drop']
+        test_execution = TestExecution.query.filter(TestExecution.cloud_id == cloud_id,
+                                                    TestExecution.project_id == project_id,
+                                                    TestExecution.issue_id == issue_id).first()
+        # lấy index_drag
+        index_max = db.session.query(TestCasesTestExecutions)\
+            .filter(TestCasesTestExecutions.test_execution_id == test_execution.id).count()
+        query = TestCasesTestExecutions.query.filter(TestCasesTestExecutions.test_execution_id == test_execution.id) \
+            .filter(TestCasesTestExecutions.index == index_drag).first()
+        if index_drag > index_drop:
+            if index_drop < 1:
+                return send_error(message=f'Must be a value between 1 and {index_max}')
+            TestCasesTestExecutions.query.filter(TestCasesTestExecutions.test_execution_id == test_execution.id) \
+                .filter(TestCasesTestExecutions.index > index_drop - 1).filter(TestCasesTestExecutions.index < index_drag) \
+                .update(dict(index=TestCasesTestExecutions.index + 1))
+            query.index = index_drop
+            db.session.flush()
+        else:
+            if index_drop > index_max:
+                return send_error(message=f'Must be a value between 1 and {index_max}')
+            TestCasesTestExecutions.query.filter(TestCasesTestExecutions.test_set_id == test_set.id) \
+                .filter(TestCasesTestExecutions.index > index_drag).filter(TestCasesTestExecutions.index < index_drop + 1) \
+                .update(dict(index=TestCasesTestExecutions.index - 1))
+            query.index = index_drop
+            db.session.flush()
+        db.session.commit()
+        return send_result(message='Update successfully')
+    except Exception as ex:
+        db.session.rollback()
+        return send_error(message=str(ex))

@@ -162,9 +162,11 @@ def add_test_to_test_set(test_set_issue_id):
                 i += 1
                 db.session.add(test_set_test_case)
                 db.session.flush()
-        db.session.commit()
+        if len(test_case_ids) == 0:
+            return send_result(message="Test case(s) exist in Test Set", show=True)
         # save history
         save_history_test_set(test_set.id, user_id, 1, 1, test_case_ids, [])
+        db.session.commit()
         message = f'{len(test_case_ids)} Test case(s) add to the Test Set'
         return send_result(message=message, show=True)
 
@@ -212,10 +214,11 @@ def remove_test_to_test_set(test_set_issue_id):
         for query in query_all:
             query.index = new_index
             new_index += 1
-        db.session.flush()
-        db.session.commit()
         # save history
         save_history_test_set(test_set.id, user_id, 2, 1, ids_to_delete, [])
+        db.session.flush()
+        db.session.commit()
+
         return send_result(message=message, show=True)
     except Exception as ex:
         db.session.rollback()
@@ -255,9 +258,9 @@ def change_rank_test_case_in_test_set(test_set_issue_id):
                 .update(dict(index=TestCasesTestSets.index - 1))
             query.index = index_drop
             db.session.flush()
-        db.session.commit()
         # save history
         save_history_test_set(test_set.id, user_id, 3, 1, [query.test_case_id], [index_drag, index_drop])
+        db.session.commit()
         return send_result(message='Update successfully')
     except Exception as ex:
         db.session.rollback()
