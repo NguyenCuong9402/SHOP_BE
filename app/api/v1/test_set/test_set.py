@@ -20,6 +20,7 @@ api = Blueprint('test_set', __name__)
 
 NO_TEST_ADDED = 61
 
+
 @api.route("/<issue_id>", methods=["GET"])
 @authorization_require()
 def get_test_set(issue_id):
