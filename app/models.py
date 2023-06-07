@@ -370,13 +370,6 @@ New Design
 Many to many relationship
 Test Executions and Test Case
 """
-# test_cases_test_executions = db.Table('test_cases_test_executions',
-#                                       db.Column('test_case_id', db.String(50), db.ForeignKey('test_case.id'),
-#                                                 primary_key=True),
-#                                       db.Column('test_execution_id', db.String(50), db.ForeignKey('test_execution.id'),
-#                                                 primary_key=True),
-#                                       db.Column('index', db.Integer, nullable=True)
-#                                       )
 
 
 class TestCasesTestExecutions(db.Model):
@@ -384,18 +377,13 @@ class TestCasesTestExecutions(db.Model):
     test_case_id = db.Column(db.String(50), db.ForeignKey('test_case.id'), primary_key=True, nullable=False)
     test_execution_id = db.Column(db.String(50), db.ForeignKey('test_execution.id'), primary_key=True, nullable=False)
     index = db.Column(db.Integer)
+    is_archived = db.Column(db.Integer, default=0)  # 0: no archived  # 1,2,3,... : index in archived
+
 
 """
 Many to many relationship
 Test Set and Test Case
 """
-# test_cases_test_sets = db.Table('test_cases_test_sets',
-#                                 db.Column('test_case_id', db.String(50), db.ForeignKey('test_case.id'),
-#                                           primary_key=True),
-#                                 db.Column('test_set_id', db.String(50), db.ForeignKey('test_set.id'),
-#                                           primary_key=True),
-#                                 db.Column('index', db.Integer, nullable=True)
-#                                 )
 
 
 class TestCasesTestSets(db.Model):
@@ -409,13 +397,6 @@ class TestCasesTestSets(db.Model):
 Many to many relationship
 Test Step and Test Case
 """
-# test_cases_test_steps = db.Table('test_cases_test_steps',
-#                                  db.Column('test_case_id', db.String(50), db.ForeignKey('test_case.id'),
-#                                            primary_key=True),
-#                                  db.Column('test_step_id', db.String(50), db.ForeignKey('test_step.id'),
-#                                            primary_key=True),
-#                                  db.Column('index', db.Integer, nullable=True)
-#                                  )
 
 
 class TestCasesTestSteps(db.Model):
@@ -429,14 +410,6 @@ class TestCasesTestSteps(db.Model):
 Many to many relationship
 Test Executions and Test Environments
 """
-# test_executions_test_environments = db.Table('test_executions_test_environments',
-#                                              db.Column('test_execution_id', db.String(50),
-#                                                        db.ForeignKey('test_execution.id'),
-#                                                        primary_key=True),
-#                                              db.Column('test_environment_id', db.String(50),
-#                                                        db.ForeignKey('test_environment.id'),
-#                                                        primary_key=True),
-#                                              )
 
 
 class TestExecutionsTestEnvironments(db.Model):

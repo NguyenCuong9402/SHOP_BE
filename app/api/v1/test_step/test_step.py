@@ -8,7 +8,7 @@ from flask_jwt_extended import get_jwt_identity
 from sqlalchemy import func, asc, and_, desc
 
 from app.api.v1.history_test import save_history_test_step
-from app.api.v1.test_execution.test_execution import add_test_step_id_by_test_case_id_2
+from app.api.v1.test_execution.test_execution import add_test_step_id_by_test_case_id
 from app.api.v1.test_type.test_type import get_test_type_default
 from app.enums import FILE_PATH
 from app.gateway import authorization_require
@@ -389,7 +389,7 @@ def call_test_case(issue_id, issue_id_reference):
                     db.session.add(test_step_detail)
                     db.session.flush()
                 else:
-                    add_test_step_id_by_test_case_id_2(cloud_id, project_id, test_step.test_case_id_reference,
+                    add_test_step_id_by_test_case_id(cloud_id, project_id, test_step.test_case_id_reference,
                                                      test_run.id, status.id, link)
         # Add test details những test run tạo bởi test case có  test case id call  là reference /
         # cần sửa vì link = test call + call + test dc call ( mới làm đến test call + call)
