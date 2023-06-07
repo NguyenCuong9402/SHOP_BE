@@ -18,6 +18,7 @@ INVALID_PARAMETERS_ERROR = 'g1'
 
 api = Blueprint('test_set', __name__)
 
+NO_TEST_ADDED = 61
 
 @api.route("/<issue_id>", methods=["GET"])
 @authorization_require()
@@ -163,13 +164,12 @@ def add_test_to_test_set(test_set_issue_id):
                 db.session.add(test_set_test_case)
                 db.session.flush()
         if len(test_case_ids) == 0:
-            return send_result(message="Test case(s) exist in Test Set", show=True)
+            return send_error(message_id=NO_TEST_ADDED, message="No new tests were added to this Test Set", show=True)
         # save history
         save_history_test_set(test_set.id, user_id, 1, 1, test_case_ids, [])
         db.session.commit()
         message = f'{len(test_case_ids)} Test case(s) add to the Test Set'
         return send_result(message=message, show=True)
-
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
@@ -205,7 +205,7 @@ def remove_test_to_test_set(test_set_issue_id):
                                            TestCasesTestSets.test_case_id.in_(test_case_ids)).delete()
             db.session.flush()
             ids_to_delete = test_case_ids
-        message = f'{len(ids_to_delete)} Test case(s) remove to the Test Set'
+        message = f'{len(ids_to_delete)} Test(s) removed from the Test Set.'
         # Lấy ra tất cả các record trong bảng
         query_all = TestCasesTestSets.query.filter(TestCasesTestSets.test_set_id == test_set.id) \
             .order_by(TestCasesTestSets.index.asc())

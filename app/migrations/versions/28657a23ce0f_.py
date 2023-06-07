@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 5e32338946e0
+Revision ID: 28657a23ce0f
 Revises: 
-Create Date: 2023-05-22 15:10:36.469168
+Create Date: 2023-06-07 15:00:06.055315
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import mysql
 
 # revision identifiers, used by Alembic.
-revision = '5e32338946e0'
+revision = '28657a23ce0f'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -69,16 +69,15 @@ def upgrade():
     sa.Column('folder_id', sa.String(length=50), nullable=True),
     sa.Column('parent_id', sa.String(length=50), nullable=True),
     sa.Column('name', sa.String(length=500), nullable=True),
-    sa.Column('create_date', mysql.INTEGER(unsigned=True), nullable=True),
     sa.Column('project_id', sa.String(length=50), nullable=True),
     sa.Column('index', sa.Integer(), nullable=True),
     sa.Column('cloud_id', sa.String(length=255), nullable=True),
     sa.Column('created_date', sa.Integer(), nullable=True),
     sa.Column('modified_date', sa.Integer(), nullable=True),
+    sa.Column('type', sa.Boolean(), nullable=True),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('folder_id')
     )
-    op.create_index(op.f('ix_repository_create_date'), 'repository', ['create_date'], unique=False)
     op.create_table('setting',
     sa.Column('id', sa.String(length=50), nullable=False),
     sa.Column('miscellaneous', sa.Text(), nullable=True),
@@ -88,9 +87,9 @@ def upgrade():
     sa.Column('test_run_custom_field', sa.Text(), nullable=True),
     sa.Column('test_test_executions_status', sa.Text(), nullable=True),
     sa.Column('reindex', sa.Text(), nullable=True),
+    sa.Column('index', sa.Integer(), nullable=True),
     sa.Column('project_id', sa.String(length=50), nullable=True),
     sa.Column('project_key', sa.String(length=50), nullable=True),
-    sa.Column('index', sa.Integer(), nullable=True),
     sa.Column('cloud_id', sa.String(length=255), nullable=True),
     sa.Column('site_url', sa.String(length=255), nullable=True),
     sa.Column('created_date', sa.Integer(), nullable=True),
@@ -112,9 +111,9 @@ def upgrade():
     op.create_table('test_environment',
     sa.Column('id', sa.String(length=50), nullable=False),
     sa.Column('parent_id', sa.String(length=50), nullable=True),
-    sa.Column('name', sa.String(length=250), nullable=True),
+    sa.Column('name', sa.String(length=250, collation='utf8mb4_unicode_ci'), nullable=True),
     sa.Column('description', sa.String(length=250), nullable=True),
-    sa.Column('url', sa.String(length=250), nullable=True),
+    sa.Column('url', sa.Text(collation='utf8mb4_unicode_ci'), nullable=True),
     sa.Column('cloud_id', sa.String(length=50), nullable=True),
     sa.Column('project_id', sa.String(length=50), nullable=True),
     sa.Column('created_date', sa.Integer(), nullable=True),
@@ -226,6 +225,7 @@ def upgrade():
     sa.Column('test_case_id', sa.String(length=50), nullable=False),
     sa.Column('test_execution_id', sa.String(length=50), nullable=False),
     sa.Column('index', sa.Integer(), nullable=True),
+    sa.Column('is_archived', sa.Integer(), nullable=True),
     sa.ForeignKeyConstraint(['test_case_id'], ['test_case.id'], ),
     sa.ForeignKeyConstraint(['test_execution_id'], ['test_execution.id'], ),
     sa.PrimaryKeyConstraint('test_case_id', 'test_execution_id')
@@ -263,6 +263,7 @@ def upgrade():
     sa.Column('issue_key', sa.String(length=50), nullable=True),
     sa.Column('test_case_id', sa.String(length=50), nullable=False),
     sa.Column('test_execution_id', sa.String(length=50), nullable=False),
+    sa.Column('comment', sa.String(length=50), nullable=True),
     sa.Column('test_status_id', sa.String(length=50), nullable=True),
     sa.Column('assignee_account_id', sa.String(length=50), nullable=True),
     sa.Column('executed_account_id', sa.String(length=50), nullable=True),
@@ -365,6 +366,18 @@ def upgrade():
     sa.ForeignKeyConstraint(['test_type_id'], ['test_type.id'], ),
     sa.PrimaryKeyConstraint('test_type_id', 'test_run_field_id')
     )
+    op.create_table('timer',
+    sa.Column('id', sa.String(length=50), nullable=False),
+    sa.Column('test_run_id', sa.String(length=50), nullable=True),
+    sa.Column('time_type', sa.Integer(), nullable=True),
+    sa.Column('time_start', mysql.DOUBLE(asdecimal=True), nullable=True),
+    sa.Column('delta_time', mysql.DOUBLE(asdecimal=True), nullable=True),
+    sa.Column('created_date', sa.Integer(), nullable=True),
+    sa.Column('modified_date', sa.Integer(), nullable=True),
+    sa.ForeignKeyConstraint(['test_run_id'], ['test_run.id'], onupdate='CASCADE', ondelete='CASCADE'),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_timer_created_date'), 'timer', ['created_date'], unique=False)
     op.create_table('defect',
     sa.Column('id', sa.String(length=50), nullable=False),
     sa.Column('test_run_id', sa.String(length=50), nullable=True),
@@ -382,7 +395,7 @@ def upgrade():
     sa.Column('id', sa.String(length=50), nullable=False),
     sa.Column('test_run_id', sa.String(length=50), nullable=True),
     sa.Column('test_step_detail_id', sa.String(length=50), nullable=True),
-    sa.Column('name_file', sa.Text(), nullable=True),
+    sa.Column('name_file', sa.String(length=250, collation='utf8mb4_unicode_ci'), nullable=True),
     sa.Column('url_file', sa.Text(), nullable=True),
     sa.Column('created_date', sa.Integer(), nullable=True),
     sa.Column('modified_date', sa.Integer(), nullable=True),
@@ -400,8 +413,9 @@ def downgrade():
     op.drop_table('test_evidence')
     op.drop_index(op.f('ix_defect_created_date'), table_name='defect')
     op.drop_table('defect')
+    op.drop_index(op.f('ix_timer_created_date'), table_name='timer')
+    op.drop_table('timer')
     op.drop_table('test_type_test_run_field')
-
     op.drop_index(op.f('ix_test_step_detail_created_date'), table_name='test_step_detail')
     op.drop_table('test_step_detail')
     op.drop_table('test_cases_test_steps')
@@ -430,7 +444,6 @@ def downgrade():
     op.drop_table('test_environment')
     op.drop_table('test_case')
     op.drop_table('setting')
-    op.drop_index(op.f('ix_repository_create_date'), table_name='repository')
     op.drop_table('repository')
     op.drop_table('project_setting')
     op.drop_table('message')
