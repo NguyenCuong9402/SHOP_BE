@@ -37,6 +37,8 @@ def get_test_case_from_test_execution(issue_id):
     page_size = request.args.get('page_size', 10, type=int)
     order_by = request.args.get('order_by', "", type=str)
     order = request.args.get('order', 'asc')
+    search_other = request.args.get('search_other', False, type=bool)
+
     test_execution = TestExecution.query.filter(TestExecution.cloud_id == cloud_id, TestExecution.issue_id == issue_id,
                                                 TestExecution.project_id == project_id).first()
     if order_by == "":
@@ -54,6 +56,12 @@ def get_test_case_from_test_execution(issue_id):
         )
         db.session.add(test_execution)
         db.session.flush()
+    if order_by == "created_date":
+        column_sorted = getattr(TestRun, order_by)
+    elif order_by in ["index", "is_archived"]:
+        column_sorted = getattr(TestCasesTestExecutions, order_by)
+    else:
+        column_sorted = getattr(TestCase, order_by)
     # sort
     query = db.session.query(TestCase.id, TestCase.issue_id, TestCase.issue_key,
                              TestCase.project_id, TestCase.cloud_id,
@@ -61,18 +69,15 @@ def get_test_case_from_test_execution(issue_id):
                              TestRun.id.label('test_run_id'), TestRun.test_status_id, TestRun.is_updated,
                              TestRun.start_date, TestRun.end_date, TestRun.issue_id.label('test_run_issue_id'),
                              TestRun.issue_key.label('test_run_issue_key'), TestRun.created_date,
-                             TestCasesTestExecutions.index)\
+                             TestCasesTestExecutions.index, TestCasesTestExecutions.is_archived) \
         .join(TestCasesTestExecutions, TestCasesTestExecutions.test_case_id == TestCase.id) \
         .join(TestRun, (TestCasesTestExecutions.test_case_id == TestRun.test_case_id)
-              & (TestCasesTestExecutions.test_execution_id == TestRun.test_execution_id))\
-        .filter(TestCasesTestExecutions.test_execution_id == test_execution.id)\
-        .filter(TestCasesTestExecutions.is_archived == 0)
-    if order_by == "created_date":
-        column_sorted = getattr(TestRun, order_by)
-    elif order_by == "index":
-        column_sorted = getattr(TestCasesTestExecutions, order_by)
+              & (TestCasesTestExecutions.test_execution_id == TestRun.test_execution_id)) \
+        .filter(TestCasesTestExecutions.test_execution_id == test_execution.id)
+    if search_other:
+        query = query.filter(TestCasesTestExecutions.is_archived != 0)
     else:
-        column_sorted = getattr(TestCase, order_by)
+        query = query.filter(TestCasesTestExecutions.is_archived == 0)
     query = query.order_by(desc(column_sorted)) if order == "desc" else query.order_by(asc(column_sorted))
     test_cases = query.paginate(page=page, per_page=page_size, error_out=False).items
     total = query.count()
@@ -122,7 +127,8 @@ def add_test_to_test_execution(test_execution_issue_id):
         test_case_ids = []
         test_type_id = get_test_type_default(cloud_id, project_id)
         i = 1
-        index_max = TestCasesTestExecutions.query.filter(TestCasesTestExecutions.test_execution_id == test_execution.id).count()
+        index_max = TestCasesTestExecutions.query.filter(TestCasesTestExecutions.test_execution_id == test_execution.id,
+                                                         TestCasesTestExecutions.is_archived == 0).count()
         for test_case_issue_id, test_case_issue_key in test_cases.items():
             """
                Get test execution, create new if not exist
@@ -195,7 +201,7 @@ def add_test_to_test_execution(test_execution_issue_id):
 
 
 def add_test_step_id_by_test_case_id(cloud_id: str, project_id: str, test_case_id: str,
-                                       test_run_id, status_id, link: str):
+                                     test_run_id, status_id, link: str):
     stack = [(test_case_id, link)]
     while stack:
         curr_id, current_link = stack.pop()
@@ -261,7 +267,7 @@ def remove_test_to_test_execution(test_execution_issue_id):
             TestCasesTestExecutions.test_execution_id == test_execution.id) \
             .filter(TestCasesTestExecutions.test_case_id.in_(test_case_ids)).delete()
         db.session.flush()
-        # Lấy ra tất cả các record trong bảng
+        # Lấy ra tất cả các record not in archived trong bảng
         query_all = TestCasesTestExecutions.query.filter(TestCasesTestExecutions.test_execution_id == test_execution.id)\
             .filter(TestCasesTestExecutions.is_archived == 0)\
             .order_by(TestCasesTestExecutions.index.asc())
@@ -458,6 +464,13 @@ def restore_archive_test_case_in_test_execution(issue_id):
         for i, restore_test_archived in enumerate(restore_tests_archived):
             restore_test_archived.is_archived = 0
             restore_test_archived.index = count_not_archived + i + 1
+            db.session.flush()
+        query_all = TestCasesTestExecutions.query.filter(TestCasesTestExecutions.test_execution_id == test_execution.id) \
+            .filter(TestCasesTestExecutions.is_archived != 0) \
+            .order_by(TestCasesTestExecutions.index.asc())
+        # Cập nhật lại giá trị của cột "is_archived"
+        for i, query in enumerate(query_all):
+            query.index = i + 1
             db.session.flush()
         db.session.commit()
         return send_result(message=f"{len(issue_ids)} Archived Test(s) add to Test execution")
