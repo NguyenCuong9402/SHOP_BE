@@ -184,7 +184,7 @@ def add_test_to_test_execution(test_execution_issue_id):
             else:
                 return send_error(message='Test Executions were already associated with the Test',
                                   status=200, show=False)
-        save_history_test_execution(test_execution.id, user_id, 1, 3, test_case_ids)
+        save_history_test_execution(test_execution.id, user_id, 1, 3, test_case_ids, [])
         db.session.commit()
         return send_result(message=f'Add {len(test_case_ids)} test case to execution case successfully')
     except Exception as ex:
@@ -291,7 +291,7 @@ def remove_test_to_test_execution(test_execution_issue_id):
             query.index = new_index
             new_index += 1
             db.session.flush()
-        save_history_test_execution(test_execution.id, user_id, 2, 3, test_case_ids)
+        save_history_test_execution(test_execution.id, user_id, 2, 3, test_case_ids, [])
         db.session.commit()
         return send_result(message=f'Remove {len(test_case_ids)} test to test case execution successfully')
     except Exception as ex:
