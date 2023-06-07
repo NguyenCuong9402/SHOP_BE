@@ -344,7 +344,7 @@ def change_rank_test_case_in_test_execution(issue_id):
         else:
             if index_drop > index_max:
                 return send_error(message=f'Must be a value between 1 and {index_max}')
-            TestCasesTestExecutions.query.filter(TestCasesTestExecutions.test_set_id == test_set.id) \
+            TestCasesTestExecutions.query.filter(TestCasesTestExecutions.test_execution_id == test_execution.id) \
                 .filter(TestCasesTestExecutions.index > index_drag).filter(TestCasesTestExecutions.index < index_drop + 1) \
                 .update(dict(index=TestCasesTestExecutions.index - 1))
             query.index = index_drop
