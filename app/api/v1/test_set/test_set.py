@@ -214,6 +214,7 @@ def remove_test_to_test_set(test_set_issue_id):
         for query in query_all:
             query.index = new_index
             new_index += 1
+            db.session.flush()
         # save history
         save_history_test_set(test_set.id, user_id, 2, 1, ids_to_delete, [])
         db.session.flush()

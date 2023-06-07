@@ -119,6 +119,8 @@ def add_test_to_test_execution(test_execution_issue_id):
             db.session.flush()
         test_case_ids = []
         test_type_id = get_test_type_default(cloud_id, project_id)
+        i = 1
+        index_max = TestCasesTestExecutions.query.filter(TestCasesTestExecutions.test_execution_id == test_execution.id).count()
         for test_case_issue_id, test_case_issue_key in test_cases.items():
             """
                Get test execution, create new if not exist
@@ -148,9 +150,11 @@ def add_test_to_test_execution(test_execution_issue_id):
                 test_case_test_execution = TestCasesTestExecutions(
                     test_case_id=test_case.id,
                     test_execution_id=test_execution.id,
+                    index=index_max+i
                 )
                 db.session.add(test_case_test_execution)
                 db.session.flush()
+                i += 1
                 test_case_ids.append(test_case.id)
 
             """
@@ -278,6 +282,15 @@ def remove_test_to_test_execution(test_execution_issue_id):
             TestCasesTestExecutions.test_execution_id == test_execution.id) \
             .filter(TestCasesTestExecutions.test_case_id.in_(test_case_ids)).delete()
         db.session.flush()
+        # Lấy ra tất cả các record trong bảng
+        query_all = TestCasesTestExecutions.query.filter(TestCasesTestExecutions.test_execution_id == test_execution.id) \
+            .order_by(TestCasesTestExecutions.index.asc())
+        # Cập nhật lại giá trị của cột "index"
+        new_index = 1
+        for query in query_all:
+            query.index = new_index
+            new_index += 1
+            db.session.flush()
         save_history_test_execution(test_execution.id, user_id, 2, 3, test_case_ids)
         db.session.commit()
         return send_result(message=f'Remove {len(test_case_ids)} test to test case execution successfully')
@@ -349,6 +362,8 @@ def change_rank_test_case_in_test_execution(issue_id):
                 .update(dict(index=TestCasesTestExecutions.index - 1))
             query.index = index_drop
             db.session.flush()
+        # save history
+        save_history_test_execution(test_execution.id, user_id, 3, 3, [query.test_case_id], [index_drag, index_drop])
         db.session.commit()
         return send_result(message='Update successfully')
     except Exception as ex:

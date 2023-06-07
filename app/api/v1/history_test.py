@@ -255,7 +255,8 @@ def save_history_test_case(id_reference: str, user_id: str, action: int,
     db.session.flush()
 
 
-def save_history_test_execution(id_reference: str, user_id: str, action: int, history_category: int, ids: list):
+def save_history_test_execution(id_reference: str, user_id: str, action: int, history_category: int, ids: list,
+                                change_rank: list):
     # 1: add test case  2: remove test case
     if action == 1:
         query = TestCase.query.filter(TestCase.id.in_(ids)).all()
@@ -283,4 +284,17 @@ def save_history_test_execution(id_reference: str, user_id: str, action: int, hi
             detail_of_action={"Removed": test_keys},
             created_date=get_timestamp_now())
         db.session.add(new_history)
+    elif action == 3:
+        query = TestCase.query.filter(TestCase.id == ids[0]).first()
+        new_history = HistoryTest(
+            id_reference=id_reference,
+            user_id=user_id,
+            id=str(uuid.uuid4()),
+            activities='change',
+            history_category=history_category,
+            action_name=f'changed Rank of Test {query.issue_key} ',
+            detail_of_action={"old rank": change_rank[0], "new rank": change_rank[1]},
+            created_date=get_timestamp_now())
+        db.session.add(new_history)
+
     db.session.flush()
