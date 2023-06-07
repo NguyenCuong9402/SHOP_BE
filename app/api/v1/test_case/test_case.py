@@ -449,9 +449,11 @@ def delete_tests_set_from_testcase(issue_id):
             number_test_set = len(ids)
             db.session.flush()
             ids_to_delete = ids
-        db.session.commit()
+        if number_test_set == 0:
+            return send_result(message="Test exist in Test Set(s)")
         # save history
         save_history_test_case(test_case.id, user_id, 3, 2, ids_to_delete, [])
+        db.session.commit()
         message = f'{number_test_set} Test Set(s) removed from the Test'
         return send_result(message_id=DELETE_SUCCESS, message=message, show=True)
     except Exception as ex:
@@ -518,11 +520,11 @@ def add_tests_set_for_testcase(issue_id):
                 test_set_ids.append(test_set.id)
                 db.session.add(test_set_test_case)
                 db.session.flush()
+        if len(test_set_ids) == 0:
+            return send_result(message="The Test Set(s) already exist in the Test Case", show=True)
         # save history
         save_history_test_case(test_case.id, user_id, 2, 2, test_set_ids, [])
         db.session.commit()
-        if len(test_set_ids) == 0:
-            return send_result(message="The Test Set(s) already exist in the Test Case", show=True)
         return send_result(message_id=ADD_SUCCESS,
                            message=f'Test(s) successfully added to {len(test_set_ids)} Test Set(s)', show=True)
     except Exception as ex:

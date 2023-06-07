@@ -657,3 +657,4 @@ class TestExecutionTestRunSchema(Schema):
     is_updated = fields.Boolean()
     start_date = fields.Integer()
     end_date = fields.Integer()
+    index = fields.Integer()

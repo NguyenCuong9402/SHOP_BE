@@ -312,7 +312,7 @@ def get_test_in_repo():
         body_request = request.get_json()
         test_types = body_request.get("test_types", [])
         test_sets = body_request.get("test_sets", [])
-        if repository_id in[str(project_id),""]:
+        if repository_id in [str(project_id), ""]:
             count_repo = Repository.query.filter(Repository.cloud_id == cloud_id, Repository.project_id).count()
             if count_repo == 0:
                 repo_0 = Repository(
