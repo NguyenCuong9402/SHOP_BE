@@ -19,7 +19,7 @@ class UpdateTestEnvironment(Schema):
     Marshmallow Schema
     """
     description = fields.String(required=False, allow_none=True, validate=[validate.Length(min=0, max=250)])
-    url = fields.String(required=False, allow_none=True, validate=[validate.Length(min=0, max=250)])
+    url = fields.String(required=False, allow_none=True, validate=[validate.Length(min=0, max=1000)])
 
 
 class DeleteTestEnvironment(Schema):
