@@ -210,10 +210,8 @@ def remove_test_to_test_set(test_set_issue_id):
         query_all = TestCasesTestSets.query.filter(TestCasesTestSets.test_set_id == test_set.id) \
             .order_by(TestCasesTestSets.index.asc())
         # Cập nhật lại giá trị của cột "index"
-        new_index = 1
-        for query in query_all:
-            query.index = new_index
-            new_index += 1
+        for i, query in enumerate(query_all):
+            query.index = i + 1
             db.session.flush()
         # save history
         save_history_test_set(test_set.id, user_id, 2, 1, ids_to_delete, [])

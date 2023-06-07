@@ -234,6 +234,7 @@ def remove_test_to_test_execution(test_execution_issue_id):
         body_request = request.get_json()
         cloud_id = token.get('cloudId')
         project_id = token.get('projectId')
+        archived = request.args.get('archived', False, type=bool)
         test_case_issue_ids = body_request.get('test_case_issue_ids')
         test_cases = TestCase.query.filter(TestCase.cloud_id == cloud_id, TestCase.project_id == project_id,
                                            TestCase.issue_id.in_(test_case_issue_ids)).all()
@@ -262,21 +263,35 @@ def remove_test_to_test_execution(test_execution_issue_id):
         TestRun.query.filter(TestRun.test_execution_id == test_execution.id) \
             .filter(TestRun.test_case_id.in_(test_case_ids)).delete()
         db.session.flush()
-        # xóa test_cases_test_executions
-        TestCasesTestExecutions.query.filter(
-            TestCasesTestExecutions.test_execution_id == test_execution.id) \
-            .filter(TestCasesTestExecutions.test_case_id.in_(test_case_ids)).delete()
-        db.session.flush()
-        # Lấy ra tất cả các record not in archived trong bảng
-        query_all = TestCasesTestExecutions.query.filter(TestCasesTestExecutions.test_execution_id == test_execution.id)\
-            .filter(TestCasesTestExecutions.is_archived == 0)\
-            .order_by(TestCasesTestExecutions.index.asc())
-        # Cập nhật lại giá trị của cột "index"
-        new_index = 1
-        for query in query_all:
-            query.index = new_index
-            new_index += 1
+        if archived:
+            # xóa test_cases_test_executions
+            TestCasesTestExecutions.query.filter(
+                TestCasesTestExecutions.test_execution_id == test_execution.id) \
+                .filter(TestCasesTestExecutions.test_case_id.in_(test_case_ids)).delete()
             db.session.flush()
+            # Lấy ra tất cả các record not in archived trong bảng
+            query_all = TestCasesTestExecutions.query.filter(
+                TestCasesTestExecutions.test_execution_id == test_execution.id) \
+                .filter(TestCasesTestExecutions.is_archived != 0) \
+                .order_by(TestCasesTestExecutions.is_archived.asc())
+            # Cập nhật lại giá trị của cột "archived"
+            for i, query in enumerate(query_all):
+                query.is_archived = i + 1
+                db.session.flush()
+        else:
+            # xóa test_cases_test_executions
+            TestCasesTestExecutions.query.filter(
+                TestCasesTestExecutions.test_execution_id == test_execution.id) \
+                .filter(TestCasesTestExecutions.test_case_id.in_(test_case_ids)).delete()
+            db.session.flush()
+            # Lấy ra tất cả các record not in archived trong bảng
+            query_all = TestCasesTestExecutions.query.filter(TestCasesTestExecutions.test_execution_id == test_execution.id)\
+                .filter(TestCasesTestExecutions.is_archived == 0)\
+                .order_by(TestCasesTestExecutions.index.asc())
+            # Cập nhật lại giá trị của cột "index"
+            for i, query in enumerate(query_all):
+                query.index = i + 1
+                db.session.flush()
         save_history_test_execution(test_execution.id, user_id, 2, 3, test_case_ids, [])
         db.session.commit()
         return send_result(message=f'Remove {len(test_case_ids)} test to test case execution successfully')
@@ -467,7 +482,7 @@ def restore_archive_test_case_in_test_execution(issue_id):
             db.session.flush()
         query_all = TestCasesTestExecutions.query.filter(TestCasesTestExecutions.test_execution_id == test_execution.id) \
             .filter(TestCasesTestExecutions.is_archived != 0) \
-            .order_by(TestCasesTestExecutions.index.asc())
+            .order_by(TestCasesTestExecutions.is_archived.asc())
         # Cập nhật lại giá trị của cột "is_archived"
         for i, query in enumerate(query_all):
             query.index = i + 1
