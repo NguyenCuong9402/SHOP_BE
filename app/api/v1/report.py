@@ -33,7 +33,7 @@ def get_traceability():
                                              TestRun.test_execution_id.in_(test_exe_ids))
             test_run_ids = [item.id for item in test_runs.all()]
             defect = Defects.query.filter(Defects.test_run_id.in_(test_run_ids)).all()
-            bug = [item.issue_id for item in defect]
+            issue_id_bug = [item.issue_id for item in defect]
             for test_execution_id in test_exe_ids:
                 infor_test_execution = {}
                 test_execution = TestExecution.query.filter(TestExecution.project_id == project_id,
@@ -66,7 +66,10 @@ def get_traceability():
                 infor_test_execution['testing'] = dict_testing
                 infor_test_executions.append(infor_test_execution)
             report['test_execution'] = infor_test_executions
-            report['bug'] = bug
+            report['bug'] = {
+                "issue_id": issue_id_bug,
+                "count": len(issue_id_bug)
+            }
             data.append(report)
         return send_result(data=data)
     except Exception as ex:
