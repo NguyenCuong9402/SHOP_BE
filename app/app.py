@@ -137,6 +137,7 @@ def register_blueprints(app):
     app.register_blueprint(api_v1.settings.api, url_prefix='/api/v1/setting')
     app.register_blueprint(api_v1.attachment.api, url_prefix='/api/v1/attachment')
     app.register_blueprint(api_v1.history_test.api, url_prefix='/api/v1/history_test')
+    app.register_blueprint(api_v1.report.api, url_prefix='/api/v1/report')
     app.register_blueprint(api_v1.test_step_field.api, url_prefix='/api/v1/test_step_field')
     app.register_blueprint(api_v1.test_step.api, url_prefix='/api/v1/test_step')
     app.register_blueprint(api_v1.test_run_field.api, url_prefix='/api/v1/test_run_field')

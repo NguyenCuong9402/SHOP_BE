@@ -492,3 +492,37 @@ def restore_archive_test_case_in_test_execution(issue_id):
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
+
+
+@api.route("/<issue_id>/executed_on", methods=["PUT"])
+@authorization_require()
+def time_modified_date(issue_id):
+    try:
+        token = get_jwt_identity()
+        user_id = token.get("userId")
+        cloud_id = token.get("cloudId")
+        project_id = token.get("projectId")
+        issue_key = token.get("issue_key")
+        body_request = request.get_json()
+        time = body_request.get('time')
+        test_execution = TestExecution.query.filter(TestExecution.cloud_id == cloud_id,
+                                                    TestExecution.project_id == project_id,
+                                                    TestExecution.issue_id == issue_id).first()
+        if test_execution is None:
+            test_execution = TestExecution(
+                id=str(uuid.uuid4()),
+                issue_id=issue_id,
+                project_id=project_id,
+                issue_key=issue_key,
+                cloud_id=cloud_id,
+                created_date=get_timestamp_now()
+            )
+            db.session.add(test_execution)
+            db.session.flush()
+        test_execution.modified_date = time
+        db.session.flush()
+        db.session.commit()
+        return send_result(message="success")
+    except Exception as ex:
+        db.session.rollback()
+        return send_error(message=str(ex))
