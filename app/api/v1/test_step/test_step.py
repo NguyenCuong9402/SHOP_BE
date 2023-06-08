@@ -346,9 +346,9 @@ def call_test_case(issue_id, issue_id_reference):
             db.session.flush()
         if test_case_reference is None:
             return send_error(message="Call test case reference fail", code=200, show=False, is_dynamic=True)
-        # Đệ quy tìm test case id là reference
+        # tìm test case id là reference
         check_up = get_test_case_id(cloud_id, project_id, test_case.id, {test_case.id})
-        # Dệ quy tìm test case refence là  test case id
+        # test case refence là  test case id
         check_down = get_test_case_reference(cloud_id, project_id, test_case_reference.id, {test_case_reference.id})
         if len(check_up & check_down) > 0:
             return send_error(message="not allowed to call because test was called called test", code=200,
