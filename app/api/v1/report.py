@@ -5,7 +5,7 @@ from sqlalchemy import asc
 
 from app.gateway import authorization_require
 from app.models import HistoryTest, TestCase, db, TestSet, TestExecution, TestRun, TestExecutionsTestEnvironments, \
-    TestEnvironment
+    TestEnvironment, Defects
 from app.utils import send_result, send_error, get_timestamp_now
 from app.validator import TestSetSchema
 
@@ -28,7 +28,10 @@ def get_():
                                              TestSet.cloud_id == cloud_id, TestSet.project_id == project_id).all()
             report['test_set'] = TestSetSchema(many=True).dump(test_sets)
             infor_test_executions = []
-            for test_execution_issue_id in story['test_executions']:
+            test_executions = TestExecution.query.filter(TestExecution.cloud_id == cloud_id, TestExecution.project_id,
+                                                         TestExecution.issue_id.in_(story['test_executions'])).all()
+            test_exe_id = [item.id for item in test_executions]
+            for test_execution_issue_id in test_exe_id:
                 infor_test_execution = {}
                 test_execution = TestExecution.query.filter(TestExecution.project_id == project_id,
                                                             TestExecution.cloud_id == cloud_id,
@@ -43,6 +46,13 @@ def get_():
                 infor_test_execution['environment'] = [item.name for item in test_environments]
                 infor_test_executions.append(infor_test_execution)
             report['test_execution'] = infor_test_executions
-
+            test_runs = TestRun.query.filter(TestRun.cloud_id == cloud_id, TestRun.project_id == project_id,
+                                             TestRun.test_execution_id.in_(test_exe_id)).all()
+            test_run_ids = [item.id for item in test_runs]
+            defect = Defects.query.filter(Defects.test_run_id.in_(test_run_ids)).all()
+            bug = [item.issue_id for item in defect]
+            report['test_execution'] = bug
+            data.append(report)
+        return send_result(data=data)
     except Exception as ex:
         return send_error(message=str(ex))
