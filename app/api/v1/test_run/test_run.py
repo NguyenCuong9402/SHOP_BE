@@ -576,25 +576,7 @@ def get_defect(test_run_id):
             defect_global = DefectsSchema(many=True).dump(defects)
             dict_defect['Global'] = defect_global
             if not search_other:
-                # lọc thứ tự step trong test run -> trả theo thứ tự
-                test_steps = db.session.query(TestStep).filter(TestStep.project_id == project_id,
-                                                               TestStep.cloud_id == cloud_id,
-                                                               TestStep.test_case_id == test_run.test_case_id) \
-                    .order_by(asc(TestStep.index)).all()
-                test_detail_ids = []
-                for test_step in test_steps:
-                    link = test_step.id + "/"
-                    if test_step.test_case_id_reference:
-                        result_child = get_test_step_detail_id(cloud_id, project_id, test_step.test_case_id_reference,
-                                                               [],
-                                                               link, test_run_id)
-                        test_detail_ids = test_detail_ids + result_child
-                    else:
-                        test_step_detail = TestStepDetail.query.filter(TestStepDetail.test_step_id == test_step.id,
-                                                                       TestStepDetail.test_run_id == test_run_id,
-                                                                       TestStepDetail.link == link).first()
-                        data = test_step_detail.id
-                        test_detail_ids.append(data)
+                test_detail_ids = stt_step_detail_id(cloud_id, project_id, test_run_id, [])
                 # query - step
                 for i, test_detail_id in enumerate(test_detail_ids):
                     defect = Defects.query.filter(Defects.test_run_id == test_run_id,
@@ -843,26 +825,7 @@ def get_evidence(test_run_id):
             file_global = EvidenceSchema(many=True).dump(files)
             dict_evidence['Global'] = file_global
             if not search_other:
-                test_run = TestRun.query.filter(test_run_id == test_run_id).first()
-                # lọc thứ tự step trong test run -> trả theo thứ tự
-                test_steps = db.session.query(TestStep).filter(TestStep.project_id == project_id,
-                                                               TestStep.cloud_id == cloud_id,
-                                                               TestStep.test_case_id == test_run.test_case_id) \
-                    .order_by(asc(TestStep.index)).all()
-                test_detail_ids = []
-                for test_step in test_steps:
-                    link = test_step.id + "/"
-                    if test_step.test_case_id_reference:
-                        result_child = get_test_step_detail_id(cloud_id, project_id, test_step.test_case_id_reference,
-                                                               [],
-                                                               link, test_run_id)
-                        test_detail_ids = test_detail_ids + result_child
-                    else:
-                        test_step_detail = TestStepDetail.query.filter(TestStepDetail.test_step_id == test_step.id,
-                                                                       TestStepDetail.test_run_id == test_run_id,
-                                                                       TestStepDetail.link == link).first()
-                        data = test_step_detail.id
-                        test_detail_ids.append(data)
+                test_detail_ids = stt_step_detail_id(cloud_id, project_id, test_run_id, [])
                 # query - step
                 for i, test_detail_id in enumerate(test_detail_ids):
                     files = TestEvidence.query.filter(TestEvidence.test_run_id == test_run_id,
@@ -907,13 +870,12 @@ def stt_step_detail_id(cloud_id, project_id, test_run_id, ids: list):
 
 # lấy tất cả id test step trong test case call
 def get_test_step_detail_id(cloud_id, project_id, test_case_id_reference, test_details: list, link: str, test_run_id):
-    test_step_reference = db.session.query(TestStep.id, TestStep.cloud_id, TestStep.project_id, TestStep.action,
-                                           TestStep.attachments, TestStep.result, TestStep.data, TestStep.created_date,
+    test_step_reference = db.session.query(TestStep.id, TestStep.cloud_id, TestStep.project_id,
                                            TestStep.test_case_id, TestStep.test_case_id_reference, TestCase.issue_key,
                                            TestStep.custom_fields) \
         .join(TestCase, TestCase.id == TestStep.test_case_id) \
         .filter(TestStep.project_id == project_id, TestStep.cloud_id == cloud_id,
-                TestStep.test_case_id == test_case_id_reference).all()
+                TestStep.test_case_id == test_case_id_reference).order_by(asc(TestStep.index)).all()
 
     for step in test_step_reference:
         new_link = link + step.id + "/"
