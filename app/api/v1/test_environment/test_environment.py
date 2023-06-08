@@ -9,7 +9,7 @@ from sqlalchemy import func, asc, and_, desc
 from app.api.v1.test_environment.test_environment_validator import CreateTestEnvironment, DeleteTestEnvironment, \
     UpdateTestEnvironment, AddTestEnvironment
 from app.gateway import authorization_require
-from app.models import TestType, db, TestEnvironment
+from app.models import TestType, db, TestEnvironment, TestExecution, TestExecutionsTestEnvironments
 from app.utils import send_result, send_error, validate_request, escape_wildcard
 from app.validator import TestEnvironmentSchema
 
@@ -271,6 +271,29 @@ def update_test_environment(project_id, test_environment_id):
 
     except Exception as ex:
         db.session.rollback()
+        return send_error(data='', message="Something was wrong!")
+
+
+@api.route("/<project_id>/number-test", methods=["POST"])
+@authorization_require()
+def number_test_delete(project_id):
+    try:
+        token = get_jwt_identity()
+        cloud_id = token.get('cloudId')
+        body_request = request.get_json()
+        test_environment_ids = body_request.get("test_environment_ids", [])
+        if len(test_environment_ids) == 0:
+            return send_error(message="")
+        tests = db.session.query(TestExecution.id, TestExecution.issue_id) \
+            .join(TestExecutionsTestEnvironments, TestExecutionsTestEnvironments.test_execution_id == TestExecution.id)\
+            .filter(TestExecutionsTestEnvironments.test_environment_id.in_(test_environment_ids))\
+            .filter(TestExecution.cloud_id == cloud_id, TestExecution.project_id == project_id).all()
+        ids = [test.id for test in tests]
+        if len({ids}) > 0:
+            message = f"There are {len({ids})} Test Executions(s) using the Test Environments."
+            return send_result(message=message, is_dynamic=True)
+        return send_result(message="")
+    except Exception as ex:
         return send_error(data='', message="Something was wrong!")
 
 
