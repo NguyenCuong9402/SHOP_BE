@@ -312,50 +312,40 @@ def get_test_in_repo():
         body_request = request.get_json()
         test_types = body_request.get("test_types", [])
         test_sets = body_request.get("test_sets", [])
+        count_repo = Repository.query.filter(Repository.cloud_id == cloud_id, Repository.project_id).count()
+        if count_repo == 0:
+            repo_0 = Repository(
+                id=str(project_id),
+                name=DEFAULT_DATA['name'],
+                cloud_id=cloud_id,
+                project_id=project_id,
+                type=DEFAULT_DATA['type']
+            )
+            db.session.add(repo_0)
+            db.session.flush()
+            db.session.commit()
         if repository_id in [str(project_id), ""]:
-            count_repo = Repository.query.filter(Repository.cloud_id == cloud_id, Repository.project_id).count()
-            if count_repo == 0:
-                repo_0 = Repository(
-                    id=str(project_id),
-                    name=DEFAULT_DATA['name'],
-                    cloud_id=cloud_id,
-                    project_id=project_id,
-                    type=DEFAULT_DATA['type']
-                )
-                db.session.add(repo_0)
-                db.session.flush()
-                db.session.commit()
             repository = Repository.query.filter(Repository.cloud_id == cloud_id, Repository.project_id == project_id,
                                                  or_(Repository.type != DEFAULT_DATA['type'],
                                                      Repository.id != project_id)).all()
             repo_id = [item.id for item in repository]
             test_repository = TestRepository.query.filter(TestRepository.repository_id.in_(repo_id)).all()
-            test_ids = [test_repo.test_id for test_repo in test_repository]
-            test_cases_in_repo = TestCase.query.filter(TestCase.id.in_(test_ids)).order_by(
-                desc(TestCase.issue_key))
-            if len(test_types) > 0:
-                test_cases_in_repo = test_cases_in_repo.filter(TestCase.test_type_id.in_(test_types))
-            if len(test_sets) > 0:
-                test_cases_in_repo = test_cases_in_repo.join(TestCasesTestSets, test_cases_in_repo.id ==
-                                                             TestCasesTestSets.test_case_id)\
-                    .filter(TestCasesTestSets.test_set_id.in_(test_sets))
-            tests = [test.id for test in test_cases_in_repo]
-            return send_result(data={"test_cases": tests, "repository_id": project_id})
+            repository_id = str(project_id)
         else:
             repo = Repository.query.filter(Repository.cloud_id == cloud_id, Repository.project_id == project_id,
                                            Repository.id == repository_id).first()
-            test_repos = TestRepository.query.filter(TestRepository.repository_id == repo.id).all()
-            test_ids = [test_repo.test_id for test_repo in test_repos]
-            test_cases_in_repo = TestCase.query.filter(TestCase.id.in_(test_ids))\
-                .order_by(desc(TestCase.issue_id))
-            if len(test_types) > 0:
-                test_cases_in_repo = test_cases_in_repo.filter(TestCase.test_type_id.in_(test_types))
-            if len(test_sets) > 0:
-                test_cases_in_repo = test_cases_in_repo.join(TestCasesTestSets,
-                                                             test_cases_in_repo.id == TestCasesTestSets.test_case_id)\
-                    .filter(TestCasesTestSets.test_set_id.in_(test_sets))
-            tests = [test.id for test in test_cases_in_repo]
-            return send_result(data={"test_cases": tests, "repository_id": repository_id})
+            test_repository = TestRepository.query.filter(TestRepository.repository_id == repo.id).all()
+        test_ids = [test_repo.test_id for test_repo in test_repository]
+        test_cases_in_repo = TestCase.query.filter(TestCase.id.in_(test_ids))\
+            .order_by(desc(TestCase.issue_id))
+        if len(test_types) > 0:
+            test_cases_in_repo = test_cases_in_repo.filter(TestCase.test_type_id.in_(test_types))
+        if len(test_sets) > 0:
+            test_cases_in_repo = test_cases_in_repo.join(TestCasesTestSets,
+                                                         test_cases_in_repo.id == TestCasesTestSets.test_case_id)\
+                .filter(TestCasesTestSets.test_set_id.in_(test_sets))
+        tests = [test.id for test in test_cases_in_repo]
+        return send_result(data={"test_cases": tests, "repository_id": repository_id})
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
