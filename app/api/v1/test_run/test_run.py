@@ -669,7 +669,7 @@ def load_test_run(issue_id, test_issue_id):
     for test_step in test_steps:
         link = test_step.id + "/"
         if test_step.test_case_id_reference:
-            result_child = get_test_step_id_by_test_case_id_reference(cloud_id, project_id,
+            result_child = get_test_step_id_detail_by_test_case_id_reference(cloud_id, project_id,
                                                                       test_step.test_case_id_reference, [],
                                                                       link, test_run.id)
             result = result + result_child
@@ -710,14 +710,15 @@ def get_test_step_detail_id(cloud_id, project_id, test_case_id_reference, test_d
     return test_details
 
 
-def get_test_step_id_by_test_case_id_reference(cloud_id, project_id, test_case_id_reference,
-                                               test_details: list, link: str, test_run_id):
+def get_test_step_id_detail_by_test_case_id_reference(cloud_id, project_id, test_case_id_reference,
+                                                      test_details: list, link: str, test_run_id):
     stack = [(test_case_id_reference, link)]
     while stack:
         test_reference, cur_link = stack.pop()
         test_step_reference = db.session.query(TestStep.id, TestStep.cloud_id, TestStep.project_id, TestStep.action,
-                                               TestStep.attachments, TestStep.result, TestStep.data, TestStep.created_date,
-                                               TestStep.test_case_id, TestStep.test_case_id_reference, TestCase.issue_key,
+                                               TestStep.attachments, TestStep.result, TestStep.data,
+                                               TestStep.created_date,  TestStep.test_case_id,
+                                               TestStep.test_case_id_reference, TestCase.issue_key,
                                                TestStep.custom_fields) \
             .join(TestCase, TestCase.id == TestStep.test_case_id) \
             .filter(TestStep.project_id == project_id, TestStep.cloud_id == cloud_id,
