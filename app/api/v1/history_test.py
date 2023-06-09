@@ -124,7 +124,7 @@ def save_history_test_set(id_reference: str, user_id: str, action: int, history_
 
 def save_history_test_step(id_reference: str, user_id: str, action: int,
                            history_category: int, detail_of_action: dict, index_step: list):
-    # 1: add step   2: remove  3:change rank  4: clone   5:call
+    # 1: add step   2: remove  3:change rank  4: clone   5:call 6: remove step call
     if action == 1:
         new_history = HistoryTest(
             id_reference=id_reference,
@@ -160,7 +160,7 @@ def save_history_test_step(id_reference: str, user_id: str, action: int,
             detail_of_action={"old rank": index_step[0], "new rank": index_step[1]},
             created_date=get_timestamp_now())
         db.session.add(new_history)
-    if action == 4:
+    elif action == 4:
         new_history = HistoryTest(
             id_reference=id_reference,
             user_id=user_id,
@@ -171,13 +171,24 @@ def save_history_test_step(id_reference: str, user_id: str, action: int,
             detail_of_action={"Test Step": index_step[0], "data": detail_of_action},
             created_date=get_timestamp_now())
         db.session.add(new_history)
-    if action == 5:
+    elif action == 5:
         new_history = HistoryTest(
             id_reference=id_reference,
             user_id=user_id,
             id=str(uuid.uuid4()),
             history_category=history_category,
             activities='call',
+            action_name='updated Test Steps',
+            detail_of_action={"Test Step": index_step[0], "data": detail_of_action},
+            created_date=get_timestamp_now())
+        db.session.add(new_history)
+    elif action == 6:
+        new_history = HistoryTest(
+            id_reference=id_reference,
+            user_id=user_id,
+            id=str(uuid.uuid4()),
+            history_category=history_category,
+            activities='remove call',
             action_name='updated Test Steps',
             detail_of_action={"Test Step": index_step[0], "data": detail_of_action},
             created_date=get_timestamp_now())
