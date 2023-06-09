@@ -371,16 +371,17 @@ def call_test_case(issue_id, issue_id_reference):
                                          TestRun.test_case_id == test_case.id).all()
         status = TestStatus.query.filter(TestStatus.cloud_id == cloud_id, TestStatus.project_id == project_id,
                                          TestStatus.name == 'TODO').first()
-        # step_calls = TestStep.query.filter(TestStep.cloud_id == cloud_id,
-        #                                    TestStep.project_id == project_id, TestStep.test_case_id
-        #                                    == test_case_reference.id).order_by(asc(TestStep.index)).all()
         # Add test details những test run tạo bởi test case id call
         for test_run in test_runs:
             add_test_step_id_by_test_case_id(cloud_id, project_id, test_case_reference.id,
                                              test_run.id, status.id,  test_step.id + "/")
-        # Add test details những test run tạo bởi test case có  test case id call  là reference /
-        # link = test call + call + test dc call ( mới làm đến test call + call)
-
+        # Add test details những test run tạo bởi test case có  test case id call là reference
+        links = get_link_detail_by_test_case_id_reference(cloud_id=cloud_id, project_id=project_id,
+                                                          test_case_id=test_case_reference.id, link_details=[],
+                                                          link=test_step.id + "/")
+        for link in links:
+            add_test_detail_for_test_case_call(cloud_id=cloud_id, project_id=project_id,
+                                               test_case_id_reference=test_case.id, status_id=status.id, link=link)
         # update test_run.is_update =1 -> merge/reset
         for test_case_id in check_up:
             db.session.query(TestRun).filter(TestRun.project_id == project_id, TestRun.cloud_id == cloud_id,
@@ -394,6 +395,25 @@ def call_test_case(issue_id, issue_id_reference):
     except Exception as ex:
         db.session.rollback()
         return send_error(data='', message=str(ex))
+
+
+# GET link ( test step detail) # link : step_id_call, test case id :
+def get_link_detail_by_test_case_id_reference(cloud_id: str, project_id: str, test_case_id: str,
+                                              link_details: list, link: str):
+    stack = [(test_case_id, link)]
+    while stack:
+        test_case_id, cur_link = stack.pop()
+        test_steps = TestStep.query.filter(TestStep.project_id == project_id, TestStep.cloud_id == cloud_id,
+                                           TestStep.test_case_id == test_case_id)\
+            .order_by(asc(TestStep.index))
+        for step in test_steps:
+            new_link = cur_link + step.id + "/"
+            if step.test_case_id_reference is None:
+                data = new_link
+                link_details.append(data)
+            else:
+                stack.append((step.test_case_id_reference, new_link))
+    return link_details
 
 
 @api.route("/<issue_id>/<test_step_id>", methods=["POST"])
