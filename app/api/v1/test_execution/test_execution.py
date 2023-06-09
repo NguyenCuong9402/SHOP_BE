@@ -192,6 +192,8 @@ def add_test_to_test_execution(test_execution_issue_id):
             else:
                 return send_error(message='Test Executions were already associated with the Test',
                                   status=200, show=False)
+        if len(test_case_ids) == 0:
+            return send_error(message="No new tests were added to this Test Execution", show=True)
         save_history_test_execution(test_execution.id, user_id, 1, 3, test_case_ids, [])
         db.session.commit()
         return send_result(message=f'Add {len(test_case_ids)} test case to execution case successfully')
@@ -207,7 +209,7 @@ def add_test_step_id_by_test_case_id(cloud_id: str, project_id: str, test_case_i
         curr_id, current_link = stack.pop()
         step_calls = TestStep.query.filter(TestStep.cloud_id == cloud_id, TestStep.project_id == project_id,
                                            TestStep.test_case_id == curr_id) \
-            .order_by(desc(TestStep.index)).all()
+            .order_by(asc(TestStep.index)).all()
         for step in step_calls:
             new_link = current_link + step.id + "/"
             if step.test_case_id_reference is None:
@@ -305,25 +307,23 @@ def remove_test_to_test_execution(test_execution_issue_id):
 def create_test_execution():
     try:
         token = get_jwt_identity()
-
         cloud_id = token.get('cloudId')
-        issue_id = token.get('issueId')
-        issue_key = token.get('issueKey')
         project_id = token.get('projectId')
-
-        test_execution = TestExecution(
-            id=str(uuid.uuid4()),
-            issue_id=issue_id,
-            project_id=project_id,
-            issue_key=issue_key,
-            cloud_id=cloud_id,
-            created_date=get_timestamp_now()
-        )
-        db.session.add(test_execution)
-        db.session.flush()
-
-        return send_result(data=TestExecutionSchema().dump(test_execution))
-
+        body_request = request.get_json()
+        test_execution = body_request.get('test_execution')
+        for issue_id, issue_key in test_execution.items():
+            test_execution = TestExecution(
+                id=str(uuid.uuid4()),
+                issue_id=issue_id,
+                project_id=project_id,
+                issue_key=issue_key,
+                cloud_id=cloud_id,
+                created_date=get_timestamp_now()
+            )
+            db.session.add(test_execution)
+            db.session.flush()
+        db.session.commit()
+        return send_result(message="done")
     except Exception as ex:
         print(ex)
 

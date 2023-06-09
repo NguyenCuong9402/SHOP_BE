@@ -101,6 +101,7 @@ def add_test_step(issue_id):
                                          TestRun.test_case_id == test_case.id).all()
         status = TestStatus.query.filter(TestStatus.cloud_id == cloud_id, TestStatus.project_id == project_id,
                                          TestStatus.name == 'TODO').first()
+
         for test_run in test_runs:
             test_run.is_updated = 1
             test_step_detail = TestStepDetail(
@@ -152,7 +153,7 @@ def add_test_detail_for_test_case_call(cloud_id: str, project_id: str, test_case
             current_test_case_id, current_link = stack.pop()  # Lấy phần tử cuối cùng từ stack
             test_steps = TestStep.query.filter(TestStep.cloud_id == cloud_id, TestStep.project_id == project_id,
                                                TestStep.test_case_id_reference == current_test_case_id) \
-                .order_by(desc(TestStep.index)).all()
+                .order_by(asc(TestStep.index)).all()
             for test_step in test_steps:
                 new_link = test_step.id + "/" + current_link
                 test_runs = TestRun.query.filter(TestRun.cloud_id == cloud_id,
@@ -370,61 +371,21 @@ def call_test_case(issue_id, issue_id_reference):
                                          TestRun.test_case_id == test_case.id).all()
         status = TestStatus.query.filter(TestStatus.cloud_id == cloud_id, TestStatus.project_id == project_id,
                                          TestStatus.name == 'TODO').first()
-        step_calls = TestStep.query.filter(TestStep.cloud_id == cloud_id,
-                                           TestStep.project_id == project_id, TestStep.test_case_id
-                                           == test_case_reference.id).order_by(asc(TestStep.index)).all()
         # Add test details những test run tạo bởi test case id call
         for test_run in test_runs:
-            for step_call in step_calls:
-                link = test_step.id + "/" + step_call.id + "/"
-                if step_call.test_case_id_reference is None:
-                    test_step_detail = TestStepDetail(
-                        id=str(uuid.uuid4()),
-                        test_step_id=step_call.id,
-                        status_id=status.id,
-                        test_run_id=test_run.id,
-                        created_date=get_timestamp_now(),
-                        link=link
-                    )
-                    db.session.add(test_step_detail)
-                    db.session.flush()
-                else:
-                    add_test_step_id_by_test_case_id(cloud_id, project_id, test_step.test_case_id_reference,
-                                                     test_run.id, status.id, link)
-        # Add test details những test run tạo bởi test case có  test case id call  là reference /
-        # cần sửa vì link = test call + call + test dc call ( mới làm đến test call + call)
-        test_steps = TestStep.query.filter(TestStep.cloud_id == cloud_id, TestStep.project_id == project_id,
-                                           TestStep.test_case_id_reference == test_case.id).all()
-        test_case_ids = [item.test_case_id for item in test_steps]
-        link_2 = test_step.id + "/"
-        for test_case_id in test_case_ids:
-            test_runs_2 = TestRun.query.filter(TestRun.project_id == project_id, TestRun.cloud_id == cloud_id,
-                                               TestRun.test_case_id == test_case_id).all()
-
-            step_calls_2 = TestStep.query.filter(TestStep.cloud_id == cloud_id,
-                                                 TestStep.project_id == project_id, TestStep.test_case_id
-                                                 == test_case_id).order_by(asc(TestStep.index)).all()
-            for test_run in test_runs_2:
-                for step_call in step_calls_2:
-                    if step_call.test_case_id_reference is None:
-                        test_step_detail = TestStepDetail(
-                            id=str(uuid.uuid4()),
-                            test_step_id=step_call.id,
-                            status_id=status.id,
-                            test_run_id=test_run.id,
-                            created_date=get_timestamp_now(),
-                            link=step_call.id + "/" + link_2
-                        )
-                        db.session.add(test_step_detail)
-                        db.session.flush()
-                    else:
-                        add_test_detail_for_test_case_call(cloud_id, project_id, step_call.test_case_id,
-                                                           status.id, step_call.id + "/" + link_2)
+            add_test_step_id_by_test_case_id(cloud_id, project_id, test_case_reference.id,
+                                             test_run.id, status.id,  test_step.id + "/")
+        # Add test details những test run tạo bởi test case có  test case id call là reference
+        links = get_link_detail_by_test_case_id_reference(cloud_id=cloud_id, project_id=project_id,
+                                                          test_case_id=test_case_reference.id, link_details=[],
+                                                          link=test_step.id + "/")
+        for link in links:
+            add_test_detail_for_test_case_call(cloud_id=cloud_id, project_id=project_id,
+                                               test_case_id_reference=test_case.id, status_id=status.id, link=link)
         # update test_run.is_update =1 -> merge/reset
-        for test_case_id in check_up:
-            db.session.query(TestRun).filter(TestRun.project_id == project_id, TestRun.cloud_id == cloud_id,
-                                             TestRun.test_case_id == test_case_id).update({"is_updated": 1})
-            db.session.flush()
+        db.session.query(TestRun).filter(TestRun.project_id == project_id, TestRun.cloud_id == cloud_id,
+                                         TestRun.test_case_id.in_(check_up)).update({"is_updated": 1})
+        db.session.flush()
         # Create detail_of_action and Save history
         detail_of_action = {"Call test": test_case_reference.issue_key}
         save_history_test_step(test_case.id, user_id, 5, 2, detail_of_action, [test_step.index + 1])
@@ -433,6 +394,25 @@ def call_test_case(issue_id, issue_id_reference):
     except Exception as ex:
         db.session.rollback()
         return send_error(data='', message=str(ex))
+
+
+# GET link ( test step detail) # link : step_id_call, test case id :
+def get_link_detail_by_test_case_id_reference(cloud_id: str, project_id: str, test_case_id: str,
+                                              link_details: list, link: str):
+    stack = [(test_case_id, link)]
+    while stack:
+        test_case_id, cur_link = stack.pop()
+        test_steps = TestStep.query.filter(TestStep.project_id == project_id, TestStep.cloud_id == cloud_id,
+                                           TestStep.test_case_id == test_case_id)\
+            .order_by(asc(TestStep.index))
+        for step in test_steps:
+            new_link = cur_link + step.id + "/"
+            if step.test_case_id_reference is None:
+                data = new_link
+                link_details.append(data)
+            else:
+                stack.append((step.test_case_id_reference, new_link))
+    return link_details
 
 
 @api.route("/<issue_id>/<test_step_id>", methods=["POST"])

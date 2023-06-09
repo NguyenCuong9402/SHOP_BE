@@ -267,24 +267,7 @@ def add_test_execution(test_issue_id):
                 db.session.flush()
                 # Tạo test details
                 add_test_step_id_by_test_case_id(cloud_id, project_id, test_case.id, test_run.id,
-                                                   default_status.id, '')
-                # test_steps = TestStep.query.filter(TestStep.project_id == project_id, TestStep.cloud_id == cloud_id,
-                #                                    TestStep.test_case_id == test_case.id).all()
-                # for test_step in test_steps:
-                #     if test_step.test_case_id_reference is None:
-                #         test_step_detail = TestStepDetail(
-                #             id=str(uuid.uuid4()),
-                #             test_step_id=test_step.id,
-                #             status_id=default_status.id,
-                #             test_run_id=test_run.id,
-                #             created_date=get_timestamp_now(),
-                #             link=test_step.id+"/",
-                #         )
-                #         db.session.add(test_step_detail)
-                #         db.session.flush()
-                #     else:
-                #         add_test_step_id_by_test_case_id(cloud_id, project_id, test_step.test_case_id_reference,
-                #                                          test_run.id, default_status.id, test_step.id+"/")
+                                                 default_status.id, '')
             else:
                 return send_error(message='Some Test Executions were already associated with the Test',
                                   status=200, show=False)
@@ -354,21 +337,20 @@ def create_test_case():
     try:
         token = get_jwt_identity()
         cloud_id = token.get('cloudId')
-        issue_id = token.get('issueId')
-        issue_key = token.get('issueKey')
         project_id = token.get('projectId')
-        test_type_id = get_test_type_default(cloud_id, project_id)
-        test_case = TestCase(
-            id=str(uuid.uuid4()),
-            issue_id=issue_id,
-            issue_key=issue_key,
-            project_id=project_id,
-            cloud_id=cloud_id,
-            created_date=get_timestamp_now(),
-            test_type_id=test_type_id
-        )
-        db.session.add(test_case)
-        db.session.flush()
+        body_request = request.get_json()
+        test_case = body_request.get('test_case')
+        for issue_id, issue_key in test_case.items():
+            test_case = TestCase(
+                id=str(uuid.uuid4()),
+                issue_id=issue_id,
+                project_id=project_id,
+                issue_key=issue_key,
+                cloud_id=cloud_id,
+                created_date=get_timestamp_now()
+            )
+            db.session.add(test_case)
+            db.session.flush()
         db.session.commit()
         return send_result(data='Done', message="OK")
     except Exception as ex:
