@@ -152,8 +152,7 @@ def add_test_detail_for_test_case_call(cloud_id: str, project_id: str, test_case
         while len(stack) > 0:
             current_test_case_id, current_link = stack.pop()  # Lấy phần tử cuối cùng từ stack
             test_steps = TestStep.query.filter(TestStep.cloud_id == cloud_id, TestStep.project_id == project_id,
-                                               TestStep.test_case_id_reference == current_test_case_id) \
-                .order_by(asc(TestStep.index)).all()
+                                               TestStep.test_case_id_reference == current_test_case_id).all()
             for test_step in test_steps:
                 new_link = test_step.id + "/" + current_link
                 test_runs = TestRun.query.filter(TestRun.cloud_id == cloud_id,
@@ -257,9 +256,10 @@ def remove_test_step(test_step_id, issue_id):
             links = get_link_detail_by_test_case_id_reference(cloud_id=cloud_id, project_id=project_id,
                                                               test_case_id=test_case_reference.id, link_details=[],
                                                               link=test_step.id + "/")
-            # link test case khác call test case này 1 hàm(check)  for links
+            # link test case khác call test case +
             for link in links:
-                pass
+                links = links + get_link_detail_for_test_case_call(cloud_id, project_id,
+                                                                   test_step.test_case_id, [], link)
             TestStepDetail.query.filter(TestStepDetail.link.in_(links)).delete()
             db.session.flush()
             save_history_test_step(test_case.id, user_id, 6, 2, detail_of_action, [index])
@@ -273,6 +273,23 @@ def remove_test_step(test_step_id, issue_id):
     except Exception as ex:
         db.session.rollback()
         return send_error(data='', message=str(ex))
+
+
+def get_link_detail_for_test_case_call(cloud_id: str, project_id: str, test_case_id_reference: str,
+                                       link_details: list, link: str):
+    try:
+        stack = [(test_case_id_reference, link)]  # Khởi tạo stack và thêm (test_case_id_reference, link) vào stack
+        while len(stack) > 0:
+            current_test_case_id, current_link = stack.pop()  # Lấy phần tử cuối cùng từ stack
+            test_steps = TestStep.query.filter(TestStep.cloud_id == cloud_id, TestStep.project_id == project_id,
+                                               TestStep.test_case_id_reference == current_test_case_id).all()
+            for test_step in test_steps:
+                new_link = test_step.id + "/" + current_link
+                stack.append((test_step.test_case_id, new_link))  # Thêm (test_case_id liên quan, new_link) vào stack
+                link_details.append(new_link)
+        return link_details
+    except Exception as ex:
+        return send_error(message=str(ex))
 
 
 @api.route("/<issue_id>", methods=["PUT"])
