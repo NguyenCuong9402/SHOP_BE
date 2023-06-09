@@ -687,30 +687,56 @@ def load_test_run(issue_id, test_issue_id):
         return send_error(message=str(ex))
 
 
-# lấy tất cả id test step trong test case call
+def get_test_step_detail_id(cloud_id, project_id, test_case_id_reference, test_details: list, link: str, test_run_id):
+    stack = [(test_case_id_reference, link)]
+    while stack:
+        test_reference, cur_link = stack.pop()
+        test_step_reference = db.session.query(TestStep.id, TestStep.cloud_id, TestStep.project_id,
+                                               TestStep.test_case_id, TestStep.test_case_id_reference) \
+            .join(TestCase, TestCase.id == TestStep.test_case_id) \
+            .filter(TestStep.project_id == project_id, TestStep.cloud_id == cloud_id,
+                    TestStep.test_case_id == test_reference).order_by(asc(TestStep.index))
+        stack_child = []
+        for step in test_step_reference:
+            new_link = cur_link + step.id + "/"
+            if step.test_case_id_reference is None:
+                test_step_detail = TestStepDetail.query.filter(TestStepDetail.test_step_id == step.id,
+                                                               TestStepDetail.test_run_id == test_run_id,
+                                                               TestStepDetail.link == new_link).first()
+                data = test_step_detail.id
+                test_details.append(data)
+            else:
+                stack_child.append((step.test_case_id_reference, new_link))
+        stack = stack + list(reversed(stack_child))
+    return test_details
+
+
 def get_test_step_id_by_test_case_id_reference(cloud_id, project_id, test_case_id_reference,
                                                test_details: list, link: str, test_run_id):
-    test_step_reference = db.session.query(TestStep.id, TestStep.cloud_id, TestStep.project_id, TestStep.action,
-                                           TestStep.attachments, TestStep.result, TestStep.data, TestStep.created_date,
-                                           TestStep.test_case_id, TestStep.test_case_id_reference, TestCase.issue_key,
-                                           TestStep.custom_fields) \
-        .join(TestCase, TestCase.id == TestStep.test_case_id) \
-        .filter(TestStep.project_id == project_id, TestStep.cloud_id == cloud_id,
-                TestStep.test_case_id == test_case_id_reference).all()
-
-    for step in test_step_reference:
-        new_link = link + step.id + "/"
-        if step.test_case_id_reference is None:
-            data = TestStepTestRunSchema().dump(step)
-            data['link'] = new_link
-            test_step_detail = TestStepDetail.query.filter(TestStepDetail.test_step_id == data['id'],
-                                                           TestStepDetail.test_run_id == test_run_id,
-                                                           TestStepDetail.link == data['link']).first()
-            data['test_step_detail_id'] = test_step_detail.id
-            test_details.append(data)
-        else:
-            get_test_step_id_by_test_case_id_reference(cloud_id, project_id, step.test_case_id_reference,
-                                                       test_details, new_link, test_run_id)
+    stack = [(test_case_id_reference, link)]
+    while stack:
+        test_reference, cur_link = stack.pop()
+        test_step_reference = db.session.query(TestStep.id, TestStep.cloud_id, TestStep.project_id, TestStep.action,
+                                               TestStep.attachments, TestStep.result, TestStep.data, TestStep.created_date,
+                                               TestStep.test_case_id, TestStep.test_case_id_reference, TestCase.issue_key,
+                                               TestStep.custom_fields) \
+            .join(TestCase, TestCase.id == TestStep.test_case_id) \
+            .filter(TestStep.project_id == project_id, TestStep.cloud_id == cloud_id,
+                    TestStep.test_case_id == test_reference).order_by(asc(TestStep.index))
+        stack_child = []
+        for step in test_step_reference:
+            new_link = cur_link + step.id + "/"
+            if step.test_case_id_reference is None:
+                data = TestStepTestRunSchema().dump(step)
+                data['link'] = new_link
+                test_step_detail = TestStepDetail.query.filter(TestStepDetail.test_step_id == data['id'],
+                                                               TestStepDetail.test_run_id == test_run_id,
+                                                               TestStepDetail.link == data['link']).first()
+                data['test_step_detail_id'] = test_step_detail.id
+                test_details.append(data)
+            else:
+                stack_child.append((step.test_case_id_reference, new_link))
+        stack = stack + list(reversed(stack_child))
     return test_details
 
 
@@ -866,29 +892,6 @@ def stt_step_detail_id(cloud_id, project_id, test_run_id, ids: list):
             data = test_step_detail.id
             ids.append(data)
     return ids
-
-
-# lấy tất cả id test step trong test case call
-def get_test_step_detail_id(cloud_id, project_id, test_case_id_reference, test_details: list, link: str, test_run_id):
-    test_step_reference = db.session.query(TestStep.id, TestStep.cloud_id, TestStep.project_id,
-                                           TestStep.test_case_id, TestStep.test_case_id_reference, TestCase.issue_key,
-                                           TestStep.custom_fields) \
-        .join(TestCase, TestCase.id == TestStep.test_case_id) \
-        .filter(TestStep.project_id == project_id, TestStep.cloud_id == cloud_id,
-                TestStep.test_case_id == test_case_id_reference).order_by(asc(TestStep.index)).all()
-
-    for step in test_step_reference:
-        new_link = link + step.id + "/"
-        if step.test_case_id_reference is None:
-            test_step_detail = TestStepDetail.query.filter(TestStepDetail.test_step_id == step.id,
-                                                           TestStepDetail.test_run_id == test_run_id,
-                                                           TestStepDetail.link == new_link).first()
-            data = test_step_detail.id
-            test_details.append(data)
-        else:
-            get_test_step_detail_id(cloud_id, project_id, step.test_case_id_reference,
-                                    test_details, new_link, test_run_id)
-    return test_details
 
 
 @api.route('<test_run_id>/evidence', methods=['DELETE'])
