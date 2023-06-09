@@ -675,7 +675,6 @@ def load_test_run(issue_id, test_issue_id):
             result = result + result_child
         else:
             data = TestStepTestRunSchema().dump(test_step)
-            data['link'] = link
             test_step_detail = TestStepDetail.query.filter(TestStepDetail.test_step_id == data['id'],
                                                            TestStepDetail.test_run_id == test_run.id,
                                                            TestStepDetail.link == data['link']).first()
@@ -728,10 +727,9 @@ def get_test_step_id_by_test_case_id_reference(cloud_id, project_id, test_case_i
             new_link = cur_link + step.id + "/"
             if step.test_case_id_reference is None:
                 data = TestStepTestRunSchema().dump(step)
-                data['link'] = new_link
                 test_step_detail = TestStepDetail.query.filter(TestStepDetail.test_step_id == data['id'],
                                                                TestStepDetail.test_run_id == test_run_id,
-                                                               TestStepDetail.link == data['link']).first()
+                                                               TestStepDetail.link == new_link).first()
                 data['test_step_detail_id'] = test_step_detail.id
                 test_details.append(data)
             else:
