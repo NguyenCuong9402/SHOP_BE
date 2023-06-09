@@ -383,10 +383,9 @@ def call_test_case(issue_id, issue_id_reference):
             add_test_detail_for_test_case_call(cloud_id=cloud_id, project_id=project_id,
                                                test_case_id_reference=test_case.id, status_id=status.id, link=link)
         # update test_run.is_update =1 -> merge/reset
-        for test_case_id in check_up:
-            db.session.query(TestRun).filter(TestRun.project_id == project_id, TestRun.cloud_id == cloud_id,
-                                             TestRun.test_case_id == test_case_id).update({"is_updated": 1})
-            db.session.flush()
+        db.session.query(TestRun).filter(TestRun.project_id == project_id, TestRun.cloud_id == cloud_id,
+                                         TestRun.test_case_id.in_(check_up)).update({"is_updated": 1})
+        db.session.flush()
         # Create detail_of_action and Save history
         detail_of_action = {"Call test": test_case_reference.issue_key}
         save_history_test_step(test_case.id, user_id, 5, 2, detail_of_action, [test_step.index + 1])
