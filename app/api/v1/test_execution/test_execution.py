@@ -305,25 +305,23 @@ def remove_test_to_test_execution(test_execution_issue_id):
 def create_test_execution():
     try:
         token = get_jwt_identity()
-
         cloud_id = token.get('cloudId')
-        issue_id = token.get('issueId')
-        issue_key = token.get('issueKey')
         project_id = token.get('projectId')
-
-        test_execution = TestExecution(
-            id=str(uuid.uuid4()),
-            issue_id=issue_id,
-            project_id=project_id,
-            issue_key=issue_key,
-            cloud_id=cloud_id,
-            created_date=get_timestamp_now()
-        )
-        db.session.add(test_execution)
-        db.session.flush()
-
-        return send_result(data=TestExecutionSchema().dump(test_execution))
-
+        body_request = request.get_json()
+        test_execution = body_request.get('test_execution')
+        for issue_id, issue_key in test_execution.items():
+            test_execution = TestExecution(
+                id=str(uuid.uuid4()),
+                issue_id=issue_id,
+                project_id=project_id,
+                issue_key=issue_key,
+                cloud_id=cloud_id,
+                created_date=get_timestamp_now()
+            )
+            db.session.add(test_execution)
+            db.session.flush()
+        db.session.commit()
+        return send_result(message="done")
     except Exception as ex:
         print(ex)
 

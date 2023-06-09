@@ -101,6 +101,7 @@ def add_test_step(issue_id):
                                          TestRun.test_case_id == test_case.id).all()
         status = TestStatus.query.filter(TestStatus.cloud_id == cloud_id, TestStatus.project_id == project_id,
                                          TestStatus.name == 'TODO').first()
+
         for test_run in test_runs:
             test_run.is_updated = 1
             test_step_detail = TestStepDetail(
