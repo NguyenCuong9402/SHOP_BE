@@ -207,7 +207,7 @@ def add_test_step_id_by_test_case_id(cloud_id: str, project_id: str, test_case_i
         curr_id, current_link = stack.pop()
         step_calls = TestStep.query.filter(TestStep.cloud_id == cloud_id, TestStep.project_id == project_id,
                                            TestStep.test_case_id == curr_id) \
-            .order_by(desc(TestStep.index)).all()
+            .order_by(asc(TestStep.index)).all()
         for step in step_calls:
             new_link = current_link + step.id + "/"
             if step.test_case_id_reference is None:

@@ -267,7 +267,7 @@ def add_test_execution(test_issue_id):
                 db.session.flush()
                 # Tạo test details
                 add_test_step_id_by_test_case_id(cloud_id, project_id, test_case.id, test_run.id,
-                                                   default_status.id, '')
+                                                 default_status.id, '')
                 # test_steps = TestStep.query.filter(TestStep.project_id == project_id, TestStep.cloud_id == cloud_id,
                 #                                    TestStep.test_case_id == test_case.id).all()
                 # for test_step in test_steps:
