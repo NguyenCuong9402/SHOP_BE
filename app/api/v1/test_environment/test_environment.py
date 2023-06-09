@@ -288,9 +288,9 @@ def number_test_delete(project_id):
             .join(TestExecutionsTestEnvironments, TestExecutionsTestEnvironments.test_execution_id == TestExecution.id)\
             .filter(TestExecutionsTestEnvironments.test_environment_id.in_(test_environment_ids))\
             .filter(TestExecution.cloud_id == cloud_id, TestExecution.project_id == project_id).all()
-        ids = [test.id for test in tests]
-        if len({ids}) > 0:
-            message = f"There are {len({ids})} Test Executions(s) using the Test Environments."
+        ids = {test.id for test in tests}
+        if len(ids) > 0:
+            message = f"There are {len(ids)} Test Executions(s) using the Test Environments."
             return send_result(message=message, is_dynamic=True)
         return send_result(message="")
     except Exception as ex:
