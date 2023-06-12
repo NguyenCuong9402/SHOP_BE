@@ -241,8 +241,13 @@ def remove_test_step(test_step_id, issue_id):
                         shutil.rmtree(FILE_PATH+folder_path)
                     except Exception as ex:
                         return send_error(message=str(ex))
+
                 TestEvidence.query.filter(TestEvidence.test_run_id == path.test_run_id,
                                           TestEvidence.test_step_detail_id == path.id).delete()
+
+                db.session.query(TestRun).filter(TestRun.project_id == project_id, TestRun.cloud_id == cloud_id,
+                                                 TestRun.id == path.test_run_id)\
+                    .update({"is_updated": 1})
                 db.session.flush()
             # delete test_step
             TestStepDetail.query.filter(TestStepDetail.test_step_id == test_step_id).delete()
@@ -275,6 +280,12 @@ def remove_test_step(test_step_id, issue_id):
                 TestEvidence.query.filter(TestEvidence.test_run_id == path.test_run_id,
                                           TestEvidence.test_step_detail_id == path.id).delete()
                 db.session.flush()
+
+                db.session.query(TestRun).filter(TestRun.project_id == project_id, TestRun.cloud_id == cloud_id,
+                                                 TestRun.id == path.test_run_id) \
+                    .update({"is_updated": 1})
+                db.session.flush()
+
             db.session.flush()
             TestStepDetail.query.filter(TestStepDetail.link.in_(links)).delete()
             db.session.flush()
