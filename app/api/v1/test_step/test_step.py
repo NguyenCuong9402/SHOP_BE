@@ -117,10 +117,12 @@ def add_test_step(issue_id):
         # Tạo test details cho test case khác call test case này
         add_test_detail_for_test_case_call(cloud_id, project_id, test_case.id, status.id, test_step.id + "/")
         detail_of_action = {}
+        # field not native
         field_name = []
         for item in test_step_fields:
-            if item.name not in ["Action  (action)", "Data (data)", "Expected Result (result)"]:
+            if item.is_native == 0:
                 field_name.append(item.name)
+        # create detail of action
         detail_of_action['Action'] = test_step.action
         detail_of_action['Data'] = test_step.data
         detail_of_action['Expected Result'] = test_step.result
@@ -198,7 +200,7 @@ def remove_test_step(test_step_id, issue_id):
                 TestStepField.cloud_id == cloud_id).order_by(TestStepField.index.asc())
             field_name = []
             for item in test_step_fields:
-                if item.name not in ["Action  (action)", "Data (data)", "Expected Result (result)"]:
+                if item.is_native == 0:
                     field_name.append(item.name)
             detail_of_action['Action'] = test_step.action
             detail_of_action['Data'] = test_step.data
@@ -527,7 +529,7 @@ def clone_test_step(issue_id, test_step_id):
         detail_of_action = {}
         field_name = []
         for item in test_step_fields:
-            if item.name not in ["Action  (action)", "Data (data)", "Action  (action)"]:
+            if item.is_native == 0:
                 field_name.append(item.name)
         detail_of_action['Action'] = test_step.action
         detail_of_action['Data'] = test_step.data
@@ -594,7 +596,7 @@ def update_test_step(issue_id, test_step_id):
             TestStepField.cloud_id == cloud_id).order_by(TestStepField.index.asc())
         field_name = []
         for item in test_step_fields:
-            if item.name not in ["Action  (action)", "Data (data)", "Action  (action)"]:
+            if item.is_native == 0:
                 field_name.append(item.name)
         # create detail of action old step
         detail_of_action["old"] = {}
