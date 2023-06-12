@@ -1,26 +1,20 @@
-import json
 import os
 import uuid
-from operator import or_
 import datetime
-from flask import Blueprint, request, jsonify
-from flask_jwt_extended import jwt_required, get_jwt_identity, create_access_token
-from benedict import benedict
+from flask import Blueprint, request
+from flask_jwt_extended import get_jwt_identity
 from numpy import double
 from sqlalchemy import asc, desc
 from werkzeug.utils import secure_filename, send_file
 
-from app.api.v1.setting.setting_validator import UpdateMiscellaneousRequest
-from app.api.v1.test_run.schema import TestRunSchema, CombineSchema
 from app.api.v1.test_type.test_type import get_test_type_default
 from app.enums import FILE_PATH, URL_SERVER
 from app.gateway import authorization_require
-from app.models import TestStep, TestCase, TestType, db, TestField, Setting, TestRun, TestExecution, \
-    TestCasesTestExecutions, TestStatus, TestStepDetail, Defects, TestEvidence, TestSet, Timer, TestActivity
-from app.utils import send_result, send_error, data_preprocessing, get_timestamp_now, validate_request
-from app.validator import CreateTestValidator, SettingSchema, DefectsSchema, TestStepTestRunSchema, UploadValidation, \
+from app.models import TestStep, TestCase, db, TestRun, TestExecution, \
+    TestStatus, TestStepDetail, Defects, TestEvidence, TestSet, Timer, TestActivity
+from app.utils import send_result, send_error, get_timestamp_now, validate_request
+from app.validator import DefectsSchema, TestStepTestRunSchema, UploadValidation, \
     EvidenceSchema, PostDefectSchema, TimerSchema, TestActivitySchema
-from app.parser import TestFieldSchema, TestStepSchema
 
 api = Blueprint('test_run', __name__)
 
@@ -48,7 +42,7 @@ def change_status_test_run(test_run_id, new_name_status):
                       "new_name": new_name_status.upper()}
             query.test_status_id = status.id
             db.session.flush()
-            activity_test_run(user_id, test_run_id, detail, 1)
+            activity_test_run(user_id, test_run_id, detail, "change_status")
         else:
             query = TestStepDetail.query.filter(TestStepDetail.id == test_step_detail_id).first()
             stt = stt_step_detail_id(cloud_id, project_id, test_run_id, [])
@@ -64,7 +58,7 @@ def change_status_test_run(test_run_id, new_name_status):
                       "new_name": new_name_status.upper()}
             query.status_id = status.id
             db.session.flush()
-            activity_test_run(user_id, test_run_id, detail, 2)
+            activity_test_run(user_id, test_run_id, detail, "change_status_step")
         db.session.commit()
         return send_result(message="success")
     except Exception as ex:
@@ -72,8 +66,8 @@ def change_status_test_run(test_run_id, new_name_status):
         return send_error(message=str(ex))
 
 
-def activity_test_run(user_id: str, test_run_id: str, comment: dict, index: int):
-    if index == 1:
+def activity_test_run(user_id: str, test_run_id: str, comment: dict, action: str):
+    if action == "change_status":
         activity = TestActivity(
             id=str(uuid.uuid4()),
             test_run_id=test_run_id,
@@ -84,7 +78,7 @@ def activity_test_run(user_id: str, test_run_id: str, comment: dict, index: int)
         )
         db.session.add(activity)
         db.session.flush()
-    elif index == 2:
+    elif action == "change_status_step":
         activity = TestActivity(
             id=str(uuid.uuid4()),
             test_run_id=test_run_id,
@@ -96,7 +90,7 @@ def activity_test_run(user_id: str, test_run_id: str, comment: dict, index: int)
         db.session.add(activity)
         db.session.flush()
 
-    elif index == 3:
+    elif action == "change_actual":
         activity = TestActivity(
             id=str(uuid.uuid4()),
             test_run_id=test_run_id,
@@ -108,7 +102,7 @@ def activity_test_run(user_id: str, test_run_id: str, comment: dict, index: int)
         db.session.add(activity)
         db.session.flush()
 
-    elif index == 4:
+    elif action == "change_comment_step":
         activity = TestActivity(
             id=str(uuid.uuid4()),
             test_run_id=test_run_id,
@@ -120,7 +114,7 @@ def activity_test_run(user_id: str, test_run_id: str, comment: dict, index: int)
         db.session.add(activity)
         db.session.flush()
 
-    elif index == 5:
+    elif action == "change_comment":
         activity = TestActivity(
             id=str(uuid.uuid4()),
             test_run_id=test_run_id,
@@ -132,7 +126,7 @@ def activity_test_run(user_id: str, test_run_id: str, comment: dict, index: int)
         db.session.add(activity)
         db.session.flush()
 
-    elif index == 6:
+    elif action == "start_time":
         activity = TestActivity(
             id=str(uuid.uuid4()),
             test_run_id=test_run_id,
@@ -144,7 +138,7 @@ def activity_test_run(user_id: str, test_run_id: str, comment: dict, index: int)
         db.session.add(activity)
         db.session.flush()
 
-    elif index == 7:
+    elif action == "pause_time":
         activity = TestActivity(
             id=str(uuid.uuid4()),
             test_run_id=test_run_id,
@@ -156,7 +150,7 @@ def activity_test_run(user_id: str, test_run_id: str, comment: dict, index: int)
         db.session.add(activity)
         db.session.flush()
 
-    elif index == 8:
+    elif action == "reset_time":
         activity = TestActivity(
             id=str(uuid.uuid4()),
             test_run_id=test_run_id,
@@ -168,7 +162,7 @@ def activity_test_run(user_id: str, test_run_id: str, comment: dict, index: int)
         db.session.add(activity)
         db.session.flush()
 
-    elif index == 9:
+    elif action == "add_defect":
         activity = TestActivity(
             id=str(uuid.uuid4()),
             test_run_id=test_run_id,
@@ -180,7 +174,7 @@ def activity_test_run(user_id: str, test_run_id: str, comment: dict, index: int)
         db.session.add(activity)
         db.session.flush()
 
-    elif index == 10:
+    elif action == "remove_defect":
         activity = TestActivity(
             id=str(uuid.uuid4()),
             test_run_id=test_run_id,
@@ -192,7 +186,7 @@ def activity_test_run(user_id: str, test_run_id: str, comment: dict, index: int)
         db.session.add(activity)
         db.session.flush()
 
-    elif index == 11:
+    elif action == "remove_evidence_step":
         activity = TestActivity(
             id=str(uuid.uuid4()),
             test_run_id=test_run_id,
@@ -204,7 +198,7 @@ def activity_test_run(user_id: str, test_run_id: str, comment: dict, index: int)
         db.session.add(activity)
         db.session.flush()
 
-    elif index == 12:
+    elif action == "add_evidence_step":
         activity = TestActivity(
             id=str(uuid.uuid4()),
             test_run_id=test_run_id,
@@ -216,7 +210,7 @@ def activity_test_run(user_id: str, test_run_id: str, comment: dict, index: int)
         db.session.add(activity)
         db.session.flush()
 
-    elif index == 13:
+    elif action == "add_defect_step":
         activity = TestActivity(
             id=str(uuid.uuid4()),
             test_run_id=test_run_id,
@@ -228,7 +222,7 @@ def activity_test_run(user_id: str, test_run_id: str, comment: dict, index: int)
         db.session.add(activity)
         db.session.flush()
 
-    elif index == 14:
+    elif action == "remove_defect_step":
         activity = TestActivity(
             id=str(uuid.uuid4()),
             test_run_id=test_run_id,
@@ -240,7 +234,7 @@ def activity_test_run(user_id: str, test_run_id: str, comment: dict, index: int)
         db.session.add(activity)
         db.session.flush()
 
-    elif index == 15:
+    elif action == "add_evidence":
         activity = TestActivity(
             id=str(uuid.uuid4()),
             test_run_id=test_run_id,
@@ -251,7 +245,7 @@ def activity_test_run(user_id: str, test_run_id: str, comment: dict, index: int)
         )
         db.session.add(activity)
         db.session.flush()
-    elif index == 16:
+    elif action == "remove_evidence":
         activity = TestActivity(
             id=str(uuid.uuid4()),
             test_run_id=test_run_id,
@@ -262,7 +256,7 @@ def activity_test_run(user_id: str, test_run_id: str, comment: dict, index: int)
         )
         db.session.add(activity)
         db.session.flush()
-    elif index == 17:
+    elif action == "merged":
         activity = TestActivity(
             id=str(uuid.uuid4()),
             test_run_id=test_run_id,
@@ -273,18 +267,18 @@ def activity_test_run(user_id: str, test_run_id: str, comment: dict, index: int)
         )
         db.session.add(activity)
         db.session.flush()
-    elif index == 18:
+    elif action == "reset":
         activity = TestActivity(
             id=str(uuid.uuid4()),
             test_run_id=test_run_id,
             jira_user_id=user_id,
             created_date=get_timestamp_now(),
-            status_change='Reseted Execution',
+            status_change='Reset Execution',
             comment=comment
         )
         db.session.add(activity)
         db.session.flush()
-    elif index == 19:
+    elif action == "change_assignee":
         activity = TestActivity(
             id=str(uuid.uuid4()),
             test_run_id=test_run_id,
@@ -302,10 +296,6 @@ def activity_test_run(user_id: str, test_run_id: str, comment: dict, index: int)
 @authorization_require()
 def set_time_test_run(test_run_id):
     try:
-        token = get_jwt_identity()
-        project_id = token.get("projectId")
-        cloud_id = token.get("cloudId")
-        user_id = token.get("userId")
         edited = request.args.get('edited', False, type=bool)
         reg = request.get_json()
         start_time = reg.get("start_time", 0)
@@ -362,7 +352,7 @@ def set_time_test_run(test_run_id):
         return send_result(message="success")
     except Exception as ex:
         db.session.rollback()
-        return send_error(message="failed")
+        return send_error(message=str(ex))
 
 
 @api.route("/<test_run_id>/create_data", methods=["POST"])
@@ -384,7 +374,7 @@ def post_data_and_comment_test_detail(test_run_id):
         if test_step_detail_id == '':
             test_run.comment = data
             detail = {"new_value": data}
-            activity_test_run(user_id, test_run_id, detail, 5)
+            activity_test_run(user_id, test_run_id, detail, "change_comment")
             db.session.flush()
         else:
             stt = stt_step_detail_id(cloud_id, project_id, test_run_id, [])
@@ -395,11 +385,11 @@ def post_data_and_comment_test_detail(test_run_id):
                 test_step_detail.comment = data
                 db.session.flush()
                 detail = {"step": stt.index(test_step_detail_id) + 1, "new_value": data}
-                activity_test_run(user_id, test_run_id, detail, 4)
+                activity_test_run(user_id, test_run_id, detail, "change_comment_step")
             elif where == 'actual':
                 test_step_detail.data = data
                 detail = {"step": stt.index(test_step_detail_id) + 1, "new_value": data}
-                activity_test_run(user_id, test_run_id, detail, 3)
+                activity_test_run(user_id, test_run_id, detail, "change_actual")
                 db.session.flush()
             else:
                 return send_error(message='Please check your request params')
@@ -521,7 +511,7 @@ def post_defect(test_run_id):
             db.session.add(defect)
             db.session.flush()
             detail = {"step": 0, "issue_key": issue_key}
-            activity_test_run(user_id, test_run_id, detail, 9)
+            activity_test_run(user_id, test_run_id, detail, "add_defect")
         else:
             test_detail = TestStepDetail.query.filter(TestStepDetail.id == test_step_detail_id,
                                                       TestStepDetail.test_run_id == test_run_id).first()
@@ -545,7 +535,7 @@ def post_defect(test_run_id):
             db.session.flush()
             stt = stt_step_detail_id(cloud_id, project_id, test_run_id, [])
             detail = {"step": stt.index(test_step_detail_id) + 1, "issue_key": issue_key}
-            activity_test_run(user_id, test_run_id, detail, 13)
+            activity_test_run(user_id, test_run_id, detail, "add_defect_step")
         db.session.commit()
         return send_result(message="Successfully")
     except Exception as ex:
@@ -623,7 +613,7 @@ def delete_defect(test_run_id):
                                  Defects.test_issue_key == issue_key).delete()
             db.session.flush()
             detail = {"step": 0, "issue_key": issue_key}
-            activity_test_run(user_id, test_run_id, detail, 10)
+            activity_test_run(user_id, test_run_id, detail, "remove_defect")
         else:
             test_detail = TestStepDetail.query.filter(TestStepDetail.id == test_step_detail_id,
                                                       TestStepDetail.test_run_id == test_run_id).first()
@@ -635,7 +625,7 @@ def delete_defect(test_run_id):
             db.session.flush()
             stt = stt_step_detail_id(cloud_id, project_id, test_run_id, [])
             detail = {"step": stt.index(test_step_detail_id) + 1, "issue_key": issue_key}
-            activity_test_run(user_id, test_run_id, detail, 14)
+            activity_test_run(user_id, test_run_id, detail, "remove_defect_step")
         db.session.commit()
         return send_result(message="Successfully")
     except Exception as ex:
@@ -663,15 +653,15 @@ def load_test_run(issue_id, test_issue_id):
     if test_run is None:
         return send_error("Not found test run")
     test_steps = db.session.query(TestStep).filter(TestStep.project_id == project_id, TestStep.cloud_id == cloud_id,
-                                                   TestStep.test_case_id == test_case.id).order_by(asc(TestStep.index)) \
+                                                   TestStep.test_case_id == test_case.id).order_by(asc(TestStep.index))\
         .all()
     result = []
     for test_step in test_steps:
         link = test_step.id + "/"
         if test_step.test_case_id_reference:
             result_child = get_test_step_id_detail_by_test_case_id_reference(cloud_id, project_id,
-                                                                      test_step.test_case_id_reference, [],
-                                                                      link, test_run.id)
+                                                                             test_step.test_case_id_reference, [],
+                                                                             link, test_run.id)
             result = result + result_child
         else:
             data = TestStepTestRunSchema().dump(test_step)
@@ -717,7 +707,7 @@ def get_test_step_id_detail_by_test_case_id_reference(cloud_id, project_id, test
         test_reference, cur_link = stack.pop()
         test_step_reference = db.session.query(TestStep.id, TestStep.cloud_id, TestStep.project_id, TestStep.action,
                                                TestStep.attachments, TestStep.result, TestStep.data,
-                                               TestStep.created_date,  TestStep.test_case_id,
+                                               TestStep.created_date, TestStep.test_case_id,
                                                TestStep.test_case_id_reference, TestCase.issue_key,
                                                TestStep.custom_fields) \
             .join(TestCase, TestCase.id == TestStep.test_case_id) \
@@ -789,7 +779,7 @@ def upload_evidence(test_run_id):
             db.session.add(test_evidence)
             db.session.flush()
             detail = {"step": 0, "real_name": real_name}
-            activity_test_run(user_id, test_run_id, detail, 15)
+            activity_test_run(user_id, test_run_id, detail, "add_evidence")
             db.session.commit()
         else:
             file_path = "{}/{}/{}/{}".format(prefix, test_run_id, test_step_detail_id, file_name)
@@ -819,7 +809,7 @@ def upload_evidence(test_run_id):
             db.session.flush()
             stt = stt_step_detail_id(cloud_id, project_id, test_run_id, [])
             detail = {"step": stt.index(test_step_detail_id) + 1, "real_name": real_name}
-            activity_test_run(user_id, test_run_id, detail, 12)
+            activity_test_run(user_id, test_run_id, detail, "add_evidence_step")
             db.session.commit()
 
         dt = {
@@ -909,14 +899,14 @@ def delete_evidence(test_run_id):
                                              TestEvidence.test_step_detail_id.is_(None),
                                              TestEvidence.url_file == url_file).first()
             detail = {"step": 0, "name_file": test.name_file}
-            activity_test_run(user_id, test_run_id, detail, 16)
+            activity_test_run(user_id, test_run_id, detail, "remove_evidence")
         else:
             test = TestEvidence.query.filter(TestEvidence.test_run_id == test_run_id,
                                              TestEvidence.test_step_detail_id == test_step_detail_id,
                                              TestEvidence.url_file == url_file).first()
             stt = stt_step_detail_id(cloud_id, project_id, test_run_id, [])
             detail = {"step": stt.index(test_step_detail_id) + 1, "real_name": test.name_file}
-            activity_test_run(user_id, test_run_id, detail, 11)
+            activity_test_run(user_id, test_run_id, detail, "remove_evidence_step")
         db.session.delete(test)
         db.session.flush()
         file_path = "app" + url_file
@@ -952,8 +942,6 @@ def download_evidence():
 def start_time(test_run_id):
     try:
         token = get_jwt_identity()
-        cloud_id = token.get('cloudId')
-        project_id = token.get('projectId')
         user_id = token.get('userId')
         test_run = TestRun.query.filter(TestRun.id == test_run_id).first()
         if test_run is None:
@@ -972,7 +960,7 @@ def start_time(test_run_id):
             db.session.add(timer)
             db.session.flush()
             detail = {"start": 0}
-            activity_test_run(user_id, test_run_id, detail, 6)
+            activity_test_run(user_id, test_run_id, detail, "start_time")
         else:
             if timer.time_type == 1:
                 return send_error(message="Timer is running")
@@ -980,7 +968,7 @@ def start_time(test_run_id):
             timer.time_start = time_start
             db.session.flush()
             detail = {"start": timer.delta_time}
-            activity_test_run(user_id, test_run_id, detail, 6)
+            activity_test_run(user_id, test_run_id, detail, "start_time")
         db.session.commit()
         return send_result(message="Oke")
     except Exception as ex:
@@ -993,8 +981,6 @@ def start_time(test_run_id):
 def pause_time(test_run_id):
     try:
         token = get_jwt_identity()
-        cloud_id = token.get('cloudId')
-        project_id = token.get('projectId')
         user_id = token.get('userId')
         test_run = TestRun.query.filter(TestRun.id == test_run_id).first()
         if test_run is None:
@@ -1010,7 +996,7 @@ def pause_time(test_run_id):
         timer.time_type = 2
         db.session.flush()
         detail = {"pause": delta_time}
-        activity_test_run(user_id, test_run_id, detail, 7)
+        activity_test_run(user_id, test_run_id, detail, "pause_time")
         db.session.commit()
         return send_result(message="oke")
     except Exception as ex:
@@ -1023,8 +1009,6 @@ def pause_time(test_run_id):
 def reset_time(test_run_id):
     try:
         token = get_jwt_identity()
-        cloud_id = token.get('cloudId')
-        project_id = token.get('projectId')
         user_id = token.get('userId')
         test_run = TestRun.query.filter(TestRun.id == test_run_id).first()
         if test_run is None:
@@ -1034,7 +1018,7 @@ def reset_time(test_run_id):
         test_timer.time_start = 0
         test_timer.delta_time = 0
         db.session.flush()
-        activity_test_run(user_id, test_run_id, {}, 8)
+        activity_test_run(user_id, test_run_id, {}, "reset_time")
         db.session.commit()
         return send_result(message="oke")
 
@@ -1047,9 +1031,6 @@ def reset_time(test_run_id):
 @authorization_require()
 def get_time(test_run_id):
     try:
-        token = get_jwt_identity()
-        cloud_id = token.get('cloudId')
-        project_id = token.get('projectId')
         test_run = TestRun.query.filter(TestRun.id == test_run_id).first()
         if test_run is None:
             return send_error(message="Not found test run")
@@ -1074,9 +1055,6 @@ def get_time(test_run_id):
 @authorization_require()
 def get_activity(test_run_id):
     try:
-        token = get_jwt_identity()
-        cloud_id = token.get('cloudId')
-        project_id = token.get('projectId')
         test_activity = TestActivity.query.filter(TestActivity.test_run_id == test_run_id) \
             .order_by(desc(TestActivity.created_date)).all()
         return send_result(data=TestActivitySchema(many=True).dump(test_activity))
@@ -1101,7 +1079,7 @@ def update_test_run(test_run_id):
         if is_update == "merge":
             test_run.is_updated = 0
             db.session.flush()
-            activity_test_run(user_id, test_run_id, {}, 17)
+            activity_test_run(user_id, test_run_id, {}, "merged")
             db.session.commit()
             return send_result(message="Execution data was merged successfully")
         elif is_update == "reset":
@@ -1117,7 +1095,7 @@ def update_test_run(test_run_id):
             Defects.query.filter(Defects.test_run_id == test_run_id).delete()
             Timer.query.filter(Timer.test_run_id == test_run_id).delete()
             db.session.flush()
-            activity_test_run(user_id, test_run_id, {}, 18)
+            activity_test_run(user_id, test_run_id, {}, "reset")
             db.session.commit()
             return send_result(message="Execution data was reset successfully")
     except Exception as ex:
@@ -1130,17 +1108,14 @@ def update_test_run(test_run_id):
 def post_activity_jira(test_run_id):
     try:
         token = get_jwt_identity()
-        cloud_id = token.get('cloudId')
-        project_id = token.get('projectId')
         user_id = token.get('userId')
         assignee_id = request.args.get('assignee_id', "", type=str)
         if assignee_id == '':
             return send_error(message="Please check your request params")
         detail = {"id": assignee_id}
-        activity_test_run(user_id, test_run_id, detail, 19)
+        activity_test_run(user_id, test_run_id, detail, "change_assignee")
         db.session.flush()
         db.session.commit()
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
-
