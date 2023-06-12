@@ -127,15 +127,8 @@ def add_test_step(issue_id):
         if len(field_name) > len(test_step.custom_fields):
             for i, name in enumerate(test_step.custom_fields):
                 detail_of_action[field_name[i]] = name
-            number = len(field_name) - len(test_step.custom_fields)
-            if number == 1:
-                detail_of_action[field_name[len(field_name) - 1]] = ''
-            if number == 2:
-                detail_of_action[field_name[len(field_name) - 2]] = ''
-                detail_of_action[field_name[len(field_name) - 1]] = ''
-        elif len(field_name) == len(test_step.custom_fields):
-            for i, name in enumerate(test_step.custom_fields):
-                detail_of_action[field_name[i]] = name
+        else:
+            return send_error("check your request")
         # Save history
         save_history_test_step(test_case.id, user_id, 1, 2, detail_of_action, [count_index + 1])
         db.session.commit()
@@ -210,18 +203,12 @@ def remove_test_step(test_step_id, issue_id):
             detail_of_action['Action'] = test_step.action
             detail_of_action['Data'] = test_step.data
             detail_of_action['Expected Result'] = test_step.result
-            if len(field_name) > len(test_step.custom_fields):
+            if len(field_name) >= len(test_step.custom_fields):
                 for i, name in enumerate(test_step.custom_fields):
                     detail_of_action[field_name[i]] = name
-                number = len(field_name) - len(test_step.custom_fields)
-                if number == 1:
-                    detail_of_action[field_name[len(field_name) - 1]] = ''
-                if number == 2:
-                    detail_of_action[field_name[len(field_name) - 2]] = ''
-                    detail_of_action[field_name[len(field_name) - 1]] = ''
-            elif len(field_name) == len(test_step.custom_fields):
-                for i, name in enumerate(test_step.custom_fields):
-                    detail_of_action[field_name[i]] = name
+            else:
+                for i, name in enumerate(field_name):
+                    detail_of_action[name] = test_step.custom_fields[i]
             # Xóa file trong test step của test detail
             files = Attachment.query.filter(Attachment.cloud_id == cloud_id, Attachment.project_id,
                                             Attachment.test_step_id == test_step_id).all()
@@ -545,18 +532,11 @@ def clone_test_step(issue_id, test_step_id):
         detail_of_action['Action'] = test_step.action
         detail_of_action['Data'] = test_step.data
         detail_of_action['Expected Result'] = test_step.result
-        if len(field_name) > len(test_step.custom_fields):
+        if len(field_name) >= len(test_step.custom_fields):
             for i, name in enumerate(test_step.custom_fields):
                 detail_of_action[field_name[i]] = name
-            number = len(field_name) - len(test_step.custom_fields)
-            if number == 1:
-                detail_of_action[field_name[len(field_name) - 1]] = ''
-            if number == 2:
-                detail_of_action[field_name[len(field_name) - 2]] = ''
-                detail_of_action[field_name[len(field_name) - 1]] = ''
-        elif len(field_name) == len(test_step.custom_fields):
-            for i, name in enumerate(test_step.custom_fields):
-                detail_of_action[field_name[i]] = name
+        else:
+            return send_error("check your request")
         save_history_test_step(test_case.id, user_id, 4, 2, detail_of_action, [test_step.index + 1])
         db.session.commit()
         return send_result(data='', message="Step clone successfully",
@@ -597,6 +577,7 @@ def update_test_step(issue_id, test_step_id):
             return send_error(message="Request Body incorrect json format: " + str(ex), code=442)
         # Strip body request
         body_request = {}
+        detail_of_action = {}
         for key, value in json_req.items():
             if isinstance(value, str):
                 body_request.setdefault(key, value.strip())
@@ -607,6 +588,24 @@ def update_test_step(issue_id, test_step_id):
             return send_error(
                 message="Test Step is not exist", code=200,
                 show=False)
+        test_step_fields = db.session.query(TestStepField).filter(
+            or_(TestStepField.project_id == project_id, TestStepField.project_key == project_id),
+            TestStepField.cloud_id == cloud_id).order_by(TestStepField.index.asc())
+        field_name = []
+        for item in test_step_fields:
+            if item.name not in ["Action  (action)", "Data (data)", "Action  (action)"]:
+                field_name.append(item.name)
+        # create detail of action old step
+        detail_of_action["old"] = {}
+        detail_of_action["old"]['Action'] = test_step.action
+        detail_of_action["old"]['Data'] = test_step.data
+        detail_of_action["old"]['Expected Result'] = test_step.result
+        if len(field_name) >= len(test_step.custom_fields):
+            for i, name in enumerate(test_step.custom_fields):
+                detail_of_action["old"][field_name[i]] = name
+        else:
+            return send_error("check your request")
+        # update test step
         test_step.action = body_request.get('action'),
         test_step.data = body_request.get('data'),
         test_step.result = body_request.get('result'),
@@ -614,10 +613,22 @@ def update_test_step(issue_id, test_step_id):
         db.session.flush()
         # update test_run.is_update = 1 => merge/reset
         test_case_ids = get_test_case_id(cloud_id, project_id, test_case.id, {test_case.id})
-        for test_case_id in test_case_ids:
-            db.session.query(TestRun).filter(TestRun.project_id == project_id, TestRun.cloud_id == cloud_id,
-                                             TestRun.test_case_id == test_case_id).update({"is_updated": 1})
-            db.session.flush()
+        db.session.query(TestRun).filter(TestRun.project_id == project_id, TestRun.cloud_id == cloud_id,
+                                         TestRun.test_case_id.in_(test_case_ids)).update({"is_updated": 1})
+        db.session.flush()
+
+        # Create detail_of_action new data and Save history
+        detail_of_action["new"] = {}
+        detail_of_action["new"]['Action'] = body_request.get('action')
+        detail_of_action["new"]['Data'] = body_request.get('data')
+        detail_of_action["new"]['Expected Result'] = body_request.get('result')
+        custom_fields = body_request.get('custom_fields', [])
+        if len(field_name) >= len(custom_fields):
+            for i, name in enumerate(custom_fields):
+                detail_of_action["new"][field_name[i]] = name
+        else:
+            return send_error("check your request")
+        save_history_test_step(test_case.id, user_id, 4, 2, detail_of_action, [test_step.index])
         db.session.commit()
         return send_result(message=" Update successfully")
     except Exception as ex:
