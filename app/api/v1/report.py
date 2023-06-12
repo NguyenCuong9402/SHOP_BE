@@ -161,5 +161,6 @@ def report_execution_environment():
                 "testing": dict_testing
             }
             data.append(add_data)
+        return send_result(data=data)
     except Exception as ex:
         return send_error(message=str(ex))
