@@ -124,7 +124,7 @@ def save_history_test_set(id_reference: str, user_id: str, action: int, history_
 
 def save_history_test_step(id_reference: str, user_id: str, action: int,
                            history_category: int, detail_of_action: dict, index_step: list):
-    # 1: add step   2: remove  3:change rank  4: clone   5:call 6: remove step call
+    # 1: add step   2: remove  3:change rank  4: clone   5:call 6: remove step call  7: update
     if action == 1:
         new_history = HistoryTest(
             id_reference=id_reference,
@@ -189,6 +189,17 @@ def save_history_test_step(id_reference: str, user_id: str, action: int,
             id=str(uuid.uuid4()),
             history_category=history_category,
             activities='remove call',
+            action_name='updated Test Steps',
+            detail_of_action={"Test Step": index_step[0], "data": detail_of_action},
+            created_date=get_timestamp_now())
+        db.session.add(new_history)
+    elif action == 7:
+        new_history = HistoryTest(
+            id_reference=id_reference,
+            user_id=user_id,
+            id=str(uuid.uuid4()),
+            history_category=history_category,
+            activities='update',
             action_name='updated Test Steps',
             detail_of_action={"Test Step": index_step[0], "data": detail_of_action},
             created_date=get_timestamp_now())
