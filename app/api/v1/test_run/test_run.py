@@ -636,41 +636,41 @@ def delete_defect(test_run_id):
 @api.route("/<issue_id>/<test_issue_id>", methods=["GET"])
 @authorization_require()
 def load_test_run(issue_id, test_issue_id):
-    token = get_jwt_identity()
-    cloud_id = token.get('cloudId')
-    project_id = token.get('projectId')
-    test_execution = TestExecution.query.filter(TestExecution.cloud_id == cloud_id, TestExecution.issue_id == issue_id,
-                                                TestExecution.project_id == project_id).first()
-    if test_execution is None:
-        return send_error("Not found test execution")
-    test_case = TestCase.query.filter(TestCase.cloud_id == cloud_id, TestCase.issue_id == test_issue_id,
-                                      TestCase.project_id == project_id).first()
-    if test_case is None:
-        return send_error("Not found test case")
-    test_run = TestRun.query.filter(TestRun.cloud_id == cloud_id, TestRun.project_id == project_id,
-                                    TestRun.test_execution_id == test_execution.id,
-                                    TestRun.test_case_id == test_case.id).first()
-    if test_run is None:
-        return send_error("Not found test run")
-    test_steps = db.session.query(TestStep).filter(TestStep.project_id == project_id, TestStep.cloud_id == cloud_id,
-                                                   TestStep.test_case_id == test_case.id).order_by(asc(TestStep.index))\
-        .all()
-    result = []
-    for test_step in test_steps:
-        link = test_step.id + "/"
-        if test_step.test_case_id_reference:
-            result_child = get_test_step_id_detail_by_test_case_id_reference(cloud_id, project_id,
-                                                                             test_step.test_case_id_reference, [],
-                                                                             link, test_run.id)
-            result = result + result_child
-        else:
-            data = TestStepTestRunSchema().dump(test_step)
-            test_step_detail = TestStepDetail.query.filter(TestStepDetail.test_step_id == data['id'],
-                                                           TestStepDetail.test_run_id == test_run.id,
-                                                           TestStepDetail.link == data['link']).first()
-            data['test_step_detail_id'] = test_step_detail.id
-            result.append(data)
     try:
+        token = get_jwt_identity()
+        cloud_id = token.get('cloudId')
+        project_id = token.get('projectId')
+        test_execution = TestExecution.query.filter(TestExecution.cloud_id == cloud_id, TestExecution.issue_id == issue_id,
+                                                    TestExecution.project_id == project_id).first()
+        if test_execution is None:
+            return send_error("Not found test execution")
+        test_case = TestCase.query.filter(TestCase.cloud_id == cloud_id, TestCase.issue_id == test_issue_id,
+                                          TestCase.project_id == project_id).first()
+        if test_case is None:
+            return send_error("Not found test case")
+        test_run = TestRun.query.filter(TestRun.cloud_id == cloud_id, TestRun.project_id == project_id,
+                                        TestRun.test_execution_id == test_execution.id,
+                                        TestRun.test_case_id == test_case.id).first()
+        if test_run is None:
+            return send_error("Not found test run")
+        test_steps = db.session.query(TestStep).filter(TestStep.project_id == project_id, TestStep.cloud_id == cloud_id,
+                                                       TestStep.test_case_id == test_case.id).order_by(asc(TestStep.index))\
+            .all()
+        result = []
+        for test_step in test_steps:
+            link = test_step.id + "/"
+            if test_step.test_case_id_reference:
+                result_child = get_test_step_id_detail_by_test_case_id_reference(cloud_id, project_id,
+                                                                                 test_step.test_case_id_reference, [],
+                                                                                 link, test_run.id)
+                result = result + result_child
+            else:
+                data = TestStepTestRunSchema().dump(test_step)
+                test_step_detail = TestStepDetail.query.filter(TestStepDetail.test_step_id == data['id'],
+                                                               TestStepDetail.test_run_id == test_run.id,
+                                                               TestStepDetail.link == data['link']).first()
+                data['test_step_detail_id'] = test_step_detail.id
+                result.append(data)
         return send_result(data=result)
     except Exception as ex:
         return send_error(message=str(ex))
