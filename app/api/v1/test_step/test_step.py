@@ -13,7 +13,7 @@ from app.api.v1.test_type.test_type import get_test_type_default
 from app.enums import FILE_PATH
 from app.gateway import authorization_require
 from app.models import TestStep, db, TestStepField, TestRunField, TestCase, TestStepDetail, HistoryTest, TestRun, \
-    TestExecution, TestCasesTestExecutions, TestStatus, Attachment
+    TestExecution, TestCasesTestExecutions, TestStatus, Attachment, TestEvidence
 from app.parser import TestStepSchema
 from app.utils import send_result, send_error, data_preprocessing, get_timestamp_now
 from app.api.v1.test_step_field.test_step_field import DEFAULT_DATA
@@ -241,6 +241,9 @@ def remove_test_step(test_step_id, issue_id):
                         shutil.rmtree(FILE_PATH+folder_path)
                     except Exception as ex:
                         return send_error(message=str(ex))
+                TestEvidence.query.filter(TestEvidence.test_run_id == path.test_run_id,
+                                          TestEvidence.test_step_detail_id == path.id).delete()
+                db.session.flush()
             # delete test_step
             TestStepDetail.query.filter(TestStepDetail.test_step_id == test_step_id).delete()
             db.session.flush()
@@ -256,10 +259,23 @@ def remove_test_step(test_step_id, issue_id):
             links = get_link_detail_by_test_case_id_reference(cloud_id=cloud_id, project_id=project_id,
                                                               test_case_id=test_case_reference.id, link_details=[],
                                                               link=test_step.id + "/")
-            # link test case khác call test case +
+            # link test case khác call test case
             for link in links:
                 links = links + get_link_detail_for_test_case_call(cloud_id, project_id,
                                                                    test_step.test_case_id, [], link)
+            # xoa file Evidence
+            paths = TestStepDetail.query.filter(TestStepDetail.link.in_(links)).all()
+            for path in paths:
+                folder_path = "{}/{}/{}".format("test-run", path.test_run_id, path.id)
+                if os.path.isdir(FILE_PATH + folder_path):
+                    try:
+                        shutil.rmtree(FILE_PATH + folder_path)
+                    except Exception as ex:
+                        return send_error(message=str(ex))
+                TestEvidence.query.filter(TestEvidence.test_run_id == path.test_run_id,
+                                          TestEvidence.test_step_detail_id == path.id).delete()
+                db.session.flush()
+            db.session.flush()
             TestStepDetail.query.filter(TestStepDetail.link.in_(links)).delete()
             db.session.flush()
             save_history_test_step(test_case.id, user_id, 6, 2, detail_of_action, [index])
@@ -305,7 +321,7 @@ def change_rank_test_step(issue_id):
         query = TestStep.query.filter(or_(TestStep.project_id == project_id, TestStep.project_key == project_id),
                                       TestStep.cloud_id == cloud_id, TestStep.test_case_id == test_case.id).all()
         if query is None:
-            return send_error(message='PROJECT DOES NOT EXIST', status=404, show=False, is_dynamic=True)
+            return send_error(message='TEST STEP DOES NOT EXIST', status=404, show=False, is_dynamic=True)
 
         json_req = request.get_json()
         index_drag = json_req['index_drag']
