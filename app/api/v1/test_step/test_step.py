@@ -445,7 +445,7 @@ def call_test_case(issue_id, issue_id_reference):
         return send_error(data='', message=str(ex))
 
 
-# GET link ( test step detail) # link : step_id_call, test case id :
+# Get link (test step detail)
 def get_link_detail_by_test_case_id_reference(cloud_id: str, project_id: str, test_case_id: str,
                                               link_details: list, link: str):
     stack = [(test_case_id, link)]
@@ -536,7 +536,8 @@ def clone_test_step(issue_id, test_step_id):
             for i, name in enumerate(test_step.custom_fields):
                 detail_of_action[field_name[i]] = name
         else:
-            return send_error("check your request")
+            for i, name in enumerate(field_name):
+                detail_of_action[name] = test_step.custom_fields[i]
         save_history_test_step(test_case.id, user_id, 4, 2, detail_of_action, [test_step.index + 1])
         db.session.commit()
         return send_result(data='', message="Step clone successfully",
@@ -604,7 +605,8 @@ def update_test_step(issue_id, test_step_id):
             for i, name in enumerate(test_step.custom_fields):
                 detail_of_action["old"][field_name[i]] = name
         else:
-            return send_error("check your request")
+            for i, name in enumerate(field_name):
+                detail_of_action[name] = test_step.custom_fields[i]
         # update test step
         test_step.action = body_request.get('action'),
         test_step.data = body_request.get('data'),
@@ -633,7 +635,7 @@ def update_test_step(issue_id, test_step_id):
         return send_result(message=" Update successfully")
     except Exception as ex:
         db.session.rollback()
-        return send_error(data='', message="Something was wrong!")
+        return send_error(message=str(ex))
 
 
 def get_test_case_id(cloud_id: str, project_id: str, test_case_id: str, set_id: set):
