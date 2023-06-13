@@ -10,7 +10,7 @@ from app.api.v1.test_run.schema import TestRunSchema
 from app.api.v1.test_type.test_type import get_test_type_default
 from app.gateway import authorization_require
 from app.models import TestCase, db, TestRun, TestExecution, \
-    TestStatus, TestSet, TestCasesTestSets, TestType, TestStep
+    TestStatus, TestSet, TestCasesTestSets, TestType, TestStep, Repository
 from app.utils import send_result, send_error, get_timestamp_now, escape_wildcard
 from app.validator import TestSetSchema, TestSetTestCasesSchema
 
@@ -302,6 +302,29 @@ def filter_test_case():
 @api.route("/import/test-case", methods=["POST"])
 @authorization_require()
 def import_test_case():
+    """
+       "data input": [
+        {
+            "test_set": {
+                "issue_id": "1111",
+                "issue_key": BTEST-1111,
+            },
+            "test_case: {
+                "issue_id": "2222",
+                "issue_key": "BTEST-2222,
+                "test_type": "Manual"
+            },
+            "test_step": {
+                "action": "test action",
+                "data": "test data",
+                "result": "test result",
+                "custom_fields": ["test_custom_fields", "test_non_custom_fields"]
+            },
+            "test_repository": "test repo"
+        },
+        .......
+       ]
+    """
     try:
         body_request = request.get_json()
         token = get_jwt_identity()
@@ -366,6 +389,12 @@ def import_test_case():
 
         # create list test_step
         test_step = data_input.get('test_step')
+        # create list test_repository
+        test_repository = data_input.get('test_repository')
+        test_case_repositories = db.session.query(Repository.id).filter(Repository.name.in_(test_repository)).all()
+        # check if has test_repo invalid
+        if len(test_repository) != len(test_case_repositories):
+            return send_error()
 
         # test case
         test_cases_new = data_input.get('test_case')
@@ -386,7 +415,12 @@ def import_test_case():
                 })
                 # add test case id to test_cases_test_sets_new
                 test_cases_test_sets_new[index].update({'test_case_id': test_case_id})
-
+                if test_case.get('test_repository') > 0 or 'test_repository' in test_case:
+                    test_case_repositories.append({
+                        "id": str(uuid.uuid4()),
+                        "test_id": test_case_id,
+                        "created_date": get_timestamp_now()
+                    })
                 # update test case id to test_step
                 test_step[index].update(
                     {
