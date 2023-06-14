@@ -69,10 +69,11 @@ def get_test_case_from_test_set(issue_id):
             )
             db.session.add(test_set)
             db.session.flush()
-        data = db.session.query(TestCase.id, TestCase.issue_id, TestCase.issue_key, TestCase.project_id,
-                                TestCase.cloud_id, TestCase.created_date,
-                                TestCasesTestSets.index).join(TestCasesTestSets) \
-            .filter(TestCasesTestSets.test_set_id == test_set.id).all()
+        test_cases = db.session.query(TestCase.id, TestCase.issue_id, TestCase.issue_key, TestCase.project_id,
+                                      TestCase.cloud_id, TestCase.created_date,
+                                      TestCasesTestSets.index).join(TestCasesTestSets) \
+            .filter(TestCasesTestSets.test_set_id == test_set.id).order_by(asc(TestCasesTestSets.index)).all()
+        data = TestSetTestCasesSchema(many=True).dump(test_cases)
         return send_result(data=data)
     except Exception as ex:
         return send_error(message=str(ex))
