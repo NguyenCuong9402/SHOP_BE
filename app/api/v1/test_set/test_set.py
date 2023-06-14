@@ -54,9 +54,7 @@ def get_test_case_from_test_set(issue_id):
     try:
         token = get_jwt_identity()
         cloud_id = token.get('cloudId')
-        cloud_id = "b0030a9a-fc4b-4484-8e5b-8c72abeb4577"
         project_id = token.get('projectId')
-        project_id = 10000
         issue_key = token.get('issue_key')
         body_request = request.get_json()
         tests_type = body_request.get("tests_type", [])
