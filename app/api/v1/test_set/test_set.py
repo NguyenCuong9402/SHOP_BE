@@ -51,53 +51,31 @@ def get_test_set(issue_id):
 @api.route("/<issue_id>/test_case", methods=["GET"])
 @authorization_require()
 def get_test_case_from_test_set(issue_id):
-    token = get_jwt_identity()
-    cloud_id = token.get('cloudId')
-    project_id = token.get('projectId')
-    issue_key = token.get('issue_key')
-    # Get search params
-    page = request.args.get('page', 1, type=int)
-    page_size = request.args.get('page_size', 10, type=int)
-    order_by = request.args.get('order_by', '', type=str)
-    order = request.args.get('order', 'asc', type=str)
-    test_set = TestSet.query.filter(TestSet.cloud_id == cloud_id, TestSet.issue_id == issue_id,
-                                    TestSet.project_id == project_id).first()
-    if test_set is None:
-        test_set = TestSet(
-            id=str(uuid.uuid4()),
-            issue_id=issue_id,
-            issue_key=issue_key,
-            project_id=project_id,
-            cloud_id=cloud_id,
-            created_date=get_timestamp_now()
-        )
-        db.session.add(test_set)
-        db.session.flush()
-    # sort
-    if order_by == "index" or order_by == '':
-        order_by = "index"
-        column_sorted = getattr(TestCasesTestSets, order_by)
-    else:
-        if order_by not in ["issue_id", "issue_key", "created_date"]:
-            return send_error("Not a valid")
-        column_sorted = getattr(TestCase, order_by)
-    query = db.session.query(TestCase.id, TestCase.issue_id, TestCase.issue_key, TestCase.project_id, TestCase.cloud_id,
-                             TestCase.created_date, TestCasesTestSets.index).join(TestCasesTestSets) \
-        .filter(TestCasesTestSets.test_set_id == test_set.id)
-    query = query.order_by(desc(column_sorted)) if order == "desc" else query.order_by(asc(column_sorted))
-    test_cases = query.paginate(page=page, per_page=page_size, error_out=False).items
-    total = query.count()
-    extra = 1 if (total % page_size) else 0
-    total_pages = int(total / page_size) + extra
     try:
-        results = {
-            "test_cases": TestSetTestCasesSchema(many=True).dump(test_cases),
-            "total": total,
-            "total_pages": total_pages
-        }
-        return send_result(data=results)
+        token = get_jwt_identity()
+        cloud_id = token.get('cloudId')
+        project_id = token.get('projectId')
+        issue_key = token.get('issue_key')
+        test_set = TestSet.query.filter(TestSet.cloud_id == cloud_id, TestSet.issue_id == issue_id,
+                                        TestSet.project_id == project_id).first()
+        if test_set is None:
+            test_set = TestSet(
+                id=str(uuid.uuid4()),
+                issue_id=issue_id,
+                issue_key=issue_key,
+                project_id=project_id,
+                cloud_id=cloud_id,
+                created_date=get_timestamp_now()
+            )
+            db.session.add(test_set)
+            db.session.flush()
+        data = db.session.query(TestCase.id, TestCase.issue_id, TestCase.issue_key, TestCase.project_id,
+                                TestCase.cloud_id, TestCase.created_date,
+                                TestCasesTestSets.index).join(TestCasesTestSets) \
+            .filter(TestCasesTestSets.test_set_id == test_set.id).all()
+        return send_result(data=data)
     except Exception as ex:
-        return send_error(data={})
+        return send_error(message=str(ex))
 
 
 @api.route("/<test_set_issue_id>/test_case", methods=["POST"])
