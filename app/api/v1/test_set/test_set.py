@@ -48,7 +48,7 @@ def get_test_set(issue_id):
         return send_error(message="not found")
 
 
-@api.route("/<issue_id>/test_case", methods=["GET"])
+@api.route("/<issue_id>/test_case", methods=["POST"])
 @authorization_require()
 def get_test_case_from_test_set(issue_id):
     try:
@@ -56,6 +56,9 @@ def get_test_case_from_test_set(issue_id):
         cloud_id = token.get('cloudId')
         project_id = token.get('projectId')
         issue_key = token.get('issue_key')
+        body_request = request.get_json()
+        tests_type = body_request.get("tests_type", [])
+
         test_set = TestSet.query.filter(TestSet.cloud_id == cloud_id, TestSet.issue_id == issue_id,
                                         TestSet.project_id == project_id).first()
         if test_set is None:
@@ -72,8 +75,14 @@ def get_test_case_from_test_set(issue_id):
         test_cases = db.session.query(TestCase.id, TestCase.issue_id, TestCase.issue_key, TestCase.project_id,
                                       TestCase.cloud_id, TestCase.created_date,
                                       TestCasesTestSets.index).join(TestCasesTestSets) \
-            .filter(TestCasesTestSets.test_set_id == test_set.id).order_by(asc(TestCasesTestSets.index)).all()
-        data = TestSetTestCasesSchema(many=True).dump(test_cases)
+            .filter(TestCasesTestSets.test_set_id == test_set.id).order_by(asc(TestCasesTestSets.index))
+        if len(tests_type) > 0:
+            tests_type = db.session.query(TestType.id).filter(TestType.name.in_(tests_type),
+                                                              TestType.cloud_id == cloud_id,
+                                                              TestType.project_id == project_id).subquery()
+
+            test_cases = test_cases.filter(TestCase.test_type_id.in_(tests_type))
+        data = TestSetTestCasesSchema(many=True).dump(test_cases.all())
         return send_result(data=data)
     except Exception as ex:
         return send_error(message=str(ex))
@@ -256,7 +265,7 @@ def filter_test_case():
         issue_id = token.get('issueId')
         cloud_id = token.get('cloudId')
         project_id = token.get('projectId')
-        tests_type = body_request.get("tests_type", [])
+        test_type = body_request.get("tests_type", [])
 
         test_set = db.session.query(TestSet.id).filter(TestSet.issue_id == issue_id,
                                                        TestSet.cloud_id == cloud_id,
@@ -264,13 +273,13 @@ def filter_test_case():
         if test_set is None:
             return send_error(message='Test set not exists')
 
-        tests_type = db.session.query(TestType.id).filter(TestType.name.in_(tests_type),
-                                                          TestType.cloud_id == cloud_id,
-                                                          TestType.project_id == project_id).subquery()
+        test_type_ids = db.session.query(TestType.id).filter(TestType.name.in_(test_type),
+                                                             TestType.cloud_id == cloud_id,
+                                                             TestType.project_id == project_id).subquery()
 
         test_cases = db.session.query(TestCase.issue_id).join(TestCasesTestSets).filter(
             TestCasesTestSets.test_set_id == test_set.id,
-            TestCase.test_type_id.in_(tests_type)).all()
+            TestCase.test_type_id.in_(test_type_ids)).all()
 
         data = [test_case.issue_id for test_case in test_cases]
         return send_result(data=data)
