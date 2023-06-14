@@ -255,38 +255,6 @@ def change_rank_test_case_in_test_set(test_set_issue_id):
         return send_error(message=str(ex))
 
 
-@api.route("/filter/test-case", methods=["POST"])
-@authorization_require()
-def filter_test_case():
-    try:
-        body_request = request.get_json()
-        token = get_jwt_identity()
-
-        issue_id = token.get('issueId')
-        cloud_id = token.get('cloudId')
-        project_id = token.get('projectId')
-        test_type = body_request.get("tests_type", [])
-
-        test_set = db.session.query(TestSet.id).filter(TestSet.issue_id == issue_id,
-                                                       TestSet.cloud_id == cloud_id,
-                                                       TestSet.project_id == project_id).first()
-        if test_set is None:
-            return send_error(message='Test set not exists')
-
-        test_type_ids = db.session.query(TestType.id).filter(TestType.name.in_(test_type),
-                                                             TestType.cloud_id == cloud_id,
-                                                             TestType.project_id == project_id).subquery()
-
-        test_cases = db.session.query(TestCase.issue_id).join(TestCasesTestSets).filter(
-            TestCasesTestSets.test_set_id == test_set.id,
-            TestCase.test_type_id.in_(test_type_ids)).all()
-
-        data = [test_case.issue_id for test_case in test_cases]
-        return send_result(data=data)
-    except Exception as ex:
-        return send_error(message='something wrong')
-
-
 @api.route("/import/test-case", methods=["POST"])
 @authorization_require()
 def import_test_case():
