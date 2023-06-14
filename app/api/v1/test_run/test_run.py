@@ -45,7 +45,7 @@ def change_status_test_run(test_run_id, new_name_status):
             activity_test_run(user_id, test_run_id, detail, "change_status")
         else:
             query = TestStepDetail.query.filter(TestStepDetail.id == test_step_detail_id).first()
-            stt = stt_step_detail_id(cloud_id, project_id, test_run_id, [])
+            stt = stt_step_detail_id(cloud_id, project_id, test_run_id)
             if not query:
                 return send_error(message="Test run is not exists")
             test_status = TestStatus.query.filter(TestStatus.id == query.status_id).first()
@@ -377,7 +377,7 @@ def post_data_and_comment_test_detail(test_run_id):
             activity_test_run(user_id, test_run_id, detail, "change_comment")
             db.session.flush()
         else:
-            stt = stt_step_detail_id(cloud_id, project_id, test_run_id, [])
+            stt = stt_step_detail_id(cloud_id, project_id, test_run_id)
             test_step_detail = TestStepDetail.query.filter(TestStepDetail.id == test_step_detail_id).first()
             if test_step_detail is None:
                 return send_error("Not found test detail")
@@ -533,7 +533,7 @@ def post_defect(test_run_id):
             )
             db.session.add(defect)
             db.session.flush()
-            stt = stt_step_detail_id(cloud_id, project_id, test_run_id, [])
+            stt = stt_step_detail_id(cloud_id, project_id, test_run_id)
             detail = {"step": stt.index(test_step_detail_id) + 1, "issue_key": issue_key}
             activity_test_run(user_id, test_run_id, detail, "add_defect_step")
         db.session.commit()
@@ -566,7 +566,7 @@ def get_defect(test_run_id):
             defect_global = DefectsSchema(many=True).dump(defects)
             dict_defect['Global'] = defect_global
             if not search_other:
-                test_detail_ids = stt_step_detail_id(cloud_id, project_id, test_run_id, [])
+                test_detail_ids = stt_step_detail_id(cloud_id, project_id, test_run_id)
                 # query - step
                 for i, test_detail_id in enumerate(test_detail_ids):
                     defect = Defects.query.filter(Defects.test_run_id == test_run_id,
@@ -623,7 +623,7 @@ def delete_defect(test_run_id):
                                  Defects.test_step_detail_id == test_step_detail_id,
                                  Defects.test_issue_key == issue_key).delete()
             db.session.flush()
-            stt = stt_step_detail_id(cloud_id, project_id, test_run_id, [])
+            stt = stt_step_detail_id(cloud_id, project_id, test_run_id)
             detail = {"step": stt.index(test_step_detail_id) + 1, "issue_key": issue_key}
             activity_test_run(user_id, test_run_id, detail, "remove_defect_step")
         db.session.commit()
@@ -640,7 +640,8 @@ def load_test_run(issue_id, test_issue_id):
         token = get_jwt_identity()
         cloud_id = token.get('cloudId')
         project_id = token.get('projectId')
-        test_execution = TestExecution.query.filter(TestExecution.cloud_id == cloud_id, TestExecution.issue_id == issue_id,
+        test_execution = TestExecution.query.filter(TestExecution.cloud_id == cloud_id,
+                                                    TestExecution.issue_id == issue_id,
                                                     TestExecution.project_id == project_id).first()
         test_case = TestCase.query.filter(TestCase.cloud_id == cloud_id, TestCase.issue_id == test_issue_id,
                                           TestCase.project_id == project_id).first()
@@ -715,6 +716,14 @@ def get_test_step_id_detail_by_test_case_id_reference(cloud_id: str, project_id:
         return test_details
     except Exception as ex:
         print(ex)
+
+
+# lọc thứ tự step trong test run -> trả theo thứ tự
+def stt_step_detail_id(cloud_id, project_id, test_run_id):
+    test_run = TestRun.query.filter(test_run_id == test_run_id).first()
+    ids = get_test_step_id_detail_by_test_case_id_reference(cloud_id, project_id,
+                                                            test_run.test_case_id, [], "", test_run.id)
+    return ids
 
 
 @api.route("/<test_run_id>/evidence", methods=['POST'])
@@ -798,7 +807,7 @@ def upload_evidence(test_run_id):
                 created_date=get_timestamp_now())
             db.session.add(test_evidence)
             db.session.flush()
-            stt = stt_step_detail_id(cloud_id, project_id, test_run_id, [])
+            stt = stt_step_detail_id(cloud_id, project_id, test_run_id)
             detail = {"step": stt.index(test_step_detail_id) + 1, "real_name": real_name}
             activity_test_run(user_id, test_run_id, detail, "add_evidence_step")
             db.session.commit()
@@ -831,7 +840,7 @@ def get_evidence(test_run_id):
             file_global = EvidenceSchema(many=True).dump(files)
             dict_evidence['Global'] = file_global
             if not search_other:
-                test_detail_ids = stt_step_detail_id(cloud_id, project_id, test_run_id, [])
+                test_detail_ids = stt_step_detail_id(cloud_id, project_id, test_run_id)
                 # query - step
                 for i, test_detail_id in enumerate(test_detail_ids):
                     files = TestEvidence.query.filter(TestEvidence.test_run_id == test_run_id,
@@ -849,30 +858,6 @@ def get_evidence(test_run_id):
             return send_result(data=files)
     except Exception as ex:
         return send_error(message=str(ex))
-
-
-# lọc thứ tự step trong test run -> trả theo thứ tự
-def stt_step_detail_id(cloud_id, project_id, test_run_id, ids: list):
-    test_run = TestRun.query.filter(test_run_id == test_run_id).first()
-    # lọc thứ tự step trong test run -> trả theo thứ tự
-    test_steps = db.session.query(TestStep).filter(TestStep.project_id == project_id,
-                                                   TestStep.cloud_id == cloud_id,
-                                                   TestStep.test_case_id == test_run.test_case_id) \
-        .order_by(asc(TestStep.index)).all()
-    for test_step in test_steps:
-        link = test_step.id + "/"
-        if test_step.test_case_id_reference:
-            result_child = get_test_step_id_detail_by_test_case_id_reference(cloud_id, project_id,
-                                                                             test_step.test_case_id_reference, [],
-                                                                             link, test_run_id)
-            ids = ids + result_child
-        else:
-            test_step_detail = TestStepDetail.query.filter(TestStepDetail.test_step_id == test_step.id,
-                                                           TestStepDetail.test_run_id == test_run_id,
-                                                           TestStepDetail.link == link).first()
-            data = test_step_detail.id
-            ids.append(data)
-    return ids
 
 
 @api.route('<test_run_id>/evidence', methods=['DELETE'])
@@ -896,7 +881,7 @@ def delete_evidence(test_run_id):
             test = TestEvidence.query.filter(TestEvidence.test_run_id == test_run_id,
                                              TestEvidence.test_step_detail_id == test_step_detail_id,
                                              TestEvidence.url_file == url_file).first()
-            stt = stt_step_detail_id(cloud_id, project_id, test_run_id, [])
+            stt = stt_step_detail_id(cloud_id, project_id, test_run_id)
             detail = {"step": stt.index(test_step_detail_id) + 1, "real_name": test.name_file}
             activity_test_run(user_id, test_run_id, detail, "remove_evidence_step")
         db.session.delete(test)
