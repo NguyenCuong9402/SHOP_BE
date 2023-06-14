@@ -126,7 +126,7 @@ def add_test_step(issue_id):
         detail_of_action['Action'] = test_step.action
         detail_of_action['Data'] = test_step.data
         detail_of_action['Expected Result'] = test_step.result
-        if len(field_name) > len(test_step.custom_fields):
+        if len(field_name) >= len(test_step.custom_fields):
             for i, name in enumerate(test_step.custom_fields):
                 detail_of_action[field_name[i]] = name
         else:
