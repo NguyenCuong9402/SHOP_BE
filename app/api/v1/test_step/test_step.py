@@ -115,7 +115,7 @@ def add_test_step(issue_id):
             db.session.add(test_step_detail)
             db.session.flush()
         # Tạo test details cho test case khác call test case này
-        add_test_detail_for_test_case_call(cloud_id, project_id, test_case.id, status.id, test_step.id + "/")
+        add_test_detail_for_test_case_call(cloud_id, project_id, test_case.id, status.id, test_step.id + "/", test_step.id)
         detail_of_action = {}
         # field not native
         field_name = []
@@ -141,7 +141,7 @@ def add_test_step(issue_id):
 
 
 def add_test_detail_for_test_case_call(cloud_id: str, project_id: str, test_case_id_reference: str,
-                                       status_id: str, link: str):
+                                       status_id: str, link: str, test_step_id: str):
     try:
         stack = [(test_case_id_reference, link)]  # Khởi tạo stack và thêm (test_case_id_reference, link) vào stack
         while len(stack) > 0:
@@ -157,7 +157,7 @@ def add_test_detail_for_test_case_call(cloud_id: str, project_id: str, test_case
                     test_run.is_updated = 1
                     test_step_detail = TestStepDetail(
                         id=str(uuid.uuid4()),
-                        test_step_id=test_step.id,
+                        test_step_id=test_step_id,
                         status_id=status_id,
                         test_run_id=test_run.id,
                         created_date=get_timestamp_now(),
@@ -432,7 +432,8 @@ def call_test_case(issue_id, issue_id_reference):
                                                           link=test_step.id + "/")
         for link in links:
             add_test_detail_for_test_case_call(cloud_id=cloud_id, project_id=project_id,
-                                               test_case_id_reference=test_case.id, status_id=status.id, link=link)
+                                               test_case_id_reference=test_case.id, status_id=status.id, link=link,
+                                               test_step_id=test_step.id)
         # update test_run.is_update =1 -> merge/reset
         db.session.query(TestRun).filter(TestRun.project_id == project_id, TestRun.cloud_id == cloud_id,
                                          TestRun.test_case_id.in_(check_up)).update({"is_updated": 1})
@@ -523,7 +524,8 @@ def clone_test_step(issue_id, test_step_id):
             db.session.add(test_step_detail)
             db.session.flush()
         # Tạo test details cho test case khác call test case này
-        add_test_detail_for_test_case_call(cloud_id, project_id, test_case.id, status.id, test_step.id + "/")
+        add_test_detail_for_test_case_call(cloud_id, project_id, test_case.id, status.id, test_step.id + "/",
+                                           test_step.id)
         db.session.commit()
         # Create detail_of_action and Save history
         detail_of_action = {}
