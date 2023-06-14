@@ -672,8 +672,7 @@ def load_test_run(issue_id, test_issue_id):
         #                                                        TestStepDetail.link == link).first()
         #         result.append(test_step_detail.id)
         data = []
-        result = get_test_step_id_detail_by_test_case_id_reference(cloud_id, project_id, test_case.id, [],
-                                                                   "", test_run.id)
+        result = stt_step_detail_id(cloud_id, project_id, test_run.id)
         for item in result:
             query = db.session.query(TestStep).join(TestStepDetail, TestStep.id == TestStepDetail.test_step_id)\
                 .filter(TestStepDetail.id == item).first()
@@ -683,16 +682,18 @@ def load_test_run(issue_id, test_issue_id):
         return send_error(message=str(ex))
 
 
-def get_test_step_id_detail_by_test_case_id_reference(cloud_id: str, project_id: str, test_case_id_reference: str,
-                                                      test_details: list, link: str, test_run_id):
+# lọc thứ tự step trong test run -> trả theo thứ tự
+def stt_step_detail_id(cloud_id: str, project_id: str, test_run_id: str):
     try:
-        stack_1 = [[test_case_id_reference, link]]
+        test_run = TestRun.query.filter(test_run_id == test_run_id).first()
+        test_details = []
+        stack_1 = [[test_run.test_case_id, ""]]
         stack_2 = []
         while stack_1:
             test_reference, cur_link = stack_1.pop()
             test_step_reference = db.session.query(TestStep).filter(TestStep.project_id == project_id,
                                                                     TestStep.cloud_id == cloud_id,
-                                                                    TestStep.test_case_id == test_reference)\
+                                                                    TestStep.test_case_id == test_reference) \
                 .order_by(asc(TestStep.index))
             stack_child = []
             for step in test_step_reference:
@@ -716,14 +717,6 @@ def get_test_step_id_detail_by_test_case_id_reference(cloud_id: str, project_id:
         return test_details
     except Exception as ex:
         print(ex)
-
-
-# lọc thứ tự step trong test run -> trả theo thứ tự
-def stt_step_detail_id(cloud_id, project_id, test_run_id):
-    test_run = TestRun.query.filter(test_run_id == test_run_id).first()
-    ids = get_test_step_id_detail_by_test_case_id_reference(cloud_id, project_id,
-                                                            test_run.test_case_id, [], "", test_run.id)
-    return ids
 
 
 @api.route("/<test_run_id>/evidence", methods=['POST'])
