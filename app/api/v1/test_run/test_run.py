@@ -645,37 +645,31 @@ def load_test_run(issue_id, test_issue_id):
                                                     TestExecution.project_id == project_id).first()
         test_case = TestCase.query.filter(TestCase.cloud_id == cloud_id, TestCase.issue_id == test_issue_id,
                                           TestCase.project_id == project_id).first()
-        if (test_execution or test_case) is None:
-            return send_error("Not found test run")
         test_run = TestRun.query.filter(TestRun.cloud_id == cloud_id, TestRun.project_id == project_id,
                                         TestRun.test_execution_id == test_execution.id,
                                         TestRun.test_case_id == test_case.id).first()
-        if test_run is None:
+        if (test_execution or test_case or test_run) is None:
             return send_error("Not found test run")
-
-        # test_steps = db.session.query(TestStep).filter(TestStep.project_id == project_id,
-        #                                                TestStep.cloud_id == cloud_id,
-        #                                                TestStep.test_case_id == test_case.id)\
-        #     .order_by(asc(TestStep.index))\
-        #     .all()
-        # result = []
-        # for test_step in test_steps:
-        #     link = test_step.id + "/"
-        #     if test_step.test_case_id_reference:
-        #         result_child = get_test_step_id_detail_by_test_case_id_reference(cloud_id, project_id,
-        #                                                                          test_step.test_case_id_reference, [],
-        #                                                                          link, test_run.id)
-        #         result = result + result_child
-        #     else:
-        #         test_step_detail = TestStepDetail.query.filter(TestStepDetail.test_step_id == test_step.id,
-        #                                                        TestStepDetail.test_run_id == test_run.id,
-        #                                                        TestStepDetail.link == link).first()
-        #         result.append(test_step_detail.id)
+        test_steps = TestStep.query.filter(TestStep.test_case_id == test_case.id).all()
+        test_step_ids = [test_step.id for test_step in test_steps]
         data = []
-        result = stt_step_detail_id(cloud_id, project_id, test_run.id)
-        for item in result:
-            query = db.session.query(TestStep).join(TestStepDetail, TestStep.id == TestStepDetail.test_step_id)\
-                .filter(TestStepDetail.id == item).first()
+        ids = stt_step_detail_id(cloud_id, project_id, test_run.id)
+        for test_step_detail_id in ids:
+            test_detail = TestStepDetail.query.filter(TestStepDetail.id == test_step_detail_id).first()
+            if test_detail.test_step_id in test_step_ids:
+                query = db.session.query(TestStep.id.label('test_step_id'), TestStep.action, TestStep.result,
+                                         TestStep.custom_fields, TestStep.data, TestStep.attachments,
+                                         TestStep.created_date, TestStepDetail.id.label('test_step_detail_id'))\
+                    .join(TestStepDetail, TestStep.id == TestStepDetail.test_step_id)\
+                    .filter(TestStepDetail.id == test_step_detail_id).first()
+            else:
+                query = db.session.query(TestStep.id.label('test_step_id'), TestStep.action, TestStep.result,
+                                         TestStep.custom_fields, TestStep.data, TestStep.attachments,
+                                         TestStep.created_date, TestCase.issue_key,
+                                         TestStepDetail.id.label('test_step_detail_id')
+                                         ).join(TestStepDetail, TestStep.id == TestStepDetail.test_step_id) \
+                    .join(TestCase, TestCase.id == TestStep.test_case_id)\
+                    .filter(TestStepDetail.id == test_step_detail_id).first()
             data.append(TestStepTestRunSchema().dump(query))
         return send_result(data=data)
     except Exception as ex:

@@ -605,17 +605,15 @@ class TestCaseTestStepSchema(Schema):
 
 
 class TestStepTestRunSchema(Schema):
-    id = fields.String()
-    cloud_id = fields.String()
-    project_id = fields.String()
+    test_step_id = fields.String()
     action = fields.String()
     data = fields.String()
     result = fields.String()
     custom_fields = fields.List(fields.String())
     attachments = fields.String()
-    test_case_id = fields.String()
     created_date = fields.Integer()
     issue_key = fields.String()
+    test_step_detail_id = fields.String()
 
 
 class PostDefectSchema(Schema):
