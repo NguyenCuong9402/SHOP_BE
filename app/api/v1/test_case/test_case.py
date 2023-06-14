@@ -29,12 +29,13 @@ ADD_SUCCESS = 16
 api = Blueprint('test_case', __name__)
 
 
-@api.route("/<issue_id>/<issue_key>", methods=["GET"])
+@api.route("/<issue_id>", methods=["GET"])
 @authorization_require()
 def get_test_case(issue_id, issue_key):
     token = get_jwt_identity()
     cloud_id = token.get('cloudId')
     project_id = token.get('projectId')
+    issue_key = token.get('issue_key')
     test_case = TestCase.query.filter(TestCase.project_id == project_id, TestCase.cloud_id == cloud_id,
                                       TestCase.issue_id == issue_id).first()
     test_type_id = get_test_type_default(cloud_id, project_id)
