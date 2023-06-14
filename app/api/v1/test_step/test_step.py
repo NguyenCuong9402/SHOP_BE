@@ -1,21 +1,19 @@
-import json
 import os
 import shutil
 import uuid
 from operator import or_
 from flask import Blueprint, request
 from flask_jwt_extended import get_jwt_identity
-from sqlalchemy import func, asc, and_, desc
+from sqlalchemy import asc
 
 from app.api.v1.history_test import save_history_test_step
 from app.api.v1.test_execution.test_execution import add_test_step_id_by_test_case_id
 from app.api.v1.test_type.test_type import get_test_type_default
 from app.enums import FILE_PATH
 from app.gateway import authorization_require
-from app.models import TestStep, db, TestStepField, TestRunField, TestCase, TestStepDetail, HistoryTest, TestRun, \
-    TestExecution, TestCasesTestExecutions, TestStatus, Attachment, TestEvidence
-from app.parser import TestStepSchema
-from app.utils import send_result, send_error, data_preprocessing, get_timestamp_now
+from app.models import TestStep, db, TestStepField, TestCase, TestStepDetail, TestRun, \
+     TestStatus, Attachment, TestEvidence
+from app.utils import send_result, send_error, get_timestamp_now
 from app.api.v1.test_step_field.test_step_field import DEFAULT_DATA
 
 api = Blueprint('test_step', __name__)
@@ -332,7 +330,7 @@ def change_rank_test_step(issue_id):
         # vị trí drag to drop
         index_drag_to_drop = TestStep.query.filter(
             or_(TestStep.project_id == project_id, TestStep.project_key == project_id), TestStep.cloud_id == cloud_id,
-                TestStep.test_case_id == test_case.id).filter(
+            TestStep.test_case_id == test_case.id).filter(
             TestStep.index == index_drag).first()
         if index_drag > index_drop:
             if index_drop < 1:
