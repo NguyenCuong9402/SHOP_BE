@@ -21,12 +21,13 @@ api = Blueprint('test_set', __name__)
 NO_TEST_ADDED = 61
 
 
-@api.route("/<issue_id>", methods=["GET"])
+@api.route('', methods=["GET"])
 @authorization_require()
-def get_test_set(issue_id):
+def get_test_set():
     token = get_jwt_identity()
     cloud_id = token.get('cloudId')
     project_id = token.get('projectId')
+    issue_id = token.get('issue_id')
     issue_key = token.get('issue_key')
     test_set = TestSet.query.filter(TestSet.project_id == project_id, TestSet.cloud_id == cloud_id,
                                     TestSet.issue_id == issue_id).first()
@@ -48,7 +49,7 @@ def get_test_set(issue_id):
         return send_error(message="not found")
 
 
-@api.route("/<issue_id>/test_case", methods=["POST"])
+@api.route("/<issue_id>", methods=["POST"])
 @authorization_require()
 def get_test_case_from_test_set(issue_id):
     try:
