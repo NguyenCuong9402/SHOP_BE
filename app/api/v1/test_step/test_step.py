@@ -466,7 +466,7 @@ def get_link_detail_by_test_case_id_reference(cloud_id: str, project_id: str, te
     return link_details
 
 
-# Get link (test step detail)
+# Get link and step_id (test step detail)
 def get_link_detail_and_step_id(cloud_id: str, project_id: str, test_case_id: str, link_details: list, link: str):
     stack = [(test_case_id, link)]
     while stack:
