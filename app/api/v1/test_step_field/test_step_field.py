@@ -286,14 +286,13 @@ def number_test_delete(project_id, test_step_field_id):
             return send_error(
                 message="Test Step Fields have been changed \n Please refresh the page to view the changes", code=200,
                 show=False, is_dynamic=True)
-        default_name = ["Action  (action)", "Data (data)", "Expected Result (result)"]
-        if test_step_field.name in default_name:
+        if test_step_field.is_native == 1:
             return send_error(message="not allowed to delete this test step field")
-        # SQLAlchemy để tính tổng trực tiếp trong câu truy vấn
         test_step_field_project = TestStepField.query.filter(TestStepField.cloud_id == cloud_id,
                                                              TestStepField.project_id == project_id,
-                                                             TestStepField.name.notin_(default_name)).all()
+                                                             TestStepField.is_native == 0).all()
         custom_field = [item.name for item in test_step_field_project]
+        # SQLAlchemy để tính tổng trực tiếp trong câu truy vấn
         count = TestStep.query.with_entities(func.count())\
             .filter(TestStep.cloud_id == cloud_id, TestStep.project_id == project_id,
                     TestStep.custom_fields.isnot(None),
