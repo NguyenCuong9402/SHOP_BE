@@ -425,13 +425,14 @@ def call_test_case(issue_id, issue_id_reference):
             add_test_step_id_by_test_case_id(cloud_id, project_id, test_case_reference.id,
                                              test_run.id, status.id,  test_step.id + "/")
         # Add test details những test run tạo bởi test case có  test case id call là reference
-        links = get_link_detail_by_test_case_id_reference(cloud_id=cloud_id, project_id=project_id,
-                                                          test_case_id=test_case_reference.id, link_details=[],
-                                                          link=test_step.id + "/")
-        for link in links:
+        links_and_step_ids = get_link_detail_and_step_id(cloud_id=cloud_id, project_id=project_id,
+                                                         test_case_id=test_case_reference.id, link_details=[],
+                                                         link=test_step.id + "/")
+        for link_and_step_id in links_and_step_ids:
             add_test_detail_for_test_case_call(cloud_id=cloud_id, project_id=project_id,
-                                               test_case_id_reference=test_case.id, status_id=status.id, link=link,
-                                               test_step_id=test_step.id)
+                                               test_case_id_reference=test_case.id, status_id=status.id,
+                                               link=link_and_step_id["link"],
+                                               test_step_id=link_and_step_id["step_id"])
         # update test_run.is_update =1 -> merge/reset
         db.session.query(TestRun).filter(TestRun.project_id == project_id, TestRun.cloud_id == cloud_id,
                                          TestRun.test_case_id.in_(check_up)).update({"is_updated": 1})
@@ -459,6 +460,24 @@ def get_link_detail_by_test_case_id_reference(cloud_id: str, project_id: str, te
             new_link = cur_link + step.id + "/"
             if step.test_case_id_reference is None:
                 data = new_link
+                link_details.append(data)
+            else:
+                stack.append((step.test_case_id_reference, new_link))
+    return link_details
+
+
+# Get link (test step detail)
+def get_link_detail_and_step_id(cloud_id: str, project_id: str, test_case_id: str, link_details: list, link: str):
+    stack = [(test_case_id, link)]
+    while stack:
+        test_case_id, cur_link = stack.pop()
+        test_steps = TestStep.query.filter(TestStep.project_id == project_id, TestStep.cloud_id == cloud_id,
+                                           TestStep.test_case_id == test_case_id)\
+            .order_by(asc(TestStep.index))
+        for step in test_steps:
+            new_link = cur_link + step.id + "/"
+            if step.test_case_id_reference is None:
+                data = {"link": new_link, "step_id": step.id}
                 link_details.append(data)
             else:
                 stack.append((step.test_case_id_reference, new_link))
