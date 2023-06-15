@@ -166,8 +166,8 @@ def update_test_step(project_id, test_step_id):
         coincided = check_coincided_name(name=body_request.get('name'), self_id=test_step_id, cloud_id=cloud_id,
                                          project_id=project_id)
         if coincided is True:
-            return send_error(code=200, data={"name": "Test Step Field already exists. Please try again"},
-                              message='Invalid request', show=False, is_dynamic=True)
+            return send_error(code=200, message='Test Step Field already exists. Please try again"',
+                              show=False, is_dynamic=True)
 
         # Update new test step
         if body_request.get('field_type_values') is not None:
