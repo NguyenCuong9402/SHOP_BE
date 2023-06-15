@@ -100,8 +100,8 @@ def create_test_step(project_id):
         # Check coincided name
         coincided = check_coincided_name(name=body_request.get('name'), cloud_id=cloud_id, project_id=project_id)
         if coincided is True:
-            return send_error(code=200, data={"name": "Test Step Field already exists. Please try again"},
-                              message='Invalid request', show=False, is_dynamic=True)
+            return send_error(code=200, message='Test Step Field already exists. Please try again',
+                              show=False, is_dynamic=True)
 
         # Create new test step
         max_index = TestStepField.query.filter(TestStepField.cloud_id == cloud_id,
