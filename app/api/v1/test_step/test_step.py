@@ -109,10 +109,14 @@ def add_test_step(issue_id):
             )
             list_test_detail.append(test_step_detail)
         db.session.bulk_save_objects(list_test_detail)
-        TestRun.query.filter(TestRun.id.in_(test_run_ids)).update({"is_updated": 1})
         db.session.flush()
         # Tạo test details cho test case khác call test case này
         add_test_detail_for_test_case_call(cloud_id, project_id, test_case.id, status.id, test_step.id + "/", test_step.id)
+        # Set is_update for test run
+        test_case_ids = get_test_case_id(cloud_id, project_id, test_case.id, {test_case.id})
+        db.session.query(TestRun).filter(TestRun.project_id == project_id, TestRun.cloud_id == cloud_id,
+                                         TestRun.test_case_id.in_(test_case_ids)).update({"is_updated": 1})
+        db.session.flush()
         # field not native
         field_name = []
         for item in test_step_fields:
@@ -149,7 +153,6 @@ def add_test_detail_for_test_case_call(cloud_id: str, project_id: str, test_case
                                                  TestRun.project_id == project_id,
                                                  TestRun.test_case_id == test_step.test_case_id).all()
                 for test_run in test_runs:
-                    test_run.is_updated = 1
                     test_step_detail = TestStepDetail(
                         id=str(uuid.uuid4()),
                         test_step_id=test_step_id,
@@ -514,7 +517,11 @@ def clone_test_step(issue_id, test_step_id):
         # Tạo test details cho test case khác call test case này
         add_test_detail_for_test_case_call(cloud_id, project_id, test_case.id, status.id, test_step.id + "/",
                                            test_step.id)
-        db.session.commit()
+
+        test_case_ids = get_test_case_id(cloud_id, project_id, test_case.id, {test_case.id})
+        db.session.query(TestRun).filter(TestRun.project_id == project_id, TestRun.cloud_id == cloud_id,
+                                         TestRun.test_case_id.in_(test_case_ids)).update({"is_updated": 1})
+        db.session.flush()
         # Create detail_of_action and Save history
         field_name = []
         for item in test_step_fields:
@@ -533,7 +540,7 @@ def clone_test_step(issue_id, test_step_id):
                            show=True)
     except Exception as ex:
         db.session.rollback()
-        return send_error(data='', message="Something was wrong!")
+        return send_error(message=str(ex))
 
 
 @api.route("/<issue_id>/<test_step_id>", methods=["PUT"])
