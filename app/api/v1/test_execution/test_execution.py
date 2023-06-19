@@ -205,6 +205,7 @@ def add_test_to_test_execution(test_execution_issue_id):
 def add_test_step_id_by_test_case_id(cloud_id: str, project_id: str, test_case_id: str,
                                      test_run_id, status_id, link: str):
     stack = [(test_case_id, link)]
+    list_test_step_detail = []
     while stack:
         curr_id, current_link = stack.pop()
         step_calls = TestStep.query.filter(TestStep.cloud_id == cloud_id, TestStep.project_id == project_id,
@@ -221,10 +222,10 @@ def add_test_step_id_by_test_case_id(cloud_id: str, project_id: str, test_case_i
                     created_date=get_timestamp_now(),
                     link=new_link
                 )
-                db.session.add(test_step_detail)
-                db.session.flush()
+                list_test_step_detail.append(test_step_detail)
             else:
                 stack.append((step.test_case_id_reference, new_link))
+    db.session.bulk_save_objects(list_test_step_detail)
 
 
 @api.route("/<test_execution_issue_id>", methods=["DELETE"])
