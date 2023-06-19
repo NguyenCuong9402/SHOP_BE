@@ -354,10 +354,9 @@ def change_rank_test_step(issue_id):
             db.session.flush()
         # update test_run.is_update = 1 => merge/reset
         test_case_ids = get_test_case_id(cloud_id, project_id, test_case.id, {test_case.id})
-        for test_case_id in test_case_ids:
-            db.session.query(TestRun).filter(TestRun.project_id == project_id, TestRun.cloud_id == cloud_id,
-                                             TestRun.test_case_id == test_case_id).update({"is_updated": 1})
-            db.session.flush()
+        db.session.query(TestRun).filter(TestRun.project_id == project_id, TestRun.cloud_id == cloud_id,
+                                         TestRun.test_case_id.in_(test_case_ids)).update({"is_updated": 1})
+        db.session.flush()
         # Save history
         save_history_test_step(test_case.id, user_id, 3, 2, {}, [index_drag, index_drop])
         db.session.commit()
