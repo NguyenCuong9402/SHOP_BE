@@ -43,10 +43,7 @@ def add_test_step(issue_id):
             )
             db.session.add(test_case)
             db.session.flush()
-        try:
-            json_req = request.get_json()
-        except Exception as ex:
-            return send_error(message="Request Body incorrect json format: " + str(ex), code=442)
+        json_req = request.get_json()
         # Strip body request
         body_request = {}
         for key, value in json_req.items():
@@ -94,24 +91,26 @@ def add_test_step(issue_id):
         )
         db.session.add(test_step)
         db.session.flush()
-        # check test run
+        # add test detail to test run
         test_runs = TestRun.query.filter(TestRun.project_id == project_id, TestRun.cloud_id == cloud_id,
                                          TestRun.test_case_id == test_case.id).all()
         status = TestStatus.query.filter(TestStatus.cloud_id == cloud_id, TestStatus.project_id == project_id,
                                          TestStatus.name == 'TODO').first()
-
-        for test_run in test_runs:
-            test_run.is_updated = 1
+        test_run_ids = [test_run.id for test_run in test_runs]
+        list_test_detail = []
+        for test_run_id in test_run_ids:
             test_step_detail = TestStepDetail(
                 id=str(uuid.uuid4()),
                 test_step_id=test_step_id,
                 status_id=status.id,
-                test_run_id=test_run.id,
+                test_run_id=test_run_id,
                 created_date=get_timestamp_now(),
                 link=test_step.id+"/"
             )
-            db.session.add(test_step_detail)
-            db.session.flush()
+            list_test_detail.append(test_step_detail)
+        db.session.bulk_save_objects(list_test_detail)
+        TestRun.query.filter(TestRun.id.in_(test_run_ids)).update({"is_updated": 1})
+        db.session.flush()
         # Tạo test details cho test case khác call test case này
         add_test_detail_for_test_case_call(cloud_id, project_id, test_case.id, status.id, test_step.id + "/", test_step.id)
         # field not native
