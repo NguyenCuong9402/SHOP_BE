@@ -176,7 +176,7 @@ def change_test_type(issue_id, test_type_id):
         old_type_name = old_type.name
         test_case.test_type_id = new_type.id
         db.session.flush()
-        save_history_test_case(test_case.id, user_id, 2, [old_type_name, new_type.name])
+        save_history_test_case(test_case.id, user_id, 1, 2, [], [old_type_name, new_type.name])
         db.session.commit()
         return send_result(message="success")
 

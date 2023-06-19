@@ -492,15 +492,15 @@ def clone_test_step(issue_id, test_step_id):
         db.session.add(test_step_clone)
         db.session.flush()
         test_step_fields = db.session.query(TestStepField).filter(
-            or_(TestStepField.project_id == project_id, TestStepField.project_key == project_id),
+            TestStepField.project_id == project_id, TestStepField.is_native == 0,
             TestStepField.cloud_id == cloud_id).order_by(TestStepField.index.asc())
         # check test run
         test_runs = TestRun.query.filter(TestRun.project_id == project_id, TestRun.cloud_id == cloud_id,
                                          TestRun.test_case_id == test_case.id).all()
         status = TestStatus.query.filter(TestStatus.cloud_id == cloud_id, TestStatus.project_id == project_id,
                                          TestStatus.name == 'TODO').first()
+        list_test_step_detail = []
         for test_run in test_runs:
-            test_run.is_updated = 1
             test_step_detail = TestStepDetail(
                 id=str(uuid.uuid4()),
                 test_step_id=test_step_id,
@@ -509,8 +509,9 @@ def clone_test_step(issue_id, test_step_id):
                 created_date=get_timestamp_now(),
                 link=test_step.id + "/"
             )
-            db.session.add(test_step_detail)
-            db.session.flush()
+            list_test_step_detail.append(test_step_detail)
+        db.session.bulk_save_objects(list_test_step_detail)
+        db.session.flush()
         # Tạo test details cho test case khác call test case này
         add_test_detail_for_test_case_call(cloud_id, project_id, test_case.id, status.id, test_step.id + "/",
                                            test_step.id)
@@ -520,7 +521,7 @@ def clone_test_step(issue_id, test_step_id):
                                          TestRun.test_case_id.in_(test_case_ids)).update({"is_updated": 1})
         db.session.flush()
         # Create detail_of_action and Save history
-        field_name = [item.name for item in test_step_fields if item.is_native == 0]
+        field_name = [item.name for item in test_step_fields]
         detail_of_action = {'Action': test_step.action, 'Data': test_step.data, 'Expected Result': test_step.result}
         if len(field_name) >= len(test_step.custom_fields):
             for i, name in enumerate(test_step.custom_fields):

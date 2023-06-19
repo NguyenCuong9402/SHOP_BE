@@ -7,6 +7,7 @@ from flask import Blueprint, request
 from flask_jwt_extended import get_jwt_identity
 from sqlalchemy import func, asc, and_, desc
 
+from app.api.v1.history_test import save_history_test_case
 from app.api.v1.test_type.test_type import get_test_type_default
 from app.gateway import authorization_require
 from app.models import db, TestRepository, Repository, TestCase, TestCasesTestSets
@@ -181,20 +182,25 @@ def move_test_to_repo():
             )
             db.session.add(test_case)
             db.session.flush()
-        # move test to root
         repo = Repository.query.filter(Repository.id == repository_id_new, Repository.cloud_id == cloud_id,
                                        Repository.project_id == project_id).first()
+        test_now = db.session.query(TestRepository.repository_id, Repository.name, Repository.parent_id) \
+            .join(Repository, Repository.id == TestRepository.repository_id) \
+            .filter(TestRepository.test_id == test_case.id).first()
+        # move test to root
         if repository_id_new in [str(project_id), ""] or repo.type == 1:
-            test_now = TestRepository.query.filter(TestRepository.test_id == test_case.id).first()
             if test_now.repository_id != project_id:
+                old = get_link_repo_parent(cloud_id, project_id, test_now.parent_id, test_now.name)
                 db.session.delete(test_now)
                 db.session.flush()
-            message = "Test(s) moved to Test Repository Root."
+                save_history_test_case(test_case.id, user_id, 6, 2, [], [old, ""])
+                message = "Test(s) moved to Test Repository Root."
+            else:
+                message = "No change"
         else:
             if repo is None:
                 return send_error(message="Test Repository has been changed"
                                           " \nrefresh the page to view the changes.", is_dynamic=True)
-            test_now = TestRepository.query.filter(TestRepository.test_id == test_case.id).first()
             # move test from root to not root
             if test_now is None:
                 index = TestRepository.query.filter(TestRepository.repository_id == repository_id_new).count()
@@ -208,19 +214,12 @@ def move_test_to_repo():
                 db.session.add(test_to_repo)
                 db.session.flush()
                 message = f"Test(s) moved to folder {repo.name}"
+                new = get_link_repo_parent(cloud_id, project_id, repo.parent_id, repo.name)
+                save_history_test_case(test_case.id, user_id, 6, 2, [], ["", new])
             else:
                 # move test in repo A to repo B
                 if repository_id_new != repository_id_old:
-                    test_repo = TestRepository.query.filter(TestRepository.repository_id == repository_id_new).first()
-                    if test_repo is None:
-                        return send_error(message="Test Repository has been changed"
-                                                  " \nrefresh the page to view the changes.", is_dynamic=True)
-                    repository = Repository.query.filter(Repository.id == test_repo.repository_id,
-                                                         Repository.cloud_id == cloud_id, Repository.
-                                                         project_id == project_id).first()
-                    if repository is None:
-                        return send_error(message="Test Repository has been changed"
-                                                  " \nrefresh the page to view the changes.", is_dynamic=True)
+                    old_link = get_link_repo_parent(cloud_id, project_id, test_now.parent_id, test_now.name)
                     check = False if test_now.repository_id == repository_id_old else True
                     count = TestRepository.query.filter(TestRepository.repository_id == repository_id_new).count()
                     # update index test old repo
@@ -232,6 +231,8 @@ def move_test_to_repo():
                     test_now.index = count + 1
                     test_now.create_date = get_timestamp_now()
                     db.session.flush()
+                    new_link = get_link_repo_parent(cloud_id, project_id, repo.parent_id, repo.name)
+                    save_history_test_case(test_case.id, user_id, 6, 2, [], [old_link, new_link])
                     db.session.commit()
                     if check:
                         return send_result(message="Please refresh the page to view the changes.| Move success", show=True)
@@ -269,6 +270,20 @@ def move_test_to_repo():
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
+
+
+def get_link_repo_parent(cloud_id: str, project_id: str, parent_id: str, link: str):
+    stack = [(parent_id, link)]
+    while stack:
+        curr_id, current_link = stack.pop()
+        test_parent = Repository.query.filter(Repository.cloud_id == cloud_id, Repository.project_id == project_id,
+                                              Repository.id == parent_id).first()
+        if test_parent is not None:
+            if test_parent.type == 1:
+                break
+            link = test_parent.name + "/" + current_link
+            stack.append([test_parent.parent_id, link])
+    return link
 
 
 @api.route("/remove-test", methods=["DELETE"])
