@@ -212,6 +212,9 @@ def add_test_execution(test_issue_id):
             )
             db.session.add(test_case)
             db.session.flush()
+        default_status = TestStatus.query.filter(TestStatus.cloud_id == cloud_id,
+                                                 TestStatus.project_id == project_id,
+                                                 TestStatus.name == 'TODO').first()
         test_execution_ids = []
         for test_execution_issue_id, test_execution_issue_key in test_executions.items():
             test_execution = TestExecution.query.filter(TestExecution.issue_id == test_execution_issue_id,
@@ -251,9 +254,6 @@ def add_test_execution(test_issue_id):
                                             TestRun.test_case_id == test_case.id,
                                             ).first()
             if test_run is None:
-                default_status = TestStatus.query.filter(TestStatus.cloud_id == cloud_id,
-                                                         TestStatus.project_id == project_id,
-                                                         TestStatus.name == 'TODO').first()
                 test_run = TestRun(
                     id=str(uuid.uuid4()),
                     project_id=project_id, cloud_id=cloud_id, test_case_id=test_case.id,

@@ -113,6 +113,9 @@ def add_test_to_test_execution(test_execution_issue_id):
         test_execution = TestExecution.query.filter(TestExecution.issue_id == test_execution_issue_id,
                                                     TestExecution.cloud_id == cloud_id,
                                                     TestExecution.project_id == project_id).first()
+        default_status = TestStatus.query.filter(TestStatus.cloud_id == cloud_id,
+                                                 TestStatus.project_id == project_id,
+                                                 TestStatus.name == 'TODO').first()
         if test_execution is None:
             test_execution = TestExecution(
                 id=str(uuid.uuid4()),
@@ -172,9 +175,7 @@ def add_test_to_test_execution(test_execution_issue_id):
                                             TestRun.test_case_id == test_case.id,
                                             ).first()
             if test_run is None:
-                default_status = TestStatus.query.filter(TestStatus.cloud_id == cloud_id,
-                                                         TestStatus.project_id == project_id,
-                                                         TestStatus.name == 'TODO').first()
+
                 test_run = TestRun(
                     id=str(uuid.uuid4()),
                     project_id=project_id, cloud_id=cloud_id, test_case_id=test_case.id,
@@ -188,7 +189,7 @@ def add_test_to_test_execution(test_execution_issue_id):
                 db.session.add(test_run)
                 db.session.flush()
                 # Tạo test details
-                add_test_step_id_by_test_case_id(cloud_id, project_id, test_case.id, test_run.id, default_status.id,'')
+                add_test_step_id_by_test_case_id(cloud_id, project_id, test_case.id, test_run.id, default_status.id, '')
             else:
                 return send_error(message='Test Executions were already associated with the Test',
                                   status=200, show=False)
