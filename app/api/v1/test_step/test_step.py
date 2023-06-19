@@ -492,7 +492,7 @@ def clone_test_step(issue_id, test_step_id):
         db.session.add(test_step_clone)
         db.session.flush()
         test_step_fields = db.session.query(TestStepField).filter(
-            or_(TestStepField.project_id == project_id, TestStepField.project_key == project_id),
+            TestStepField.project_id == project_id, TestStepField.is_native == 0,
             TestStepField.cloud_id == cloud_id).order_by(TestStepField.index.asc())
         # check test run
         test_runs = TestRun.query.filter(TestRun.project_id == project_id, TestRun.cloud_id == cloud_id,
@@ -520,7 +520,7 @@ def clone_test_step(issue_id, test_step_id):
                                          TestRun.test_case_id.in_(test_case_ids)).update({"is_updated": 1})
         db.session.flush()
         # Create detail_of_action and Save history
-        field_name = [item.name for item in test_step_fields if item.is_native == 0]
+        field_name = [item.name for item in test_step_fields]
         detail_of_action = {'Action': test_step.action, 'Data': test_step.data, 'Expected Result': test_step.result}
         if len(field_name) >= len(test_step.custom_fields):
             for i, name in enumerate(test_step.custom_fields):
