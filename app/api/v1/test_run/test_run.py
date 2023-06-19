@@ -728,11 +728,7 @@ def upload_evidence(test_run_id):
         is_invalid = validator_upload.validate({"prefix": prefix})
         if is_invalid:
             return send_error(data=is_invalid, message='Please check your request params')
-
-        try:
-            file = request.files['file']
-        except Exception as ex:
-            return send_error(message=str(ex))
+        file = request.files['file']
         # Compare file sizes 100MB
         if len(file.read()) > 100000000:
             return send_error(message="Can not upload file(s) bigger than 100MB.", is_dynamic=True)
