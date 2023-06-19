@@ -118,10 +118,7 @@ def add_test_step(issue_id):
                                          TestRun.test_case_id.in_(test_case_ids)).update({"is_updated": 1})
         db.session.flush()
         # field not native
-        field_name = []
-        for item in test_step_fields:
-            if item.is_native == 0:
-                field_name.append(item.name)
+        field_name = [item.name for item in test_step_fields if item.is_native == 0]
         # create detail of action
         detail_of_action = {'Action': test_step.action, 'Data': test_step.data, 'Expected Result': test_step.result}
         if len(field_name) >= len(test_step.custom_fields):
@@ -523,10 +520,7 @@ def clone_test_step(issue_id, test_step_id):
                                          TestRun.test_case_id.in_(test_case_ids)).update({"is_updated": 1})
         db.session.flush()
         # Create detail_of_action and Save history
-        field_name = []
-        for item in test_step_fields:
-            if item.is_native == 0:
-                field_name.append(item.name)
+        field_name = [item.name for item in test_step_fields if item.is_native == 0]
         detail_of_action = {'Action': test_step.action, 'Data': test_step.data, 'Expected Result': test_step.result}
         if len(field_name) >= len(test_step.custom_fields):
             for i, name in enumerate(test_step.custom_fields):
