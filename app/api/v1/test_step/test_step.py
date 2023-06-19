@@ -499,8 +499,8 @@ def clone_test_step(issue_id, test_step_id):
                                          TestRun.test_case_id == test_case.id).all()
         status = TestStatus.query.filter(TestStatus.cloud_id == cloud_id, TestStatus.project_id == project_id,
                                          TestStatus.name == 'TODO').first()
+        list_test_step_detail = []
         for test_run in test_runs:
-            test_run.is_updated = 1
             test_step_detail = TestStepDetail(
                 id=str(uuid.uuid4()),
                 test_step_id=test_step_id,
@@ -509,8 +509,9 @@ def clone_test_step(issue_id, test_step_id):
                 created_date=get_timestamp_now(),
                 link=test_step.id + "/"
             )
-            db.session.add(test_step_detail)
-            db.session.flush()
+            list_test_step_detail.append(test_step_detail)
+        db.session.bulk_save_objects(list_test_step_detail)
+        db.session.flush()
         # Tạo test details cho test case khác call test case này
         add_test_detail_for_test_case_call(cloud_id, project_id, test_case.id, status.id, test_step.id + "/",
                                            test_step.id)
