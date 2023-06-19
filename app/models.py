@@ -271,7 +271,7 @@ class Repository(db.Model):
     cloud_id = db.Column(db.String(255), nullable=True)
     created_date = db.Column(db.Integer, default=0)
     modified_date = db.Column(db.Integer, default=0)
-    type = db.Column(db.Boolean, default=0)
+    type = db.Column(db.Boolean, default=0)  # type = 1: Repository all( project), type = 0: repository child of project
 
     @hybrid_property
     def count_test(self):

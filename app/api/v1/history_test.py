@@ -208,8 +208,9 @@ def save_history_test_step(id_reference: str, user_id: str, action: int,
 
 
 def save_history_test_case(id_reference: str, user_id: str, action: int,
-                           history_category: int, btest_ids: list, test_type_name: list):
+                           history_category: int, btest_ids: list, change: list):
     # 1: change type   2: add test set  3:remove test set  4: add test execution   5: remove test execution
+    # 6: change repo
     if action == 1:
         new_history = HistoryTest(
             id_reference=id_reference,
@@ -218,7 +219,7 @@ def save_history_test_case(id_reference: str, user_id: str, action: int,
             history_category=history_category,
             activities='change',
             action_name='changed the Test Type',
-            detail_of_action={"Old Type": test_type_name[0], "New Type": test_type_name[1]},
+            detail_of_action={"old": change[0], "new": change[1]},
             created_date=get_timestamp_now()
         )
         db.session.add(new_history)
@@ -272,6 +273,17 @@ def save_history_test_case(id_reference: str, user_id: str, action: int,
             history_category=history_category,
             action_name='updated Test Executions',
             detail_of_action={"Removed": test_keys},
+            created_date=get_timestamp_now())
+        db.session.add(new_history)
+    elif action == 6:
+        new_history = HistoryTest(
+            id_reference=id_reference,
+            user_id=user_id,
+            id=str(uuid.uuid4()),
+            activities='change',
+            history_category=history_category,
+            action_name='changed the Test Repository Folder',
+            detail_of_action={"old": change[0], "new": change[1]},
             created_date=get_timestamp_now())
         db.session.add(new_history)
     db.session.flush()
