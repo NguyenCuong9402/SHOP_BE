@@ -182,13 +182,9 @@ def remove_test_step(test_step_id, issue_id):
                 code=200, show=False, is_dynamic=True)
         # update test_run.is_update = 1 => merge/reset
         test_case_ids = get_test_case_id(cloud_id, project_id, test_case.id, {test_case.id})
-        for test_case_id in test_case_ids:
-            db.session.query(TestRun).filter(TestRun.project_id == project_id, TestRun.cloud_id == cloud_id,
-                                             TestRun.test_case_id == test_case_id).update({"is_updated": 1})
-            db.session.flush()
-        index = test_step.index
-        # create detail_of_action
-
+        db.session.query(TestRun).filter(TestRun.project_id == project_id, TestRun.cloud_id == cloud_id,
+                                         TestRun.test_case_id.in_(test_case_ids)).update({"is_updated": 1})
+        db.session.flush()
         if test_step.test_case_id_reference is None:
             test_step_fields = db.session.query(TestStepField).filter(
                 or_(TestStepField.project_id == project_id, TestStepField.project_key == project_id),
@@ -219,23 +215,15 @@ def remove_test_step(test_step_id, issue_id):
             for path in paths:
                 folder_path = "{}/{}/{}".format("test-run", path.test_run_id, path.id)
                 if os.path.isdir(FILE_PATH+folder_path):
-                    try:
-                        shutil.rmtree(FILE_PATH+folder_path)
-                    except Exception as ex:
-                        return send_error(message=str(ex))
+                    shutil.rmtree(FILE_PATH+folder_path)
 
                 TestEvidence.query.filter(TestEvidence.test_run_id == path.test_run_id,
                                           TestEvidence.test_step_detail_id == path.id).delete()
-
-                db.session.query(TestRun).filter(TestRun.project_id == project_id, TestRun.cloud_id == cloud_id,
-                                                 TestRun.id == path.test_run_id)\
-                    .update({"is_updated": 1})
-                db.session.flush()
             # delete test_step
             TestStepDetail.query.filter(TestStepDetail.test_step_id == test_step_id).delete()
             db.session.flush()
             # Save history
-            save_history_test_step(test_case.id, user_id, 2, 2, detail_of_action, [index])
+            save_history_test_step(test_case.id, user_id, 2, 2, detail_of_action, [test_step.index])
         else:
             test_case_reference = TestCase.query.filter(TestCase.id == test_step.test_case_id_reference,
                                                         TestCase.cloud_id == cloud_id,
@@ -255,23 +243,15 @@ def remove_test_step(test_step_id, issue_id):
             for path in paths:
                 folder_path = "{}/{}/{}".format("test-run", path.test_run_id, path.id)
                 if os.path.isdir(FILE_PATH + folder_path):
-                    try:
-                        shutil.rmtree(FILE_PATH + folder_path)
-                    except Exception as ex:
-                        return send_error(message=str(ex))
+                    shutil.rmtree(FILE_PATH + folder_path)
+
                 TestEvidence.query.filter(TestEvidence.test_run_id == path.test_run_id,
                                           TestEvidence.test_step_detail_id == path.id).delete()
                 db.session.flush()
-
-                db.session.query(TestRun).filter(TestRun.project_id == project_id, TestRun.cloud_id == cloud_id,
-                                                 TestRun.id == path.test_run_id) \
-                    .update({"is_updated": 1})
-                db.session.flush()
-
             db.session.flush()
             TestStepDetail.query.filter(TestStepDetail.link.in_(links)).delete()
             db.session.flush()
-            save_history_test_step(test_case.id, user_id, 6, 2, detail_of_action, [index])
+            save_history_test_step(test_case.id, user_id, 6, 2, detail_of_action, [test_step.index])
 
         TestStep.query.filter(TestStep.test_case_id == test_case.id).filter(TestStep.index > test_step.index) \
             .update(dict(index=TestStep.index - 1))
