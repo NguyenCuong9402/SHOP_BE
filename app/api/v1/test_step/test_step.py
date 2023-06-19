@@ -128,7 +128,7 @@ def add_test_step(issue_id):
         # Save history
         save_history_test_step(test_case.id, user_id, 1, 2, detail_of_action, [count_index + 1])
         db.session.commit()
-        return send_result(data='add success')
+        return send_result(message='add success')
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
@@ -138,6 +138,7 @@ def add_test_detail_for_test_case_call(cloud_id: str, project_id: str, test_case
                                        status_id: str, link: str, test_step_id: str):
     try:
         stack = [(test_case_id_reference, link)]  # Khởi tạo stack và thêm (test_case_id_reference, link) vào stack
+        list_test_step_detail = []
         while len(stack) > 0:
             current_test_case_id, current_link = stack.pop()  # Lấy phần tử cuối cùng từ stack
             test_steps = TestStep.query.filter(TestStep.cloud_id == cloud_id, TestStep.project_id == project_id,
@@ -157,9 +158,9 @@ def add_test_detail_for_test_case_call(cloud_id: str, project_id: str, test_case
                         created_date=get_timestamp_now(),
                         link=new_link
                     )
-                    db.session.add(test_step_detail)
-                    db.session.flush()
+                    list_test_step_detail.append(test_step_detail)
                 stack.append((test_step.test_case_id, new_link))  # Thêm (test_case_id liên quan, new_link) vào stack
+        db.session.bulk_save_objects(list_test_step_detail)
     except Exception as ex:
         return send_error(message=str(ex))
 
