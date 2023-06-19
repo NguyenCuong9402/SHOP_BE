@@ -562,10 +562,7 @@ def update_test_step(issue_id, test_step_id):
             )
             db.session.add(test_case)
             db.session.flush()
-        try:
-            json_req = request.get_json()
-        except Exception as ex:
-            return send_error(message="Request Body incorrect json format: " + str(ex), code=442)
+        json_req = request.get_json()
         # Strip body request
         body_request = {}
         detail_of_action = {}
