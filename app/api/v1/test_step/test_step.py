@@ -187,12 +187,9 @@ def remove_test_step(test_step_id, issue_id):
         db.session.flush()
         if test_step.test_case_id_reference is None:
             test_step_fields = db.session.query(TestStepField).filter(
-                or_(TestStepField.project_id == project_id, TestStepField.project_key == project_id),
+                TestStepField.project_id == project_id, TestStepField.is_native == 0,
                 TestStepField.cloud_id == cloud_id).order_by(TestStepField.index.asc())
-            field_name = []
-            for item in test_step_fields:
-                if item.is_native == 0:
-                    field_name.append(item.name)
+            field_name = [item.name for item in test_step_fields]
             detail_of_action = {'Action': test_step.action, 'Data': test_step.data, 'Expected Result': test_step.result}
             if len(field_name) >= len(test_step.custom_fields):
                 for i, name in enumerate(test_step.custom_fields):
