@@ -298,30 +298,30 @@ def set_time_test_run(test_run_id):
     try:
         edited = request.args.get('edited', False, type=bool)
         reg = request.get_json()
-        start_time = reg.get("start_time", 0)
-        if not isinstance(start_time, int):
-            start_time = 0
+        time_start_on = reg.get("time_start_on", 0)
+        if not isinstance(time_start_on, int):
+            time_start_on = 0
         query = TestRun.query.filter(TestRun.id == test_run_id).first()
-        if start_time != 0 and edited:
+        if time_start_on != 0 and edited:
             if query.end_date == 0:
                 if query.status.name in ["PASSED", "FAILED"]:
-                    query.start_date = start_time
+                    query.start_date = time_start_on
                     query.end_date = get_timestamp_now()
                     db.session.flush()
-                    if start_time > query.end_date:
+                    if time_start_on > query.end_date:
                         return send_error(message="Test run cannot start after finished date", is_dynamic=True)
                 else:
-                    query.start_date = start_time
+                    query.start_date = time_start_on
                     query.end_date = 0
                     db.session.flush()
             else:
                 if query.status.name in ["PASSED", "FAILED"]:
-                    if start_time > query.end_date:
+                    if time_start_on > query.end_date:
                         return send_error(message="Test run cannot start after finished date", is_dynamic=True)
-                    query.start_date = start_time
+                    query.start_date = time_start_on
                     db.session.flush()
                 else:
-                    query.start_date = start_time
+                    query.start_date = time_start_on
                     query.end_date = 0
                     db.session.flush()
         else:
