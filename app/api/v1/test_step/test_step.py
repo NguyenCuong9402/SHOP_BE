@@ -43,10 +43,7 @@ def add_test_step(issue_id):
             )
             db.session.add(test_case)
             db.session.flush()
-        try:
-            json_req = request.get_json()
-        except Exception as ex:
-            return send_error(message="Request Body incorrect json format: " + str(ex), code=442)
+        json_req = request.get_json()
         # Strip body request
         body_request = {}
         for key, value in json_req.items():
@@ -94,31 +91,34 @@ def add_test_step(issue_id):
         )
         db.session.add(test_step)
         db.session.flush()
-        # check test run
+        # add test detail to test run
         test_runs = TestRun.query.filter(TestRun.project_id == project_id, TestRun.cloud_id == cloud_id,
                                          TestRun.test_case_id == test_case.id).all()
         status = TestStatus.query.filter(TestStatus.cloud_id == cloud_id, TestStatus.project_id == project_id,
                                          TestStatus.name == 'TODO').first()
-
-        for test_run in test_runs:
-            test_run.is_updated = 1
+        test_run_ids = [test_run.id for test_run in test_runs]
+        list_test_detail = []
+        for test_run_id in test_run_ids:
             test_step_detail = TestStepDetail(
                 id=str(uuid.uuid4()),
                 test_step_id=test_step_id,
                 status_id=status.id,
-                test_run_id=test_run.id,
+                test_run_id=test_run_id,
                 created_date=get_timestamp_now(),
                 link=test_step.id+"/"
             )
-            db.session.add(test_step_detail)
-            db.session.flush()
+            list_test_detail.append(test_step_detail)
+        db.session.bulk_save_objects(list_test_detail)
+        db.session.flush()
         # Tạo test details cho test case khác call test case này
         add_test_detail_for_test_case_call(cloud_id, project_id, test_case.id, status.id, test_step.id + "/", test_step.id)
+        # Set is_update for test run
+        test_case_ids = get_test_case_id(cloud_id, project_id, test_case.id, {test_case.id})
+        db.session.query(TestRun).filter(TestRun.project_id == project_id, TestRun.cloud_id == cloud_id,
+                                         TestRun.test_case_id.in_(test_case_ids)).update({"is_updated": 1})
+        db.session.flush()
         # field not native
-        field_name = []
-        for item in test_step_fields:
-            if item.is_native == 0:
-                field_name.append(item.name)
+        field_name = [item.name for item in test_step_fields if item.is_native == 0]
         # create detail of action
         detail_of_action = {'Action': test_step.action, 'Data': test_step.data, 'Expected Result': test_step.result}
         if len(field_name) >= len(test_step.custom_fields):
@@ -129,7 +129,7 @@ def add_test_step(issue_id):
         # Save history
         save_history_test_step(test_case.id, user_id, 1, 2, detail_of_action, [count_index + 1])
         db.session.commit()
-        return send_result(data='add success')
+        return send_result(message='add success')
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
@@ -139,6 +139,7 @@ def add_test_detail_for_test_case_call(cloud_id: str, project_id: str, test_case
                                        status_id: str, link: str, test_step_id: str):
     try:
         stack = [(test_case_id_reference, link)]  # Khởi tạo stack và thêm (test_case_id_reference, link) vào stack
+        list_test_step_detail = []
         while len(stack) > 0:
             current_test_case_id, current_link = stack.pop()  # Lấy phần tử cuối cùng từ stack
             test_steps = TestStep.query.filter(TestStep.cloud_id == cloud_id, TestStep.project_id == project_id,
@@ -149,7 +150,6 @@ def add_test_detail_for_test_case_call(cloud_id: str, project_id: str, test_case
                                                  TestRun.project_id == project_id,
                                                  TestRun.test_case_id == test_step.test_case_id).all()
                 for test_run in test_runs:
-                    test_run.is_updated = 1
                     test_step_detail = TestStepDetail(
                         id=str(uuid.uuid4()),
                         test_step_id=test_step_id,
@@ -158,9 +158,9 @@ def add_test_detail_for_test_case_call(cloud_id: str, project_id: str, test_case
                         created_date=get_timestamp_now(),
                         link=new_link
                     )
-                    db.session.add(test_step_detail)
-                    db.session.flush()
+                    list_test_step_detail.append(test_step_detail)
                 stack.append((test_step.test_case_id, new_link))  # Thêm (test_case_id liên quan, new_link) vào stack
+        db.session.bulk_save_objects(list_test_step_detail)
     except Exception as ex:
         return send_error(message=str(ex))
 
@@ -514,12 +514,13 @@ def clone_test_step(issue_id, test_step_id):
         # Tạo test details cho test case khác call test case này
         add_test_detail_for_test_case_call(cloud_id, project_id, test_case.id, status.id, test_step.id + "/",
                                            test_step.id)
-        db.session.commit()
+
+        test_case_ids = get_test_case_id(cloud_id, project_id, test_case.id, {test_case.id})
+        db.session.query(TestRun).filter(TestRun.project_id == project_id, TestRun.cloud_id == cloud_id,
+                                         TestRun.test_case_id.in_(test_case_ids)).update({"is_updated": 1})
+        db.session.flush()
         # Create detail_of_action and Save history
-        field_name = []
-        for item in test_step_fields:
-            if item.is_native == 0:
-                field_name.append(item.name)
+        field_name = [item.name for item in test_step_fields if item.is_native == 0]
         detail_of_action = {'Action': test_step.action, 'Data': test_step.data, 'Expected Result': test_step.result}
         if len(field_name) >= len(test_step.custom_fields):
             for i, name in enumerate(test_step.custom_fields):
@@ -533,7 +534,7 @@ def clone_test_step(issue_id, test_step_id):
                            show=True)
     except Exception as ex:
         db.session.rollback()
-        return send_error(data='', message="Something was wrong!")
+        return send_error(message=str(ex))
 
 
 @api.route("/<issue_id>/<test_step_id>", methods=["PUT"])
@@ -561,10 +562,7 @@ def update_test_step(issue_id, test_step_id):
             )
             db.session.add(test_case)
             db.session.flush()
-        try:
-            json_req = request.get_json()
-        except Exception as ex:
-            return send_error(message="Request Body incorrect json format: " + str(ex), code=442)
+        json_req = request.get_json()
         # Strip body request
         body_request = {}
         detail_of_action = {}

@@ -341,6 +341,8 @@ def create_test_case():
         project_id = token.get('projectId')
         body_request = request.get_json()
         test_case = body_request.get('test_case')
+        list_data = []
+        test_type_id = get_test_type_default(cloud_id, project_id)
         for issue_id, issue_key in test_case.items():
             test_case = TestCase(
                 id=str(uuid.uuid4()),
@@ -348,10 +350,12 @@ def create_test_case():
                 project_id=project_id,
                 issue_key=issue_key,
                 cloud_id=cloud_id,
-                created_date=get_timestamp_now()
+                created_date=get_timestamp_now(),
+                test_type_id=test_type_id
             )
-            db.session.add(test_case)
-            db.session.flush()
+            list_data.append(test_case)
+        db.session.bulk_save_objects(list_data)
+        db.session.flush()
         db.session.commit()
         return send_result(data='Done', message="OK")
     except Exception as ex:
