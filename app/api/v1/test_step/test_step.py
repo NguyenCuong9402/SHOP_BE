@@ -114,16 +114,13 @@ def add_test_step(issue_id):
             db.session.flush()
         # Tạo test details cho test case khác call test case này
         add_test_detail_for_test_case_call(cloud_id, project_id, test_case.id, status.id, test_step.id + "/", test_step.id)
-        detail_of_action = {}
         # field not native
         field_name = []
         for item in test_step_fields:
             if item.is_native == 0:
                 field_name.append(item.name)
         # create detail of action
-        detail_of_action['Action'] = test_step.action
-        detail_of_action['Data'] = test_step.data
-        detail_of_action['Expected Result'] = test_step.result
+        detail_of_action = {'Action': test_step.action, 'Data': test_step.data, 'Expected Result': test_step.result}
         if len(field_name) >= len(test_step.custom_fields):
             for i, name in enumerate(test_step.custom_fields):
                 detail_of_action[field_name[i]] = name
@@ -185,24 +182,15 @@ def remove_test_step(test_step_id, issue_id):
                 code=200, show=False, is_dynamic=True)
         # update test_run.is_update = 1 => merge/reset
         test_case_ids = get_test_case_id(cloud_id, project_id, test_case.id, {test_case.id})
-        for test_case_id in test_case_ids:
-            db.session.query(TestRun).filter(TestRun.project_id == project_id, TestRun.cloud_id == cloud_id,
-                                             TestRun.test_case_id == test_case_id).update({"is_updated": 1})
-            db.session.flush()
-        index = test_step.index
-        # create detail_of_action
-        detail_of_action = {}
+        db.session.query(TestRun).filter(TestRun.project_id == project_id, TestRun.cloud_id == cloud_id,
+                                         TestRun.test_case_id.in_(test_case_ids)).update({"is_updated": 1})
+        db.session.flush()
         if test_step.test_case_id_reference is None:
             test_step_fields = db.session.query(TestStepField).filter(
-                or_(TestStepField.project_id == project_id, TestStepField.project_key == project_id),
+                TestStepField.project_id == project_id, TestStepField.is_native == 0,
                 TestStepField.cloud_id == cloud_id).order_by(TestStepField.index.asc())
-            field_name = []
-            for item in test_step_fields:
-                if item.is_native == 0:
-                    field_name.append(item.name)
-            detail_of_action['Action'] = test_step.action
-            detail_of_action['Data'] = test_step.data
-            detail_of_action['Expected Result'] = test_step.result
+            field_name = [item.name for item in test_step_fields]
+            detail_of_action = {'Action': test_step.action, 'Data': test_step.data, 'Expected Result': test_step.result}
             if len(field_name) >= len(test_step.custom_fields):
                 for i, name in enumerate(test_step.custom_fields):
                     detail_of_action[field_name[i]] = name
@@ -224,28 +212,20 @@ def remove_test_step(test_step_id, issue_id):
             for path in paths:
                 folder_path = "{}/{}/{}".format("test-run", path.test_run_id, path.id)
                 if os.path.isdir(FILE_PATH+folder_path):
-                    try:
-                        shutil.rmtree(FILE_PATH+folder_path)
-                    except Exception as ex:
-                        return send_error(message=str(ex))
+                    shutil.rmtree(FILE_PATH+folder_path)
 
                 TestEvidence.query.filter(TestEvidence.test_run_id == path.test_run_id,
                                           TestEvidence.test_step_detail_id == path.id).delete()
-
-                db.session.query(TestRun).filter(TestRun.project_id == project_id, TestRun.cloud_id == cloud_id,
-                                                 TestRun.id == path.test_run_id)\
-                    .update({"is_updated": 1})
-                db.session.flush()
             # delete test_step
             TestStepDetail.query.filter(TestStepDetail.test_step_id == test_step_id).delete()
             db.session.flush()
             # Save history
-            save_history_test_step(test_case.id, user_id, 2, 2, detail_of_action, [index])
+            save_history_test_step(test_case.id, user_id, 2, 2, detail_of_action, [test_step.index])
         else:
             test_case_reference = TestCase.query.filter(TestCase.id == test_step.test_case_id_reference,
                                                         TestCase.cloud_id == cloud_id,
                                                         TestCase.project_id == project_id).first()
-            detail_of_action["Call test"]: test_case_reference.issue_key
+            detail_of_action = {"Call test": test_case_reference.issue_key}
             # delete test_step_detail => tìm link => xóa theo link
             # link test case call
             links = get_link_detail_by_test_case_id_reference(cloud_id=cloud_id, project_id=project_id,
@@ -260,23 +240,15 @@ def remove_test_step(test_step_id, issue_id):
             for path in paths:
                 folder_path = "{}/{}/{}".format("test-run", path.test_run_id, path.id)
                 if os.path.isdir(FILE_PATH + folder_path):
-                    try:
-                        shutil.rmtree(FILE_PATH + folder_path)
-                    except Exception as ex:
-                        return send_error(message=str(ex))
+                    shutil.rmtree(FILE_PATH + folder_path)
+
                 TestEvidence.query.filter(TestEvidence.test_run_id == path.test_run_id,
                                           TestEvidence.test_step_detail_id == path.id).delete()
                 db.session.flush()
-
-                db.session.query(TestRun).filter(TestRun.project_id == project_id, TestRun.cloud_id == cloud_id,
-                                                 TestRun.id == path.test_run_id) \
-                    .update({"is_updated": 1})
-                db.session.flush()
-
             db.session.flush()
             TestStepDetail.query.filter(TestStepDetail.link.in_(links)).delete()
             db.session.flush()
-            save_history_test_step(test_case.id, user_id, 6, 2, detail_of_action, [index])
+            save_history_test_step(test_case.id, user_id, 6, 2, detail_of_action, [test_step.index])
 
         TestStep.query.filter(TestStep.test_case_id == test_case.id).filter(TestStep.index > test_step.index) \
             .update(dict(index=TestStep.index - 1))
@@ -354,10 +326,9 @@ def change_rank_test_step(issue_id):
             db.session.flush()
         # update test_run.is_update = 1 => merge/reset
         test_case_ids = get_test_case_id(cloud_id, project_id, test_case.id, {test_case.id})
-        for test_case_id in test_case_ids:
-            db.session.query(TestRun).filter(TestRun.project_id == project_id, TestRun.cloud_id == cloud_id,
-                                             TestRun.test_case_id == test_case_id).update({"is_updated": 1})
-            db.session.flush()
+        db.session.query(TestRun).filter(TestRun.project_id == project_id, TestRun.cloud_id == cloud_id,
+                                         TestRun.test_case_id.in_(test_case_ids)).update({"is_updated": 1})
+        db.session.flush()
         # Save history
         save_history_test_step(test_case.id, user_id, 3, 2, {}, [index_drag, index_drop])
         db.session.commit()
@@ -545,14 +516,11 @@ def clone_test_step(issue_id, test_step_id):
                                            test_step.id)
         db.session.commit()
         # Create detail_of_action and Save history
-        detail_of_action = {}
         field_name = []
         for item in test_step_fields:
             if item.is_native == 0:
                 field_name.append(item.name)
-        detail_of_action['Action'] = test_step.action
-        detail_of_action['Data'] = test_step.data
-        detail_of_action['Expected Result'] = test_step.result
+        detail_of_action = {'Action': test_step.action, 'Data': test_step.data, 'Expected Result': test_step.result}
         if len(field_name) >= len(test_step.custom_fields):
             for i, name in enumerate(test_step.custom_fields):
                 detail_of_action[field_name[i]] = name
@@ -610,28 +578,23 @@ def update_test_step(issue_id, test_step_id):
             return send_error(
                 message="Test Step is not exist", code=200,
                 show=False)
-        test_step_fields = db.session.query(TestStepField).filter(
-            or_(TestStepField.project_id == project_id, TestStepField.project_key == project_id),
-            TestStepField.cloud_id == cloud_id).order_by(TestStepField.index.asc())
-        field_name = []
-        for item in test_step_fields:
-            if item.is_native == 0:
-                field_name.append(item.name)
+        test_step_fields = db.session.query(TestStepField)\
+            .filter(TestStepField.project_id == project_id, TestStepField.cloud_id == cloud_id,
+                    TestStepField.is_native == 0).order_by(TestStepField.index.asc())
+        field_name = [item.name for item in test_step_fields]
         # create detail of action old step
-        detail_of_action["old"] = {}
-        detail_of_action["old"]['Action'] = test_step.action
-        detail_of_action["old"]['Data'] = test_step.data
-        detail_of_action["old"]['Expected Result'] = test_step.result
+        detail_of_action["old"] = {'Action': test_step.action, 'Data': test_step.data,
+                                   'Expected Result': test_step.result}
         if len(field_name) >= len(test_step.custom_fields):
             for i, name in enumerate(test_step.custom_fields):
                 detail_of_action["old"][field_name[i]] = name
         else:
             for i, name in enumerate(field_name):
-                detail_of_action[name] = test_step.custom_fields[i]
+                detail_of_action["old"][name] = test_step.custom_fields[i]
         # update test step
-        test_step.action = body_request.get('action'),
-        test_step.data = body_request.get('data'),
-        test_step.result = body_request.get('result'),
+        test_step.action = body_request.get('action')
+        test_step.data = body_request.get('data')
+        test_step.result = body_request.get('result')
         test_step.custom_fields = body_request.get('custom_fields')
         db.session.flush()
         # update test_run.is_update = 1 => merge/reset
@@ -641,10 +604,8 @@ def update_test_step(issue_id, test_step_id):
         db.session.flush()
 
         # Create detail_of_action new data and Save history
-        detail_of_action["new"] = {}
-        detail_of_action["new"]['Action'] = body_request.get('action')
-        detail_of_action["new"]['Data'] = body_request.get('data')
-        detail_of_action["new"]['Expected Result'] = body_request.get('result')
+        detail_of_action["new"] = {'Action': body_request.get('action'), 'Data': body_request.get('data'),
+                                   'Expected Result': body_request.get('result')}
         custom_fields = body_request.get('custom_fields', [])
         if len(field_name) >= len(custom_fields):
             for i, name in enumerate(custom_fields):
