@@ -346,13 +346,16 @@ def get_test_in_repo():
             repo_id = [item.id for item in repository]
             test_repository = TestRepository.query.filter(TestRepository.repository_id.in_(repo_id)).all()
             repository_id = str(project_id)
+            test_ids = [test_repo.test_id for test_repo in test_repository]
+            test_cases_in_repo = TestCase.query.filter(TestCase.id.notin_(test_ids)) \
+                .order_by(desc(TestCase.issue_id))
         else:
             repo = Repository.query.filter(Repository.cloud_id == cloud_id, Repository.project_id == project_id,
                                            Repository.id == repository_id).first()
             test_repository = TestRepository.query.filter(TestRepository.repository_id == repo.id).all()
-        test_ids = [test_repo.test_id for test_repo in test_repository]
-        test_cases_in_repo = TestCase.query.filter(TestCase.id.in_(test_ids))\
-            .order_by(desc(TestCase.issue_id))
+            test_ids = [test_repo.test_id for test_repo in test_repository]
+            test_cases_in_repo = TestCase.query.filter(TestCase.id.in_(test_ids))\
+                .order_by(desc(TestCase.issue_id))
         if len(test_types) > 0:
             test_cases_in_repo = test_cases_in_repo.filter(TestCase.test_type_id.in_(test_types))
         if len(test_set_issues) > 0:
@@ -360,7 +363,7 @@ def get_test_in_repo():
                                              TestSet.issue_id.in_(test_set_issues)).all()
             test_set_ids = [test_set.id for test_set in test_sets]
             test_cases_in_repo = test_cases_in_repo.join(TestCasesTestSets,
-                                                         test_cases_in_repo.id == TestCasesTestSets.test_case_id)\
+                                                         TestCase.id == TestCasesTestSets.test_case_id)\
                 .filter(TestCasesTestSets.test_set_id.in_(test_set_ids))
         tests = [test.issue_id for test in test_cases_in_repo]
         return send_result(data={"test_cases": tests, "repository_id": repository_id})
@@ -394,9 +397,11 @@ def get_repo():
         repo_0 = Repository.query.filter(Repository.cloud_id == cloud_id, Repository.project_id == project_id,
                                          Repository.type == 1, Repository.id == str(project_id)).first()
         repository_0 = RepositoryProjectSchema().dump(repo_0)
+        count_test_case = TestCase.query.filter(TestCase.project_id == project_id, TestCase.cloud_id == cloud_id).count()
         repo_id = [repo.id for repo in repos]
         test_repo_count = TestRepository.query.filter(TestRepository.repository_id.in_(repo_id)).count()
-        repository_0['count_test'] = test_repo_count
+        repository_0['count_test_repository'] = count_test_case - test_repo_count
+        repository_0['count_test_case'] = count_test_case
         return send_result(data=[repository_0])
     except Exception as ex:
         db.session.rollback()

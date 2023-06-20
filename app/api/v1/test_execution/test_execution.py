@@ -382,7 +382,7 @@ def archive_test_case_in_test_execution(issue_id):
         user_id = token.get("userId")
         cloud_id = token.get("cloudId")
         project_id = token.get("projectId")
-        issue_key = token.get("issue_key")
+        issue_key = token.get("issueKey")
         try:
             body = request.get_json()
             params = TestCaseValidator().load(body) if body else dict()
@@ -444,7 +444,7 @@ def restore_archive_test_case_in_test_execution(issue_id):
         user_id = token.get("userId")
         cloud_id = token.get("cloudId")
         project_id = token.get("projectId")
-        issue_key = token.get("issue_key")
+        issue_key = token.get("issueKey")
         try:
             body = request.get_json()
             params = TestCaseValidator().load(body) if body else dict()
@@ -504,7 +504,7 @@ def time_modified_date(issue_id):
         user_id = token.get("userId")
         cloud_id = token.get("cloudId")
         project_id = token.get("projectId")
-        issue_key = token.get("issue_key")
+        issue_key = token.get("issueKey")
         body_request = request.get_json()
         time = body_request.get('time')
         test_execution = TestExecution.query.filter(TestExecution.cloud_id == cloud_id,

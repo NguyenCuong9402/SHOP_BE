@@ -410,3 +410,32 @@ def import_test_case():
         return send_result()
     except Exception as ex:
         return send_error(message='Something was wrong!')
+
+
+@api.route("/", methods=["POST"])
+@authorization_require()
+def create_test_set():
+    try:
+        token = get_jwt_identity()
+        cloud_id = token.get('cloudId')
+        project_id = token.get('projectId')
+        body_request = request.get_json()
+        issue_id = body_request.get('issue_id', '')
+        issue_key = body_request.get('issue_key', '')
+        if (issue_key or issue_id) == '':
+            return send_error(message="Empty information")
+        test_set = TestSet(
+            id=str(uuid.uuid4()),
+            issue_id=issue_id,
+            project_id=project_id,
+            issue_key=issue_key,
+            cloud_id=cloud_id,
+            created_date=get_timestamp_now(),
+        )
+        db.session.add(test_set)
+        db.session.flush()
+        db.session.commit()
+        return send_result(data=TestSetSchema().dump(test_set), message="Done")
+    except Exception as ex:
+        db.session.rollback()
+        print(ex)
