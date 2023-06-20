@@ -18,7 +18,8 @@ from app.enums import INVALID_PARAMETERS_ERROR, FILE_PATH
 from app.extensions import logger
 from app.gateway import authorization_require
 from app.models import TestStep, TestCase, TestType, db, TestField, Setting, TestRun, TestExecution, \
-    TestCasesTestExecutions, TestStatus, TestStepDetail, TestCasesTestSets, TestSet, TestEvidence, TestEnvironment
+    TestCasesTestExecutions, TestStatus, TestStepDetail, TestCasesTestSets, TestSet, TestEvidence, TestEnvironment, \
+    TestRepository
 from app.utils import send_result, send_error, data_preprocessing, get_timestamp_now
 from app.validator import TestCaseValidator, TestCaseSchema, TestSetSchema, TestCaseTestStepSchema, TestExecutionSchema, \
     TestCaseFilterValidator, TestCaseTestRunSchema
@@ -340,24 +341,24 @@ def create_test_case():
         cloud_id = token.get('cloudId')
         project_id = token.get('projectId')
         body_request = request.get_json()
-        test_case = body_request.get('test_case')
-        list_data = []
+        issue_id = body_request.get('issue_id', '')
+        issue_key = body_request.get('issue_key', '')
+        if (issue_key or issue_id) == '':
+            return send_error(message="Empty information")
         test_type_id = get_test_type_default(cloud_id, project_id)
-        for issue_id, issue_key in test_case.items():
-            test_case = TestCase(
-                id=str(uuid.uuid4()),
-                issue_id=issue_id,
-                project_id=project_id,
-                issue_key=issue_key,
-                cloud_id=cloud_id,
-                created_date=get_timestamp_now(),
-                test_type_id=test_type_id
-            )
-            list_data.append(test_case)
-        db.session.bulk_save_objects(list_data)
+        test_case = TestCase(
+            id=str(uuid.uuid4()),
+            issue_id=issue_id,
+            project_id=project_id,
+            issue_key=issue_key,
+            cloud_id=cloud_id,
+            created_date=get_timestamp_now(),
+            test_type_id=test_type_id
+        )
+        db.session.add(test_case)
         db.session.flush()
         db.session.commit()
-        return send_result(data='Done', message="OK")
+        return send_result(data=TestCaseSchema().dump(test_case), message="Done")
     except Exception as ex:
         db.session.rollback()
         print(ex)
@@ -623,3 +624,37 @@ def filter_test_run():
 
     data = [test_run.issue_id for test_run in query.all()]
     return send_result(data=data)
+
+
+@api.route("/filter", methods=['POST'])
+@authorization_require()
+def filter_test():
+    try:
+        token = get_jwt_identity()
+        cloud_id = token.get('cloudId')
+        project_id = token.get('projectId')
+        body_request = request.get_json()
+        test_types = body_request.get("test_types", [])
+        test_set_issues = body_request.get("test_set_issues", [])
+        repository_ids = body_request.get("repository_ids", [])
+        test_cases = TestCase.query.filter(TestCase.project_id == project_id, TestCase.cloud_id == cloud_id).all()
+        if len(test_set_issues) > 0:
+            test_sets = TestSet.query.filter(TestSet.project_id == project_id, TestSet.cloud_id == cloud_id,
+                                             TestSet.issue_id.in_(test_set_issues)).all()
+            test_set_ids = [test_set.id for test_set in test_sets]
+            test_cases = test_cases.join(TestCasesTestSets, test_cases.id == TestCasesTestSets.test_case_id) \
+                .filter(TestCasesTestSets.test_set_id.in_(test_set_ids))
+        if len(test_types) > 0:
+            tests_type = db.session.query(TestType.id).filter(TestType.name.in_(test_types),
+                                                              TestType.cloud_id == cloud_id,
+                                                              TestType.project_id == project_id).subquery()
+
+            test_cases = test_cases.filter(TestCase.test_type_id.in_(tests_type))
+        if len(repository_ids) > 0:
+            test_cases = test_cases.join(TestRepository, test_cases.id == TestRepository.repository_id)\
+                .filter(TestRepository.repository_id.in_(repository_ids))
+        tests = [test.issue_id for test in test_cases]
+        return send_result(data=tests)
+    except Exception as ex:
+        return send_error(message=str(ex))
+

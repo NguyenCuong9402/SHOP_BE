@@ -362,7 +362,7 @@ def get_test_in_repo():
             test_cases_in_repo = test_cases_in_repo.join(TestCasesTestSets,
                                                          test_cases_in_repo.id == TestCasesTestSets.test_case_id)\
                 .filter(TestCasesTestSets.test_set_id.in_(test_set_ids))
-        tests = [test.id for test in test_cases_in_repo]
+        tests = [test.issue_id for test in test_cases_in_repo]
         return send_result(data={"test_cases": tests, "repository_id": repository_id})
     except Exception as ex:
         db.session.rollback()
