@@ -340,9 +340,8 @@ def create_test_case():
         token = get_jwt_identity()
         cloud_id = token.get('cloudId')
         project_id = token.get('projectId')
-        body_request = request.get_json()
-        issue_id = body_request.get('issue_id', '')
-        issue_key = body_request.get('issue_key', '')
+        issue_id = token.get("issueId")
+        issue_key = token.get("issueKey")
         if (issue_key or issue_id) == '':
             return send_error(message="Empty information")
         test_type_id = get_test_type_default(cloud_id, project_id)
@@ -637,12 +636,12 @@ def filter_test():
         test_types = body_request.get("test_types", [])
         test_set_issues = body_request.get("test_set_issues", [])
         repository_ids = body_request.get("repository_ids", [])
-        test_cases = TestCase.query.filter(TestCase.project_id == project_id, TestCase.cloud_id == cloud_id).all()
+        test_cases = TestCase.query.filter(TestCase.project_id == project_id, TestCase.cloud_id == cloud_id)
         if len(test_set_issues) > 0:
             test_sets = TestSet.query.filter(TestSet.project_id == project_id, TestSet.cloud_id == cloud_id,
                                              TestSet.issue_id.in_(test_set_issues)).all()
             test_set_ids = [test_set.id for test_set in test_sets]
-            test_cases = test_cases.join(TestCasesTestSets, test_cases.id == TestCasesTestSets.test_case_id) \
+            test_cases = test_cases.join(TestCasesTestSets, TestCase.id == TestCasesTestSets.test_case_id) \
                 .filter(TestCasesTestSets.test_set_id.in_(test_set_ids))
         if len(test_types) > 0:
             tests_type = db.session.query(TestType.id).filter(TestType.name.in_(test_types),
@@ -651,9 +650,9 @@ def filter_test():
 
             test_cases = test_cases.filter(TestCase.test_type_id.in_(tests_type))
         if len(repository_ids) > 0:
-            test_cases = test_cases.join(TestRepository, test_cases.id == TestRepository.repository_id)\
+            test_cases = test_cases.join(TestRepository, TestCase.id == TestRepository.repository_id)\
                 .filter(TestRepository.repository_id.in_(repository_ids))
-        tests = [test.issue_id for test in test_cases]
+        tests = [test.issue_id for test in test_cases.all()]
         return send_result(data=tests)
     except Exception as ex:
         return send_error(message=str(ex))
