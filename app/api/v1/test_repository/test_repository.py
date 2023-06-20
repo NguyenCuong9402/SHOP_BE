@@ -10,7 +10,7 @@ from sqlalchemy import func, asc, and_, desc
 from app.api.v1.history_test import save_history_test_case
 from app.api.v1.test_type.test_type import get_test_type_default
 from app.gateway import authorization_require
-from app.models import db, TestRepository, Repository, TestCase, TestCasesTestSets
+from app.models import db, TestRepository, Repository, TestCase, TestCasesTestSets, TestSet
 from app.utils import send_result, send_error, get_timestamp_now
 from app.validator import TestCaseSchema, RepositorySchema, RepositoryProjectSchema
 
@@ -326,7 +326,7 @@ def get_test_in_repo():
         repository_id = request.args.get('repository_id', '', type=str)
         body_request = request.get_json()
         test_types = body_request.get("test_types", [])
-        test_sets = body_request.get("test_sets", [])
+        test_set_issues = body_request.get("test_set_issues", [])
         count_repo = Repository.query.filter(Repository.cloud_id == cloud_id, Repository.project_id).count()
         if count_repo == 0:
             repo_0 = Repository(
@@ -355,11 +355,14 @@ def get_test_in_repo():
             .order_by(desc(TestCase.issue_id))
         if len(test_types) > 0:
             test_cases_in_repo = test_cases_in_repo.filter(TestCase.test_type_id.in_(test_types))
-        if len(test_sets) > 0:
+        if len(test_set_issues) > 0:
+            test_sets = TestSet.query.filter(TestSet.project_id == project_id, TestSet.cloud_id == cloud_id,
+                                             TestSet.issue_id.in_(test_set_issues)).all()
+            test_set_ids = [test_set.id for test_set in test_sets]
             test_cases_in_repo = test_cases_in_repo.join(TestCasesTestSets,
                                                          test_cases_in_repo.id == TestCasesTestSets.test_case_id)\
-                .filter(TestCasesTestSets.test_set_id.in_(test_sets))
-        tests = [test.id for test in test_cases_in_repo]
+                .filter(TestCasesTestSets.test_set_id.in_(test_set_ids))
+        tests = [test.issue_id for test in test_cases_in_repo]
         return send_result(data={"test_cases": tests, "repository_id": repository_id})
     except Exception as ex:
         db.session.rollback()
