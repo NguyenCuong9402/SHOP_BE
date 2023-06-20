@@ -391,18 +391,18 @@ def get_repo():
             )
             db.session.add(repo_all)
             db.session.flush()
-        repos = Repository.query.filter(Repository.cloud_id == cloud_id, Repository.project_id == project_id,
-                                        Repository.type != 1).all()
-        # set data -> repo_0
+        repository_not_all = Repository.query.filter(Repository.cloud_id == cloud_id,
+                                                     Repository.project_id == project_id, Repository.type != 1).all()
+        # set data -> repository
         repo_0 = Repository.query.filter(Repository.cloud_id == cloud_id, Repository.project_id == project_id,
                                          Repository.type == 1, Repository.id == str(project_id)).first()
-        repository_0 = RepositoryProjectSchema().dump(repo_0)
+        repository_all = RepositoryProjectSchema().dump(repo_0)
         count_test_case = TestCase.query.filter(TestCase.project_id == project_id, TestCase.cloud_id == cloud_id).count()
-        repo_id = [repo.id for repo in repos]
+        repo_id = [repo.id for repo in repository_not_all]
         test_repo_count = TestRepository.query.filter(TestRepository.repository_id.in_(repo_id)).count()
-        repository_0['count_test_repository'] = count_test_case - test_repo_count
-        repository_0['count_test_case'] = count_test_case
-        return send_result(data=[repository_0])
+        repository_all['count_test_repository'] = count_test_case - test_repo_count
+        repository_all['count_test_case'] = count_test_case
+        return send_result(data=[repository_all])
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
