@@ -397,9 +397,11 @@ def get_repo():
         repo_0 = Repository.query.filter(Repository.cloud_id == cloud_id, Repository.project_id == project_id,
                                          Repository.type == 1, Repository.id == str(project_id)).first()
         repository_0 = RepositoryProjectSchema().dump(repo_0)
+        count_test_case = TestCase.query.filter(TestCase.project_id == project_id, TestCase.cloud_id == cloud_id).count()
         repo_id = [repo.id for repo in repos]
         test_repo_count = TestRepository.query.filter(TestRepository.repository_id.in_(repo_id)).count()
-        repository_0['count_test'] = test_repo_count
+        repository_0['count_test_repository'] = count_test_case - test_repo_count
+        repository_0['count_test_case'] = count_test_case
         return send_result(data=[repository_0])
     except Exception as ex:
         db.session.rollback()
