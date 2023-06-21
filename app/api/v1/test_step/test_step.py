@@ -280,26 +280,27 @@ def get_link_detail_for_test_case_call(cloud_id: str, project_id: str, test_case
         return send_error(message=str(ex))
 
 
-@api.route('', methods=["PUT"])
+@api.route('/<test_step_id>', methods=["PUT"])
 @authorization_require()
-def change_rank_test_step():
+def change_rank_test_step(test_step_id):
     try:
         token = get_jwt_identity()
         cloud_id = token.get('cloudId')
         project_id = token.get('projectId')
         issue_id = token.get('issueId')
-
         user_id = token.get('userId')
         test_case = TestCase.query.filter(TestCase.project_id == project_id, TestCase.cloud_id,
                                           TestCase.issue_id == issue_id).first()
-        query = TestStep.query.filter(or_(TestStep.project_id == project_id, TestStep.project_key == project_id),
-                                      TestStep.cloud_id == cloud_id, TestStep.test_case_id == test_case.id).all()
+        query = TestStep.query.filter(TestStep.project_id == project_id, TestStep.id == test_step_id,
+                                      TestStep.cloud_id == cloud_id, TestStep.test_case_id == test_case.id).first()
         if query is None:
             return send_error(message='TEST STEP DOES NOT EXIST', status=404, show=False, is_dynamic=True)
 
         json_req = request.get_json()
         index_drag = json_req['index_drag']
         index_drop = json_req['index_drop']
+        if query.index != index_drag:
+            return send_error(message='Please F5', status=404, show=False, is_dynamic=True)
         index_max = db.session.query(TestStep).filter(
             or_(TestStep.project_id == project_id, TestStep.project_key == project_id),
             TestStep.cloud_id == cloud_id, TestStep.test_case_id == test_case.id).count()
