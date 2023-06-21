@@ -57,6 +57,7 @@ def get_test_case_from_test_execution():
         query = db.session.query(TestCase.id, TestCase.issue_id, TestCase.issue_key,
                                  TestCase.project_id, TestCase.cloud_id, TestCase.test_type_id,
                                  TestCase.created_date.label('test_case_created_date'),
+                                 TestType.name.label('test_type_name'),
                                  TestRun.id.label('test_run_id'), TestRun.test_status_id, TestRun.is_updated,
                                  TestRun.start_date, TestRun.end_date, TestRun.issue_id.label('test_run_issue_id'),
                                  TestRun.issue_key.label('test_run_issue_key'), TestRun.created_date,
@@ -64,6 +65,7 @@ def get_test_case_from_test_execution():
             .join(TestCasesTestExecutions, TestCasesTestExecutions.test_case_id == TestCase.id) \
             .join(TestRun, (TestCasesTestExecutions.test_case_id == TestRun.test_case_id)
                   & (TestCasesTestExecutions.test_execution_id == TestRun.test_execution_id)) \
+            .join(TestType, TestCase.test_type_id == TestType.id)\
             .filter(TestCasesTestExecutions.test_execution_id == test_execution.id)
         if len(tests_type) > 0:
             tests_type = db.session.query(TestType.id).filter(TestType.name.in_(tests_type),

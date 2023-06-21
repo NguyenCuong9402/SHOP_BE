@@ -658,3 +658,4 @@ class TestExecutionTestRunSchema(Schema):
     end_date = fields.Integer()
     index = fields.Integer()
     is_archived = fields.Integer()
+    test_type_name = fields.String()
