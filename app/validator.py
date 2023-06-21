@@ -642,6 +642,7 @@ class TestCaseTestRunSchema(Schema):
 
 class TestExecutionTestRunSchema(Schema):
     id = fields.String()
+    test_type_id = fields.String()
     issue_id = fields.String()
     issue_key = fields.String()
     project_id = fields.String()
