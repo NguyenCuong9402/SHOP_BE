@@ -19,7 +19,7 @@ from app.api.v1.test_step_field.test_step_field import DEFAULT_DATA
 api = Blueprint('test_step', __name__)
 
 
-@api.route("/", methods=["POST"])
+@api.route('', methods=["POST"])
 @authorization_require()
 def add_test_step():
     try:
@@ -168,7 +168,7 @@ def add_test_detail_for_test_case_call(cloud_id: str, project_id: str, test_case
 
 @api.route("/<test_step_id>", methods=["DELETE"])
 @authorization_require()
-def remove_test_step(test_step_id, issue_id):
+def remove_test_step(test_step_id):
     try:
         token = get_jwt_identity()
         cloud_id = token.get('cloudId')
