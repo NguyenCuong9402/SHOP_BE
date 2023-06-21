@@ -65,12 +65,6 @@ def get_test_case_from_test_execution():
             .join(TestRun, (TestCasesTestExecutions.test_case_id == TestRun.test_case_id)
                   & (TestCasesTestExecutions.test_execution_id == TestRun.test_execution_id)) \
             .filter(TestCasesTestExecutions.test_execution_id == test_execution.id)
-        if search_other:
-            query = query.filter(TestCasesTestExecutions.is_archived != 0)\
-                .order_by(asc(TestCasesTestExecutions.index)).all()
-        else:
-            query = query.filter(TestCasesTestExecutions.is_archived == 0)\
-                .order_by(asc(TestCasesTestExecutions.is_archived)).all()
         if len(tests_type) > 0:
             tests_type = db.session.query(TestType.id).filter(TestType.name.in_(tests_type),
                                                               TestType.cloud_id == cloud_id,
@@ -85,6 +79,12 @@ def get_test_case_from_test_execution():
                 .filter(TestCasesTestSets.test_set_id.in_(test_set_ids))
         if len(test_status_ids) > 0:
             query = query.filter(TestRun.test_status_id.in_(test_status_ids))
+        if search_other:
+            query = query.filter(TestCasesTestExecutions.is_archived != 0)\
+                .order_by(asc(TestCasesTestExecutions.is_archived)).all()
+        else:
+            query = query.filter(TestCasesTestExecutions.is_archived == 0)\
+                .order_by(asc(TestCasesTestExecutions.index)).all()
         data = TestExecutionTestRunSchema(many=True).dump(query)
         return send_result(data=data)
     except Exception as ex:
