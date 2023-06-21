@@ -194,7 +194,7 @@ def add_test_to_test_execution():
             return send_error(message="No new tests were added to this Test Execution", show=True)
         save_history_test_execution(test_execution.id, user_id, 1, 3, test_case_ids, [])
         db.session.commit()
-        return send_result(message=f'Add {len(test_case_ids)} test case to execution case successfully')
+        return send_result(message=f'Add {len(test_case_ids)} test case to execution case successfully', show=True)
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
