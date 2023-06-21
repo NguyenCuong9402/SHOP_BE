@@ -365,9 +365,17 @@ def change_rank_test_case_in_test_execution():
         json_req = request.get_json()
         index_drag = json_req['index_drag']
         index_drop = json_req['index_drop']
+        test_case_issue_id = json_req.get("test_case_issue_id", '')
+        test_case = TestCase.query.filter(TestCase.project_id == project_id, TestCase.cloud_id == cloud_id,
+                                          TestCase.issue_id == test_case_issue_id).first()
         test_execution = TestExecution.query.filter(TestExecution.cloud_id == cloud_id,
                                                     TestExecution.project_id == project_id,
                                                     TestExecution.issue_id == issue_id).first()
+        position = TestCasesTestExecutions.query.filter(TestCasesTestExecutions.test_execution_id == test_execution.id,
+                                                        TestCasesTestExecutions.test_case_id == test_case.id).first()
+        if position.index != index_drag:
+            return send_error(message="Test has been changed \n Please refresh the page to view the changes",
+                              is_dynamic=True)
         # lấy index_drag
         index_max = db.session.query(TestCasesTestExecutions)\
             .filter(TestCasesTestExecutions.test_execution_id == test_execution.id).count()
