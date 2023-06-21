@@ -102,8 +102,9 @@ def add_test_to_test_execution():
         project_id = token.get('projectId')
         test_execution_issue_key = token.get('issueKey')
         test_execution_issue_id = token.get('issueId')
-        test_cases = body_request.get('test_cases')
-
+        test_cases = body_request.get('test_cases', {})
+        if len(test_cases) == 0:
+            return send_error(message="There are no Test Cases selected")
         """
             Get test execution, create new if not exist
         """
