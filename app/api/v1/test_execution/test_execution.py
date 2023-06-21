@@ -16,7 +16,8 @@ from app.api.v1.test_type.test_type import get_test_type_default
 from app.enums import FILE_PATH
 from app.gateway import authorization_require
 from app.models import TestStep, TestCase, TestType, db, TestField, Setting, TestRun, TestExecution, \
-    TestCasesTestExecutions, TestStatus, TestStepDetail, TestExecutionsTestEnvironments, TestEvidence
+    TestCasesTestExecutions, TestStatus, TestStepDetail, TestExecutionsTestEnvironments, TestEvidence, TestSet, \
+    TestCasesTestSets
 from app.parser import TestStepSchema
 from app.utils import send_result, send_error, data_preprocessing, get_timestamp_now
 from app.validator import TestExecutionSchema, TestStepTestRunSchema, TestExecutionTestRunSchema, TestCaseValidator
@@ -27,69 +28,64 @@ api = Blueprint('test_execution', __name__)
 @api.route("/<issue_id>/test_case", methods=["GET"])
 @authorization_require()
 def get_test_case_from_test_execution(issue_id):
-    token = get_jwt_identity()
-    cloud_id = token.get('cloudId')
-    project_id = token.get('projectId')
-    # issue_key = token.get('issue_key')
-    issue_key = request.args.get('issue_key')
-    # Get search params
-    page = request.args.get('page', 1, type=int)
-    page_size = request.args.get('page_size', 10, type=int)
-    order_by = request.args.get('order_by', "", type=str)
-    order = request.args.get('order', 'asc')
-    search_other = request.args.get('search_other', False, type=bool)
-
-    test_execution = TestExecution.query.filter(TestExecution.cloud_id == cloud_id, TestExecution.issue_id == issue_id,
-                                                TestExecution.project_id == project_id).first()
-    if order_by == "":
-        order_by = "index"
-    if order == "":
-        order = "asc"
-    if test_execution is None:
-        test_execution = TestExecution(
-            id=str(uuid.uuid4()),
-            issue_id=issue_id,
-            issue_key=issue_key,
-            project_id=project_id,
-            cloud_id=cloud_id,
-            created_date=get_timestamp_now()
-        )
-        db.session.add(test_execution)
-        db.session.flush()
-    if order_by == "created_date":
-        column_sorted = getattr(TestRun, order_by)
-    elif order_by in ["index", "is_archived"]:
-        column_sorted = getattr(TestCasesTestExecutions, order_by)
-    else:
-        column_sorted = getattr(TestCase, order_by)
-    # sort
-    query = db.session.query(TestCase.id, TestCase.issue_id, TestCase.issue_key,
-                             TestCase.project_id, TestCase.cloud_id,
-                             TestCase.created_date.label('test_case_created_date'),
-                             TestRun.id.label('test_run_id'), TestRun.test_status_id, TestRun.is_updated,
-                             TestRun.start_date, TestRun.end_date, TestRun.issue_id.label('test_run_issue_id'),
-                             TestRun.issue_key.label('test_run_issue_key'), TestRun.created_date,
-                             TestCasesTestExecutions.index, TestCasesTestExecutions.is_archived) \
-        .join(TestCasesTestExecutions, TestCasesTestExecutions.test_case_id == TestCase.id) \
-        .join(TestRun, (TestCasesTestExecutions.test_case_id == TestRun.test_case_id)
-              & (TestCasesTestExecutions.test_execution_id == TestRun.test_execution_id)) \
-        .filter(TestCasesTestExecutions.test_execution_id == test_execution.id)
-    if search_other:
-        query = query.filter(TestCasesTestExecutions.is_archived != 0)
-    else:
-        query = query.filter(TestCasesTestExecutions.is_archived == 0)
-    query = query.order_by(desc(column_sorted)) if order == "desc" else query.order_by(asc(column_sorted))
-    test_cases = query.paginate(page=page, per_page=page_size, error_out=False).items
-    total = query.count()
-    extra = 1 if (total % page_size) else 0
-    total_pages = int(total / page_size) + extra
     try:
-        results = {
-            "test_cases": TestExecutionTestRunSchema(many=True).dump(test_cases),
-            "total": total,
-            "total_pages": total_pages
-        }
-        return send_result(data=results)
+        token = get_jwt_identity()
+        cloud_id = token.get('cloudId')
+        project_id = token.get('projectId')
+        issue_key = token.get('issueKey')
+        search_other = request.args.get('search_other', False, type=bool)
+        body_request = request.get_json()
+        tests_type = body_request.get("tests_type", [])
+        test_set_issue_ids = body_request.get("test_set_issue_ids", [])
+        test_status_ids = body_request.get("test_status_ids", [])
+        test_execution = TestExecution.query.filter(TestExecution.cloud_id == cloud_id,
+                                                    TestExecution.issue_id == issue_id,
+                                                    TestExecution.project_id == project_id).first()
+        if test_execution is None:
+            test_execution = TestExecution(
+                id=str(uuid.uuid4()),
+                issue_id=issue_id,
+                issue_key=issue_key,
+                project_id=project_id,
+                cloud_id=cloud_id,
+                created_date=get_timestamp_now()
+            )
+            db.session.add(test_execution)
+            db.session.flush()
+        # sort
+        query = db.session.query(TestCase.id, TestCase.issue_id, TestCase.issue_key,
+                                 TestCase.project_id, TestCase.cloud_id,
+                                 TestCase.created_date.label('test_case_created_date'),
+                                 TestRun.id.label('test_run_id'), TestRun.test_status_id, TestRun.is_updated,
+                                 TestRun.start_date, TestRun.end_date, TestRun.issue_id.label('test_run_issue_id'),
+                                 TestRun.issue_key.label('test_run_issue_key'), TestRun.created_date,
+                                 TestCasesTestExecutions.index, TestCasesTestExecutions.is_archived) \
+            .join(TestCasesTestExecutions, TestCasesTestExecutions.test_case_id == TestCase.id) \
+            .join(TestRun, (TestCasesTestExecutions.test_case_id == TestRun.test_case_id)
+                  & (TestCasesTestExecutions.test_execution_id == TestRun.test_execution_id)) \
+            .filter(TestCasesTestExecutions.test_execution_id == test_execution.id)
+        if search_other:
+            query = query.filter(TestCasesTestExecutions.is_archived != 0)\
+                .order_by(asc(TestCasesTestExecutions.index)).all()
+        else:
+            query = query.filter(TestCasesTestExecutions.is_archived == 0)\
+                .order_by(asc(TestCasesTestExecutions.is_archived)).all()
+        if len(tests_type) > 0:
+            tests_type = db.session.query(TestType.id).filter(TestType.name.in_(tests_type),
+                                                              TestType.cloud_id == cloud_id,
+                                                              TestType.project_id == project_id).subquery()
+
+            query = query.filter(TestCase.test_type_id.in_(tests_type))
+        if len(test_set_issue_ids) > 0:
+            test_sets = TestSet.query.filter(TestSet.project_id == project_id, TestSet.cloud_id == cloud_id,
+                                             TestSet.issue_id.in_(test_set_issue_ids)).all()
+            test_set_ids = [test_set.id for test_set in test_sets]
+            query = query.join(TestCasesTestSets, TestCase.id == TestCasesTestSets.test_case_id) \
+                .filter(TestCasesTestSets.test_set_id.in_(test_set_ids))
+        if len(test_status_ids) > 0:
+            query = query.filter(TestRun.test_status_id.in_(test_status_ids))
+        data = TestExecutionTestRunSchema(many=True).dump(query)
+        return send_result(data=data)
     except Exception as ex:
         return send_error(message=str(ex), data={})
 
@@ -103,9 +99,8 @@ def add_test_to_test_execution(test_execution_issue_id):
         user_id = token.get('userId')
         cloud_id = token.get('cloudId')
         project_id = token.get('projectId')
-
+        test_execution_issue_key = token.get('issueKey')
         test_cases = body_request.get('test_cases')
-        test_execution_issue_key = body_request.get('test_execution_issue_key')
 
         """
             Get test execution, create new if not exist
