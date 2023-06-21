@@ -482,6 +482,7 @@ def clone_test_step(issue_id, test_step_id):
         status = TestStatus.query.filter(TestStatus.cloud_id == cloud_id, TestStatus.project_id == project_id,
                                          TestStatus.name == 'TODO').first()
         # Create new test step
+        list_test_step_detail = []
         if test_step.test_case_id_reference is None:
             test_step_clone = TestStep(
                 id=str(uuid.uuid4()),
@@ -500,7 +501,6 @@ def clone_test_step(issue_id, test_step_id):
             test_step_fields = db.session.query(TestStepField).filter(
                 TestStepField.project_id == project_id, TestStepField.is_native == 0,
                 TestStepField.cloud_id == cloud_id).order_by(TestStepField.index.asc())
-            list_test_step_detail = []
             for test_run in test_runs:
                 test_step_detail = TestStepDetail(
                     id=str(uuid.uuid4()),
@@ -547,6 +547,18 @@ def clone_test_step(issue_id, test_step_id):
                                                              test_case_id=test_step.test_case_id_reference,
                                                              link_details=[],
                                                              link=test_step.id + "/")
+            for test_run in test_runs:
+                for link_and_step_id in links_and_step_ids:
+                    test_step_detail = TestStepDetail(
+                        id=str(uuid.uuid4()),
+                        test_step_id=link_and_step_id["step_id"],
+                        status_id=status.id,
+                        test_run_id=test_run.id,
+                        created_date=get_timestamp_now(),
+                        link=link_and_step_id["link"]
+                    )
+                    list_test_step_detail.append(test_step_detail)
+            db.session.bulk_save_objects(list_test_step_detail)
             for link_and_step_id in links_and_step_ids:
                 add_test_detail_for_test_case_call(cloud_id=cloud_id, project_id=project_id,
                                                    test_case_id_reference=test_case.id, status_id=status.id,
