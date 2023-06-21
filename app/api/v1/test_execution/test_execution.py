@@ -25,7 +25,7 @@ from app.validator import TestExecutionSchema, TestStepTestRunSchema, TestExecut
 api = Blueprint('test_execution', __name__)
 
 
-@api.route("/<issue_id>/test-case", methods=["POST"])
+@api.route("/get-test-case", methods=["POST"])
 @authorization_require()
 def get_test_case_from_test_execution(issue_id):
     try:
@@ -33,6 +33,7 @@ def get_test_case_from_test_execution(issue_id):
         cloud_id = token.get('cloudId')
         project_id = token.get('projectId')
         issue_key = token.get('issueKey')
+        issue_id = token.get('issueId')
         search_other = request.args.get('search_other', False, type=bool)
         body_request = request.get_json()
         tests_type = body_request.get("tests_type", [])
@@ -90,9 +91,9 @@ def get_test_case_from_test_execution(issue_id):
         return send_error(message=str(ex), data={})
 
 
-@api.route("/<test_execution_issue_id>", methods=["POST"])
+@api.route('/add', methods=["POST"])
 @authorization_require()
-def add_test_to_test_execution(test_execution_issue_id):
+def add_test_to_test_execution():
     try:
         body_request = request.get_json()
         token = get_jwt_identity()
@@ -100,6 +101,7 @@ def add_test_to_test_execution(test_execution_issue_id):
         cloud_id = token.get('cloudId')
         project_id = token.get('projectId')
         test_execution_issue_key = token.get('issueKey')
+        test_execution_issue_id = token.get('issueId')
         test_cases = body_request.get('test_cases')
 
         """
@@ -224,15 +226,16 @@ def add_test_step_id_by_test_case_id(cloud_id: str, project_id: str, test_case_i
     db.session.bulk_save_objects(list_test_step_detail)
 
 
-@api.route("/<test_execution_issue_id>", methods=["DELETE"])
+@api.route('/remove', methods=["DELETE"])
 @authorization_require()
-def remove_test_to_test_execution(test_execution_issue_id):
+def remove_test_to_test_execution():
     try:
         token = get_jwt_identity()
         user_id = token.get('userId')
         body_request = request.get_json()
         cloud_id = token.get('cloudId')
         project_id = token.get('projectId')
+        test_execution_issue_id = token.get('issueId')
         archived = request.args.get('archived', False, type=bool)
         test_case_issue_ids = body_request.get('test_case_issue_ids')
         test_cases = TestCase.query.filter(TestCase.cloud_id == cloud_id, TestCase.project_id == project_id,
@@ -325,14 +328,15 @@ def create_test_execution():
         print(ex)
 
 
-@api.route("/<issue_id>/test-case", methods=["PUT"])
+@api.route("/test-case", methods=["PUT"])
 @authorization_require()
-def change_rank_test_case_in_test_execution(issue_id):
+def change_rank_test_case_in_test_execution():
     try:
         token = get_jwt_identity()
         user_id = token.get("userId")
         cloud_id = token.get("cloudId")
         project_id = token.get("projectId")
+        issue_id = token.get('issueId')
         json_req = request.get_json()
         index_drag = json_req['index_drag']
         index_drop = json_req['index_drop']
@@ -369,15 +373,16 @@ def change_rank_test_case_in_test_execution(issue_id):
         return send_error(message=str(ex))
 
 
-@api.route("/<issue_id>/archive", methods=["PUT"])
+@api.route("/archive", methods=["PUT"])
 @authorization_require()
-def archive_test_case_in_test_execution(issue_id):
+def archive_test_case_in_test_execution():
     try:
         token = get_jwt_identity()
         user_id = token.get("userId")
         cloud_id = token.get("cloudId")
         project_id = token.get("projectId")
         issue_key = token.get("issueKey")
+        issue_id = token.get("issueId")
         try:
             body = request.get_json()
             params = TestCaseValidator().load(body) if body else dict()
@@ -431,15 +436,16 @@ def archive_test_case_in_test_execution(issue_id):
         return send_error(message=str(ex))
 
 
-@api.route("/<issue_id>/restore-archive", methods=["PUT"])
+@api.route("/restore-archive", methods=["PUT"])
 @authorization_require()
-def restore_archive_test_case_in_test_execution(issue_id):
+def restore_archive_test_case_in_test_execution():
     try:
         token = get_jwt_identity()
         user_id = token.get("userId")
         cloud_id = token.get("cloudId")
         project_id = token.get("projectId")
         issue_key = token.get("issueKey")
+        issue_id = token.get("issueId")
         try:
             body = request.get_json()
             params = TestCaseValidator().load(body) if body else dict()
@@ -491,15 +497,16 @@ def restore_archive_test_case_in_test_execution(issue_id):
         return send_error(message=str(ex))
 
 
-@api.route("/<issue_id>/executed-on", methods=["PUT"])
+@api.route("/executed-on", methods=["PUT"])
 @authorization_require()
-def time_modified_date(issue_id):
+def time_modified_date():
     try:
         token = get_jwt_identity()
         user_id = token.get("userId")
         cloud_id = token.get("cloudId")
         project_id = token.get("projectId")
         issue_key = token.get("issueKey")
+        issue_id = token.get("issueId")
         body_request = request.get_json()
         time = body_request.get('time')
         test_execution = TestExecution.query.filter(TestExecution.cloud_id == cloud_id,
