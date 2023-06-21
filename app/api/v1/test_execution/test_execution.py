@@ -55,7 +55,7 @@ def get_test_case_from_test_execution():
             db.session.flush()
         # sort
         query = db.session.query(TestCase.id, TestCase.issue_id, TestCase.issue_key,
-                                 TestCase.project_id, TestCase.cloud_id,
+                                 TestCase.project_id, TestCase.cloud_id, TestCase.test_type_id,
                                  TestCase.created_date.label('test_case_created_date'),
                                  TestRun.id.label('test_run_id'), TestRun.test_status_id, TestRun.is_updated,
                                  TestRun.start_date, TestRun.end_date, TestRun.issue_id.label('test_run_issue_id'),
