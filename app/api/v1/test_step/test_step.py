@@ -19,15 +19,16 @@ from app.api.v1.test_step_field.test_step_field import DEFAULT_DATA
 api = Blueprint('test_step', __name__)
 
 
-@api.route("/<issue_id>", methods=["POST"])
+@api.route("/", methods=["POST"])
 @authorization_require()
-def add_test_step(issue_id):
+def add_test_step():
     try:
         token = get_jwt_identity()
         cloud_id = token.get('cloudId')
         project_id = token.get('projectId')
         user_id = token.get('userId')
-        issue_key = token.get('issue_key')
+        issue_key = token.get('issueKey')
+        issue_id = token.get('issueId')
         test_case = TestCase.query.filter(TestCase.issue_id == issue_id, TestCase.project_id == project_id,
                                           TestCase.cloud_id == cloud_id).first()
         test_type_id = get_test_type_default(cloud_id, project_id)
@@ -165,13 +166,14 @@ def add_test_detail_for_test_case_call(cloud_id: str, project_id: str, test_case
         return send_error(message=str(ex))
 
 
-@api.route("/<issue_id>/<test_step_id>", methods=["DELETE"])
+@api.route("/<test_step_id>", methods=["DELETE"])
 @authorization_require()
 def remove_test_step(test_step_id, issue_id):
     try:
         token = get_jwt_identity()
         cloud_id = token.get('cloudId')
         project_id = token.get('projectId')
+        issue_id = token.get('issueId')
         user_id = token.get('userId')
         test_case = TestCase.query.filter(TestCase.issue_id == issue_id, TestCase.project_id == project_id,
                                           TestCase.cloud_id == cloud_id).first()
@@ -278,13 +280,15 @@ def get_link_detail_for_test_case_call(cloud_id: str, project_id: str, test_case
         return send_error(message=str(ex))
 
 
-@api.route("/<issue_id>", methods=["PUT"])
+@api.route('', methods=["PUT"])
 @authorization_require()
-def change_rank_test_step(issue_id):
+def change_rank_test_step():
     try:
         token = get_jwt_identity()
         cloud_id = token.get('cloudId')
         project_id = token.get('projectId')
+        issue_id = token.get('issueId')
+
         user_id = token.get('userId')
         test_case = TestCase.query.filter(TestCase.project_id == project_id, TestCase.cloud_id,
                                           TestCase.issue_id == issue_id).first()
@@ -338,13 +342,14 @@ def change_rank_test_step(issue_id):
         return send_error(data='', message=str(ex))
 
 
-@api.route("/<issue_id>/call/<issue_id_reference>", methods=["POST"])
+@api.route("/call/<issue_id_reference>", methods=["POST"])
 @authorization_require()
-def call_test_case(issue_id, issue_id_reference):
+def call_test_case(issue_id_reference):
     try:
         token = get_jwt_identity()
         cloud_id = token.get('cloudId')
         project_id = token.get('projectId')
+        issue_id = token.get('issueId')
         user_id = token.get('userId')
         issue_key = token.get('issue_key')
         test_case = TestCase.query.filter(TestCase.issue_id == issue_id, TestCase.project_id == project_id,
@@ -455,14 +460,15 @@ def get_link_detail_and_step_id(cloud_id: str, project_id: str, test_case_id: st
     return link_details
 
 
-@api.route("/<issue_id>/<test_step_id>", methods=["POST"])
+@api.route("/<test_step_id>", methods=["POST"])
 @authorization_require()
-def clone_test_step(issue_id, test_step_id):
+def clone_test_step(test_step_id):
     try:
         token = get_jwt_identity()
         cloud_id = token.get('cloudId')
         project_id = token.get('projectId')
         user_id = token.get('userId')
+        issue_id = token.get('issueId')
         test_case = TestCase.query.filter(TestCase.issue_id == issue_id, TestCase.project_id == project_id,
                                           TestCase.cloud_id == cloud_id).first()
         test_step = TestStep.query.filter(TestStep.test_case_id == test_case.id, TestStep.id == test_step_id).first()
@@ -577,14 +583,15 @@ def clone_test_step(issue_id, test_step_id):
         return send_error(message=str(ex))
 
 
-@api.route("/<issue_id>/<test_step_id>", methods=["PUT"])
+@api.route("/<test_step_id>", methods=["PUT"])
 @authorization_require()
-def update_test_step(issue_id, test_step_id):
+def update_test_step(test_step_id):
     try:
         token = get_jwt_identity()
         cloud_id = token.get('cloudId')
         project_id = token.get('projectId')
         user_id = token.get('userId')
+        issue_id = token.get('issueId')
         issue_key = token.get('issue_key')
         test_case = TestCase.query.filter(TestCase.issue_id == issue_id, TestCase.project_id == project_id,
                                           TestCase.cloud_id == cloud_id).first()
