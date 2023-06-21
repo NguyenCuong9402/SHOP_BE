@@ -25,7 +25,7 @@ from app.validator import TestExecutionSchema, TestStepTestRunSchema, TestExecut
 api = Blueprint('test_execution', __name__)
 
 
-@api.route("/<issue_id>/test_case", methods=["GET"])
+@api.route("/<issue_id>/test-case", methods=["POST"])
 @authorization_require()
 def get_test_case_from_test_execution(issue_id):
     try:
@@ -325,7 +325,7 @@ def create_test_execution():
         print(ex)
 
 
-@api.route("/<issue_id>/test_case", methods=["PUT"])
+@api.route("/<issue_id>/test-case", methods=["PUT"])
 @authorization_require()
 def change_rank_test_case_in_test_execution(issue_id):
     try:
@@ -491,7 +491,7 @@ def restore_archive_test_case_in_test_execution(issue_id):
         return send_error(message=str(ex))
 
 
-@api.route("/<issue_id>/executed_on", methods=["PUT"])
+@api.route("/<issue_id>/executed-on", methods=["PUT"])
 @authorization_require()
 def time_modified_date(issue_id):
     try:
