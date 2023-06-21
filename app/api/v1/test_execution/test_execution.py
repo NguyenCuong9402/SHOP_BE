@@ -27,7 +27,7 @@ api = Blueprint('test_execution', __name__)
 
 @api.route("/get-test-case", methods=["POST"])
 @authorization_require()
-def get_test_case_from_test_execution(issue_id):
+def get_test_case_from_test_execution():
     try:
         token = get_jwt_identity()
         cloud_id = token.get('cloudId')
