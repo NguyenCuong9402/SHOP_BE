@@ -225,7 +225,7 @@ def remove_test_step(test_step_id, issue_id):
             test_case_reference = TestCase.query.filter(TestCase.id == test_step.test_case_id_reference,
                                                         TestCase.cloud_id == cloud_id,
                                                         TestCase.project_id == project_id).first()
-            detail_of_action = {"Call test": test_case_reference.issue_key}
+            detail_of_action = {"Remove step call": test_case_reference.issue_key}
             # delete test_step_detail => tìm link => xóa theo link
             # link test case call
             links = get_link_detail_by_test_case_id_reference(cloud_id=cloud_id, project_id=project_id,
@@ -367,9 +367,9 @@ def call_test_case(issue_id, issue_id_reference):
             db.session.flush()
         if test_case_reference is None:
             return send_error(message="Call test case reference fail", code=200, show=False, is_dynamic=True)
-        # tìm test case id là reference
+        # find test case id is reference
         check_up = get_test_case_id(cloud_id, project_id, test_case.id, {test_case.id})
-        # test case refence là  test case id
+        # find test case reference is  test case id
         check_down = get_test_case_reference(cloud_id, project_id, test_case_reference.id, {test_case_reference.id})
         if len(check_up & check_down) > 0:
             return send_error(message="not allowed to call because test was called called test", code=200,
@@ -391,11 +391,11 @@ def call_test_case(issue_id, issue_id_reference):
                                          TestRun.test_case_id == test_case.id).all()
         status = TestStatus.query.filter(TestStatus.cloud_id == cloud_id, TestStatus.project_id == project_id,
                                          TestStatus.name == 'TODO').first()
-        # Add test details những test run tạo bởi test case id call
+        # Add test details for test run created by test case id call
         for test_run in test_runs:
             add_test_step_id_by_test_case_id(cloud_id, project_id, test_case_reference.id,
                                              test_run.id, status.id,  test_step.id + "/")
-        # Add test details những test run tạo bởi test case có  test case id call là reference
+        # Add test details the test runs created by test cases with test case id call as reference
         links_and_step_ids = get_link_detail_and_step_id(cloud_id=cloud_id, project_id=project_id,
                                                          test_case_id=test_case_reference.id, link_details=[],
                                                          link=test_step.id + "/")
@@ -470,66 +470,93 @@ def clone_test_step(issue_id, test_step_id):
             return send_error(
                 message="Test Step is not exist", code=200,
                 show=False, is_dynamic=True)
-        # Sắp xếp lại index khi clone
+        # Reorder index when clone
         TestStep.query.filter(TestStep.test_case_id == test_case.id) \
             .filter(TestStep.index > test_step.index) \
             .update(dict(index=TestStep.index + 1))
         db.session.flush()
-        # Create new test step
-        clone_test_step_id = str(uuid.uuid4())
-        test_step_clone = TestStep(
-            id=clone_test_step_id,
-            cloud_id=cloud_id,
-            project_id=project_id,
-            action=test_step.action,
-            data=test_step.data,
-            result=test_step.result,
-            custom_fields=test_step.custom_fields,
-            index=test_step.index + 1,
-            test_case_id=test_case.id,
-            created_date=get_timestamp_now()
-        )
-        db.session.add(test_step_clone)
-        db.session.flush()
-        test_step_fields = db.session.query(TestStepField).filter(
-            TestStepField.project_id == project_id, TestStepField.is_native == 0,
-            TestStepField.cloud_id == cloud_id).order_by(TestStepField.index.asc())
-        # check test run
+
         test_runs = TestRun.query.filter(TestRun.project_id == project_id, TestRun.cloud_id == cloud_id,
                                          TestRun.test_case_id == test_case.id).all()
+
         status = TestStatus.query.filter(TestStatus.cloud_id == cloud_id, TestStatus.project_id == project_id,
                                          TestStatus.name == 'TODO').first()
-        list_test_step_detail = []
-        for test_run in test_runs:
-            test_step_detail = TestStepDetail(
+        # Create new test step
+        if test_step.test_case_id_reference is None:
+            test_step_clone = TestStep(
                 id=str(uuid.uuid4()),
-                test_step_id=test_step_id,
-                status_id=status.id,
-                test_run_id=test_run.id,
-                created_date=get_timestamp_now(),
-                link=test_step.id + "/"
+                cloud_id=cloud_id,
+                project_id=project_id,
+                action=test_step.action,
+                data=test_step.data,
+                result=test_step.result,
+                custom_fields=test_step.custom_fields,
+                index=test_step.index + 1,
+                test_case_id=test_case.id,
+                created_date=get_timestamp_now()
             )
-            list_test_step_detail.append(test_step_detail)
-        db.session.bulk_save_objects(list_test_step_detail)
-        db.session.flush()
-        # Tạo test details cho test case khác call test case này
-        add_test_detail_for_test_case_call(cloud_id, project_id, test_case.id, status.id, test_step.id + "/",
-                                           test_step.id)
-
+            db.session.add(test_step_clone)
+            db.session.flush()
+            test_step_fields = db.session.query(TestStepField).filter(
+                TestStepField.project_id == project_id, TestStepField.is_native == 0,
+                TestStepField.cloud_id == cloud_id).order_by(TestStepField.index.asc())
+            list_test_step_detail = []
+            for test_run in test_runs:
+                test_step_detail = TestStepDetail(
+                    id=str(uuid.uuid4()),
+                    test_step_id=test_step_id,
+                    status_id=status.id,
+                    test_run_id=test_run.id,
+                    created_date=get_timestamp_now(),
+                    link=test_step.id + "/"
+                )
+                list_test_step_detail.append(test_step_detail)
+            db.session.bulk_save_objects(list_test_step_detail)
+            db.session.flush()
+            # Create test details for another test case call this test case
+            add_test_detail_for_test_case_call(cloud_id, project_id, test_case.id, status.id, test_step.id + "/",
+                                               test_step.id)
+            # Create detail_of_action and Save history
+            field_name = [item.name for item in test_step_fields]
+            detail_of_action = {'Action': test_step.action, 'Data': test_step.data, 'Expected Result': test_step.result}
+            if len(field_name) >= len(test_step.custom_fields):
+                for i, name in enumerate(test_step.custom_fields):
+                    detail_of_action[field_name[i]] = name
+            else:
+                for i, name in enumerate(field_name):
+                    detail_of_action[name] = test_step.custom_fields[i]
+            save_history_test_step(test_case.id, user_id, 4, 2, detail_of_action, [test_step.index + 1])
+        else:
+            test_reference = TestCase.query.filter(TestCase.cloud_id == cloud_id, TestCase.project_id == project_id,
+                                                   TestCase.id == test_step.test_case_id_reference).first()
+            test_step_clone = TestStep(
+                id=str(uuid.uuid4()),
+                cloud_id=cloud_id,
+                project_id=project_id,
+                index=test_step.index + 1,
+                test_case_id=test_case.id,
+                created_date=get_timestamp_now(),
+                test_case_id_reference=test_step.test_case_id_reference
+            )
+            db.session.add(test_step_clone)
+            db.session.flush()
+            detail_of_action = {"call test": test_reference.issue_key}
+            save_history_test_step(test_case.id, user_id, 8, 2, detail_of_action, [test_step.index + 1])
+            # Add test details the test runs created by test cases with test case id call as reference
+            links_and_step_ids = get_link_detail_and_step_id(cloud_id=cloud_id, project_id=project_id,
+                                                             test_case_id=test_step.test_case_id_reference,
+                                                             link_details=[],
+                                                             link=test_step.id + "/")
+            for link_and_step_id in links_and_step_ids:
+                add_test_detail_for_test_case_call(cloud_id=cloud_id, project_id=project_id,
+                                                   test_case_id_reference=test_case.id, status_id=status.id,
+                                                   link=link_and_step_id["link"],
+                                                   test_step_id=link_and_step_id["step_id"])
+        # Test Run has just been updated
         test_case_ids = get_test_case_id(cloud_id, project_id, test_case.id, {test_case.id})
         db.session.query(TestRun).filter(TestRun.project_id == project_id, TestRun.cloud_id == cloud_id,
                                          TestRun.test_case_id.in_(test_case_ids)).update({"is_updated": 1})
         db.session.flush()
-        # Create detail_of_action and Save history
-        field_name = [item.name for item in test_step_fields]
-        detail_of_action = {'Action': test_step.action, 'Data': test_step.data, 'Expected Result': test_step.result}
-        if len(field_name) >= len(test_step.custom_fields):
-            for i, name in enumerate(test_step.custom_fields):
-                detail_of_action[field_name[i]] = name
-        else:
-            for i, name in enumerate(field_name):
-                detail_of_action[name] = test_step.custom_fields[i]
-        save_history_test_step(test_case.id, user_id, 4, 2, detail_of_action, [test_step.index + 1])
         db.session.commit()
         return send_result(data='', message="Step clone successfully",
                            show=True)

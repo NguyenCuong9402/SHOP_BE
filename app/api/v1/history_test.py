@@ -204,6 +204,17 @@ def save_history_test_step(id_reference: str, user_id: str, action: int,
             detail_of_action={"Test Step": index_step[0], "data": detail_of_action},
             created_date=get_timestamp_now())
         db.session.add(new_history)
+    elif action == 8:
+        new_history = HistoryTest(
+            id_reference=id_reference,
+            user_id=user_id,
+            id=str(uuid.uuid4()),
+            history_category=history_category,
+            activities='clone call',
+            action_name='updated Test Steps',
+            detail_of_action={"Test Step": index_step[0], "data": detail_of_action},
+            created_date=get_timestamp_now())
+        db.session.add(new_history)
     db.session.flush()
 
 
