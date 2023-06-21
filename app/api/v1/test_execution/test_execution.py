@@ -372,7 +372,7 @@ def change_rank_test_case_in_test_execution():
                                                     TestExecution.project_id == project_id,
                                                     TestExecution.issue_id == issue_id).first()
         position = TestCasesTestExecutions.query.filter(TestCasesTestExecutions.test_execution_id == test_execution.id,
-                                                     TestCasesTestExecutions.test_case_id == test_case.id).first()
+                                                        TestCasesTestExecutions.test_case_id == test_case.id).first()
         if position.index != index_drag:
             return send_error(message="Test has been changed \n Please refresh the page to view the changes",
                               is_dynamic=True)
