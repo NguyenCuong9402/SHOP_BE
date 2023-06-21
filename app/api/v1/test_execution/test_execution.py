@@ -237,14 +237,38 @@ def remove_test_to_test_execution():
         cloud_id = token.get('cloudId')
         project_id = token.get('projectId')
         test_execution_issue_id = token.get('issueId')
+        test_execution_issue_key = token.get('issueKey')
         archived = request.args.get('archived', False, type=bool)
+        is_delete_all = body_request.get("is_delete_all", False)
         test_case_issue_ids = body_request.get('test_case_issue_ids')
-        test_cases = TestCase.query.filter(TestCase.cloud_id == cloud_id, TestCase.project_id == project_id,
-                                           TestCase.issue_id.in_(test_case_issue_ids)).all()
-        test_case_ids = [test_case.id for test_case in test_cases]
         test_execution = TestExecution.query.filter(TestExecution.project_id == project_id,
                                                     TestExecution.cloud_id == cloud_id,
                                                     TestExecution.issue_id == test_execution_issue_id).first()
+        if test_execution is None:
+            test_execution = TestExecution(
+                id=str(uuid.uuid4()),
+                issue_id=test_execution_issue_id,
+                issue_key=test_execution_issue_key,
+                project_id=project_id,
+                cloud_id=cloud_id,
+                created_date=get_timestamp_now()
+            )
+            db.session.add(test_execution)
+            db.session.flush()
+        test_cases = TestCase.query.filter(TestCase.cloud_id == cloud_id, TestCase.project_id == project_id,
+                                           TestCase.issue_id.in_(test_case_issue_ids)).all()
+        test_ids = [test_case.id for test_case in test_cases]
+        if is_delete_all:
+            query = TestCasesTestSets.query.filter(TestCasesTestExecutions.test_execution_id == test_execution.id,
+                                                   TestCasesTestExecutions.test_case_id.notin_(test_ids)).all()
+        else:
+            query = TestCasesTestSets.query.filter(TestCasesTestExecutions.test_execution_id == test_execution.id,
+                                                   TestCasesTestExecutions.test_case_id.in_(test_ids)).all()
+        if archived:
+            query = query.filter(TestCasesTestExecutions.is_archived != 0)
+        else:
+            query = query.filter(TestCasesTestExecutions.is_archived == 0)
+        test_case_ids = [test_case.id for test_case in query]
 
         test_runs = TestRun.query.filter(TestRun.test_execution_id == test_execution.id)\
             .filter(TestRun.test_case_id.in_(test_case_ids)).all()
