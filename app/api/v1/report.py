@@ -50,19 +50,23 @@ def get_traceability():
                 test_status = TestStatus.query.filter(TestStatus.project_id == project_id,
                                                       TestStatus.cloud_id == cloud_id) \
                     .order_by(asc(TestStatus.created_date)).all()
-                dict_testing = {}
+                dict_testing = []
                 sum_status = 0
                 test_run = TestRun.query.filter(TestRun.cloud_id == cloud_id, TestRun.project_id == project_id,
                                                 TestRun.test_execution_id == test_execution_id)
                 for i, status in enumerate(test_status):
                     count_status = test_run.filter(TestRun.test_status_id == status.id).count()
                     if (i + 1) < len(test_status):
-                        dict_testing[status.name] = {"percent": int(count_status * 100 / len(test_runs.all())),
-                                                     "count": count_status}
+                        dict_testing.append({
+                            "status_name": status.name,
+                            "percent": int(count_status * 100 / len(test_runs.all())),
+                            "count": count_status})
                         sum_status += int(count_status * 100 / len(test_runs.all()))
                     else:
-                        dict_testing[status.name] = {"percent": 100 - sum_status,
-                                                     "count": count_status}
+                        dict_testing.append({
+                            "status_name": status.name,
+                            "percent":  100 - sum_status,
+                            "count": count_status})
                 infor_test_execution = {
                     'issue_key': test_execution.issue_key,
                     'executed_on': test_execution.modified_date,
@@ -169,7 +173,7 @@ def report_execution_environment():
         return send_error(message=str(ex))
 
 
-@api.route("/export/traceability-report-detail", methods=['POST'])
+@api.route("/traceability-report-detail/export", methods=['POST'])
 @authorization_require()
 def export_traceability():
     try:
