@@ -4,10 +4,13 @@ from flask_jwt_extended import get_jwt_identity
 from sqlalchemy import asc
 
 from app.gateway import authorization_require
-from app.models import HistoryTest, TestCase, db, TestSet, TestExecution, TestRun, TestExecutionsTestEnvironments, \
+from app.models import db, TestExecution, TestRun, TestExecutionsTestEnvironments, \
     TestEnvironment, Defects, TestStatus
 from app.utils import send_result, send_error, get_timestamp_now
-from app.validator import TestSetSchema
+import xlsxwriter
+import matplotlib.pyplot as plt
+import pandas as pd
+import openpyxl
 
 api = Blueprint('report', __name__)
 
@@ -68,7 +71,6 @@ def get_traceability():
                 }
                 infor_test_executions.append(infor_test_execution)
             report = {
-                "story": story["story"],
                 "test_execution": infor_test_executions,
                 "bug": {
                     "issue_id": issue_id_bug,
@@ -163,5 +165,28 @@ def report_execution_environment():
             }
             data.append(add_data)
         return send_result(data=data)
+    except Exception as ex:
+        return send_error(message=str(ex))
+
+
+@api.route("/export/traceability-report-detail", methods=['POST'])
+@authorization_require()
+def export_traceability():
+    try:
+        token = get_jwt_identity()
+        cloud_id = token.get('cloudId')
+        project_id = token.get('projectId')
+        project_name = token.get('projectName')
+        body_request = request.get_json()
+        day = body_request.get("day")
+        # format = workbook.add_format({'align': 'center', 'valign': 'vcenter'})
+        # Merge các ô từ dòng 0, cột 0 đến dòng 4, cột 1 lại thành một ô duy nhất và gán giá trị "Dữ liệu" cho ô đó
+        # worksheet.merge_range(0, 0, 4, 1, 'Dữ liệu', format)
+        workbook = xlsxwriter.Workbook(f'BTest_Traceability Report Detail_{day}.xlsx')
+        worksheet = workbook.add_worksheet()
+        col_max = 5
+        format_cell = workbook.add_format({'align': 'center', 'valign': 'vcenter'})
+        worksheet.merge_range(0, 0, 0, col_max, f'TRACEABILITY REPORT DETAIL - {project_name}', format)
+        workbook.close()
     except Exception as ex:
         return send_error(message=str(ex))
