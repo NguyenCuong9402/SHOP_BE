@@ -68,6 +68,7 @@ def get_traceability():
                 }
                 infor_test_executions.append(infor_test_execution)
             report = {
+                "story": story["story"],
                 "test_execution": infor_test_executions,
                 "bug": {
                     "issue_id": issue_id_bug,
