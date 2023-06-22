@@ -187,9 +187,6 @@ def export_traceability():
         stories = body_request.get("stories", [])
         if len(stories) == 0:
             return send_error(message="No data export")
-        # format = workbook.add_format({'align': 'center', 'valign': 'vcenter'})
-        # Merge các ô từ dòng 0, cột 0 đến dòng 4, cột 1 lại thành một ô duy nhất và gán giá trị "Dữ liệu" cho ô đó
-        # worksheet.merge_range(0, 0, 4, 1, 'Dữ liệu', format)
         workbook = xlsxwriter.Workbook(f'BTest_Traceability Report Detail_{day}.xlsx')
         worksheet = workbook.add_worksheet()
         list_testing = stories[0]["test_execution"][0]["testing"]
