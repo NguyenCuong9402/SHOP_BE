@@ -1,8 +1,9 @@
+import os
 import uuid
-from flask import Blueprint, request
+from flask import Blueprint, request, make_response, send_file, Response
 from flask_jwt_extended import get_jwt_identity
 from sqlalchemy import asc
-
+from io import BytesIO
 from app.gateway import authorization_require
 from app.models import db, TestExecution, TestRun, TestExecutionsTestEnvironments, \
     TestEnvironment, Defects, TestStatus
@@ -11,6 +12,8 @@ import xlsxwriter
 import matplotlib.pyplot as plt
 import pandas as pd
 import openpyxl
+import io
+
 
 api = Blueprint('report', __name__)
 
@@ -182,12 +185,15 @@ def export_traceability():
         cloud_id = token.get('cloudId')
         project_id = token.get('projectId')
         project_name = token.get('projectName')
+        project_name = "AKA"
         body_request = request.get_json()
         day = body_request.get("day")
+        day = "942002"
         stories = body_request.get("stories", [])
         if len(stories) == 0:
             return send_error(message="No data export")
-        workbook = xlsxwriter.Workbook(f'BTest_Traceability Report Detail_{day}.xlsx')
+        filename = f'BTest_Traceability Report Detail_{day}.xlsx'
+        workbook = xlsxwriter.Workbook(filename)
         worksheet = workbook.add_worksheet()
         list_testing = stories[0]["test_execution"][0]["testing"]
         list_bug = stories[0]["bug"]
@@ -196,7 +202,7 @@ def export_traceability():
         # create column of bug
         col_bug = len(list_bug)*2
         """
-            create table with number of columns = 2 row(story, test_set) + col_execution + col_bug 
+            create table with number of columns = 2 row(story, test_set) + col_execution + col_bug
         """
         col_file = 2 + col_execution + col_bug
 
@@ -215,10 +221,10 @@ def export_traceability():
         worksheet.merge_range(2, 2, 3, 2, "Issue Key", format_cell)
         col = 3
         for i, testing in enumerate(list_testing):
-            worksheet.merge_range(2, col, 2, col+1, testing[i]["status_name"], format_cell)
+            worksheet.merge_range(2, col, 2, col+1, testing["status_name"], format_cell)
             col = col + 2
         for i, bug in enumerate(list_bug):
-            worksheet.merge_range(2, col, 2, col + 1, bug[i]["status_name"], format_cell)
+            worksheet.merge_range(2, col, 2, col + 1, bug["status_name"], format_cell)
             col = col + 2
         # write column count, percent for Execution and Bug
         for i in range(3, col_file, 2):
@@ -233,10 +239,10 @@ def export_traceability():
             # write data to exel : column test_execution
             for i, execution in enumerate(story["test_execution"]):
                 worksheet.write(row+i, 2, execution["issue_key"])
-                for status in execution["testing"]:
-                    worksheet.write(row + i, set_column, status["count"])
-                    worksheet.write(row + i, set_column + 1, status["percent"])
-                    set_column = set_column + 2
+                for index, status in enumerate(execution["testing"]):
+                    worksheet.write(row + i, set_column + index*2, status["count"])
+                    worksheet.write(row + i, set_column + index*2 + 1, status["percent"])
+            set_column = set_column + col_execution - 1
             # write data to exel : column bug
             for status_bug in story["bug"]:
                 worksheet.merge_range(row, set_column, row + len(story["test_execution"]) - 1, set_column,
@@ -253,5 +259,10 @@ def export_traceability():
                 row_up = len(story["test_execution"])
             worksheet.merge_range(row - row_up, 0, row - 1, 0, story["story_name"], format_cell)
         workbook.close()
+        if os.path.exists(filename):
+            filepath = os.path.abspath(filename)
+            return send_result(data=filepath, message=f"Tạo file {filename} thành công.")
+        else:
+            return send_result(message=f"Tạo file {filename} không thành công.")
     except Exception as ex:
         return send_error(message=str(ex))
