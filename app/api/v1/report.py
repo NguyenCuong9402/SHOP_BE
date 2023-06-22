@@ -227,27 +227,31 @@ def export_traceability():
         row = 4
         for story in stories:
             set_column = 3
-            set_row = row
             # write data to exel : column test_set
             for i, test_set_key in enumerate(story["test_set"]):
-                worksheet.write(set_row+i+1, 1, test_set_key)
+                worksheet.write(row+i, 1, test_set_key)
             # write data to exel : column test_execution
             for i, execution in enumerate(story["test_execution"]):
-                worksheet.write(set_row+i+1, 2, execution["issue_key"])
+                worksheet.write(row+i, 2, execution["issue_key"])
                 for status in execution["testing"]:
-                    worksheet.write(set_row, set_column, status["count"])
-                    worksheet.write(set_row, set_column + 1, status["percent"])
+                    worksheet.write(row + i, set_column, status["count"])
+                    worksheet.write(row + i, set_column + 1, status["percent"])
                     set_column = set_column + 2
+            # write data to exel : column bug
             for status_bug in story["bug"]:
-                pass
-
+                worksheet.merge_range(row, set_column, row + len(story["test_execution"]) - 1, set_column,
+                                      status_bug["count"], format_cell)
+                worksheet.merge_range(row, set_column+1, row + len(story["test_execution"]) - 1, set_column+1,
+                                      status_bug["percent"], format_cell)
+                set_column = set_column + 2
+            # up row and write data to exel : column story
             if len(story["test_set"]) > len(story["test_execution"]):
                 row = row + len(story["test_set"])
                 row_up = len(story["test_set"])
             else:
                 row = row + len(story["test_execution"])
                 row_up = len(story["test_execution"])
-            worksheet.merge_range(set_row - row_up + 1, 0, row, 0, story["story_name"], format_cell)
+            worksheet.merge_range(row - row_up, 0, row - 1, 0, story["story_name"], format_cell)
         workbook.close()
     except Exception as ex:
         return send_error(message=str(ex))
