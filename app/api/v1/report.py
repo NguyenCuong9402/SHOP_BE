@@ -106,18 +106,19 @@ def report_execution_coverage():
         data = []
         for test_execution in test_executions:
             sum_status = 0
-            dict_testing = {}
+            dict_testing = []
             test_runs = TestRun.query.filter(TestRun.test_execution_id == test_execution,
                                              TestRun.project_id == project_id, TestRun.cloud_id == cloud_id)
             for i, status in enumerate(test_status):
                 count_status = test_runs.filter(TestRun.test_status_id == status.id).count()
                 if (i + 1) < len(test_status):
-                    dict_testing[status.name] = {"percent": int(count_status * 100 / len(test_runs.all())),
-                                                 "count": count_status}
+                    dict_testing.append({"percent": int(count_status * 100 / len(test_runs.all())),
+                                         "count": count_status})
                     sum_status += int(count_status * 100 / len(test_runs.all()))
                 else:
-                    dict_testing[status.name] = {"percent": 100-sum_status,
-                                                 "count": count_status}
+
+                    dict_testing.append({"percent": 100-sum_status,
+                                         "count": count_status})
             add_data = {
                 "issue_key": test_execution.issue_key,
                 "testing": dict_testing
@@ -149,7 +150,7 @@ def report_execution_environment():
             test_executions = TestExecutionsTestEnvironments.query.filter(TestExecutionsTestEnvironments.
                                                                           test_environment_id == environment.id).all()
             test_execution_ids = [test_execution.id for test_execution in test_executions]
-            dict_testing = {}
+            dict_testing = []
             sum_status = 0
             test_runs = TestRun.query.filter(TestRun.project_id == project_id, TestRun.cloud_id == cloud_id,
                                              TestRun.test_execution_id.in_(test_execution_ids))
@@ -157,12 +158,12 @@ def report_execution_environment():
                 count_status = test_runs.query.filter(TestRun.test_status_id == status.id).all()
 
                 if (i + 1) < len(test_status):
-                    dict_testing[status.name] = {"percent": int(count_status * 100 / len(test_runs.all())),
-                                                 "count": count_status}
+                    dict_testing.append({"percent": int(count_status * 100 / len(test_runs.all())),
+                                         "count": count_status})
                     sum_status += int(count_status * 100 / len(test_runs.all()))
                 else:
-                    dict_testing[status.name] = {"percent": 100 - sum_status,
-                                                 "count": count_status}
+                    dict_testing.append({"percent": 100 - sum_status,
+                                         "count": count_status})
             add_data = {
                 "environment": environment.name,
                 "testing": dict_testing
@@ -183,14 +184,50 @@ def export_traceability():
         project_name = token.get('projectName')
         body_request = request.get_json()
         day = body_request.get("day")
+        stories = body_request.get("stories", [])
+        if len(stories) == 0:
+            return send_error(message="No data export")
         # format = workbook.add_format({'align': 'center', 'valign': 'vcenter'})
         # Merge các ô từ dòng 0, cột 0 đến dòng 4, cột 1 lại thành một ô duy nhất và gán giá trị "Dữ liệu" cho ô đó
         # worksheet.merge_range(0, 0, 4, 1, 'Dữ liệu', format)
         workbook = xlsxwriter.Workbook(f'BTest_Traceability Report Detail_{day}.xlsx')
         worksheet = workbook.add_worksheet()
-        col_max = 5
+        list_testing = stories[0]["test_execution"][0]["testing"]
+        list_bug = stories[0]["bug"]
+        # create column of execution
+        col_execution = len(list_testing)*2 + 1
+        # create column of bug
+        col_bug = len(list_bug)*2
+        """
+            create table with number of columns = 2 row(story, test_set) + col_execution + col_bug 
+        """
+        col_file = 2 + col_execution + col_bug
+
         format_cell = workbook.add_format({'align': 'center', 'valign': 'vcenter'})
-        worksheet.merge_range(0, 0, 0, col_max, f'TRACEABILITY REPORT DETAIL - {project_name}', format)
+        # merge cell : TRACEABILITY REPORT DETAIL - NAME PROJECT
+        worksheet.merge_range(0, 0, 0, col_file - 1, f'TRACEABILITY REPORT DETAIL - {project_name}', format_cell)
+        # merge cell : story
+        worksheet.merge_range(1, 0, 3, 0, "Story", format_cell)
+        # merge cell : test set
+        worksheet.merge_range(1, 1, 3, 1, "Test Set", format_cell)
+        # merge cell : Execution Result
+        worksheet.merge_range(1, 2, 1, col_execution + 1, "Execution Result", format_cell)
+        # merge cell : Bug
+        worksheet.merge_range(1, col_execution + 2, 1, col_file - 1, "Bug", format_cell)
+        # merge cell : issue_test_execution
+        worksheet.merge_range(2, 2, 3, 2, "Issue Key", format_cell)
+        col = 3
+        for i, testing in enumerate(list_testing):
+            worksheet.merge_range(2, col, 2, col+1, testing[i]["status_name"], format_cell)
+            col = col + 2
+        for i, bug in enumerate(list_bug):
+            worksheet.merge_range(2, col, 2, col + 1, bug[i]["status_name"], format_cell)
+            col = col + 2
+        # write column count, percent for Execution and Bug
+        for i in range(3, col_file, 2):
+            worksheet.write(3, i, 'Count')
+            worksheet.write(3, i+1, 'Percent')
+
         workbook.close()
     except Exception as ex:
         return send_error(message=str(ex))
