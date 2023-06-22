@@ -224,7 +224,30 @@ def export_traceability():
         for i in range(3, col_file, 2):
             worksheet.write(3, i, 'Count')
             worksheet.write(3, i+1, 'Percent')
+        row = 4
+        for story in stories:
+            set_column = 3
+            set_row = row
+            # write data to exel : column test_set
+            for i, test_set_key in enumerate(story["test_set"]):
+                worksheet.write(set_row+i+1, 1, test_set_key)
+            # write data to exel : column test_execution
+            for i, execution in enumerate(story["test_execution"]):
+                worksheet.write(set_row+i+1, 2, execution["issue_key"])
+                for status in execution["testing"]:
+                    worksheet.write(set_row, set_column, status["count"])
+                    worksheet.write(set_row, set_column + 1, status["percent"])
+                    set_column = set_column + 2
+            for status_bug in story["bug"]:
+                pass
 
+            if len(story["test_set"]) > len(story["test_execution"]):
+                row = row + len(story["test_set"])
+                row_up = len(story["test_set"])
+            else:
+                row = row + len(story["test_execution"])
+                row_up = len(story["test_execution"])
+            worksheet.merge_range(set_row - row_up + 1, 0, row, 0, story["story_name"], format_cell)
         workbook.close()
     except Exception as ex:
         return send_error(message=str(ex))
