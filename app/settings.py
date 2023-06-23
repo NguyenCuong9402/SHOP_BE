@@ -4,31 +4,11 @@ os_env = os.environ
 
 
 class Config(object):
-    SECRET_KEY = 'HA560##$shls12'
+    SECRET_KEY = 'AHA'
     APP_DIR = os.path.abspath(os.path.dirname(__file__))  # This directory
     PROJECT_ROOT = os.path.abspath(os.path.join(APP_DIR, os.pardir))
-    VERSION = "BTest v1.4.0"
+    VERSION = "v1.4.0"
     FLASK_ADMIN_SWATCH = "cerulean"
-
-
-class PrdConfig(Config):
-    """Production configuration."""
-    # app config
-    ENV = 'prd'
-    DEBUG = False
-    DEBUG_TB_ENABLED = False  # Disable Debug toolbar
-    HOST = '0.0.0.0'
-    PORT = 5000
-    TEMPLATES_AUTO_RELOAD = False
-
-    # JWT Config
-    JWT_SECRET_KEY = 'HA560##$shls12'
-    JWT_BLACKLIST_ENABLED = True
-    JWT_BLACKLIST_TOKEN_CHECKS = ['access', 'refresh']
-
-    # mysql config
-    SQLALCHEMY_DATABASE_URI = 'mysql://root:G-^rqEyhE6p=A#u*RU:V9J6-@192.168.1.17:3306/btest-stg-org'
-    SQLALCHEMY_TRACK_MODIFICATIONS = True
 
 
 class DevConfig(Config):
