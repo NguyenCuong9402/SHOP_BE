@@ -1,13 +1,21 @@
+import os
 import uuid
-from flask import Blueprint, request
+from flask import Blueprint, request, make_response, send_file, Response
 from flask_jwt_extended import get_jwt_identity
 from sqlalchemy import asc
-
+from io import BytesIO
+import datetime
+from app.enums import FILE_PATH
 from app.gateway import authorization_require
-from app.models import HistoryTest, TestCase, db, TestSet, TestExecution, TestRun, TestExecutionsTestEnvironments, \
+from app.models import db, TestExecution, TestRun, TestExecutionsTestEnvironments, \
     TestEnvironment, Defects, TestStatus
 from app.utils import send_result, send_error, get_timestamp_now
-from app.validator import TestSetSchema
+import xlsxwriter
+import matplotlib.pyplot as plt
+import pandas as pd
+import openpyxl
+import io
+
 
 api = Blueprint('report', __name__)
 
@@ -47,19 +55,23 @@ def get_traceability():
                 test_status = TestStatus.query.filter(TestStatus.project_id == project_id,
                                                       TestStatus.cloud_id == cloud_id) \
                     .order_by(asc(TestStatus.created_date)).all()
-                dict_testing = {}
+                dict_testing = []
                 sum_status = 0
                 test_run = TestRun.query.filter(TestRun.cloud_id == cloud_id, TestRun.project_id == project_id,
                                                 TestRun.test_execution_id == test_execution_id)
                 for i, status in enumerate(test_status):
                     count_status = test_run.filter(TestRun.test_status_id == status.id).count()
                     if (i + 1) < len(test_status):
-                        dict_testing[status.name] = {"percent": int(count_status * 100 / len(test_runs.all())),
-                                                     "count": count_status}
+                        dict_testing.append({
+                            "status_name": status.name,
+                            "percent": int(count_status * 100 / len(test_runs.all())),
+                            "count": count_status})
                         sum_status += int(count_status * 100 / len(test_runs.all()))
                     else:
-                        dict_testing[status.name] = {"percent": 100 - sum_status,
-                                                     "count": count_status}
+                        dict_testing.append({
+                            "status_name": status.name,
+                            "percent":  100 - sum_status,
+                            "count": count_status})
                 infor_test_execution = {
                     'issue_key': test_execution.issue_key,
                     'executed_on': test_execution.modified_date,
@@ -99,18 +111,19 @@ def report_execution_coverage():
         data = []
         for test_execution in test_executions:
             sum_status = 0
-            dict_testing = {}
+            dict_testing = []
             test_runs = TestRun.query.filter(TestRun.test_execution_id == test_execution,
                                              TestRun.project_id == project_id, TestRun.cloud_id == cloud_id)
             for i, status in enumerate(test_status):
                 count_status = test_runs.filter(TestRun.test_status_id == status.id).count()
                 if (i + 1) < len(test_status):
-                    dict_testing[status.name] = {"percent": int(count_status * 100 / len(test_runs.all())),
-                                                 "count": count_status}
+                    dict_testing.append({"percent": int(count_status * 100 / len(test_runs.all())),
+                                         "count": count_status})
                     sum_status += int(count_status * 100 / len(test_runs.all()))
                 else:
-                    dict_testing[status.name] = {"percent": 100-sum_status,
-                                                 "count": count_status}
+
+                    dict_testing.append({"percent": 100-sum_status,
+                                         "count": count_status})
             add_data = {
                 "issue_key": test_execution.issue_key,
                 "testing": dict_testing
@@ -142,7 +155,7 @@ def report_execution_environment():
             test_executions = TestExecutionsTestEnvironments.query.filter(TestExecutionsTestEnvironments.
                                                                           test_environment_id == environment.id).all()
             test_execution_ids = [test_execution.id for test_execution in test_executions]
-            dict_testing = {}
+            dict_testing = []
             sum_status = 0
             test_runs = TestRun.query.filter(TestRun.project_id == project_id, TestRun.cloud_id == cloud_id,
                                              TestRun.test_execution_id.in_(test_execution_ids))
@@ -150,17 +163,112 @@ def report_execution_environment():
                 count_status = test_runs.query.filter(TestRun.test_status_id == status.id).all()
 
                 if (i + 1) < len(test_status):
-                    dict_testing[status.name] = {"percent": int(count_status * 100 / len(test_runs.all())),
-                                                 "count": count_status}
+                    dict_testing.append({"percent": int(count_status * 100 / len(test_runs.all())),
+                                         "count": count_status})
                     sum_status += int(count_status * 100 / len(test_runs.all()))
                 else:
-                    dict_testing[status.name] = {"percent": 100 - sum_status,
-                                                 "count": count_status}
+                    dict_testing.append({"percent": 100 - sum_status,
+                                         "count": count_status})
             add_data = {
                 "environment": environment.name,
                 "testing": dict_testing
             }
             data.append(add_data)
         return send_result(data=data)
+    except Exception as ex:
+        return send_error(message=str(ex))
+
+
+@api.route("/traceability-report-detail/export", methods=['POST'])
+@authorization_require()
+def export_traceability():
+    try:
+        token = get_jwt_identity()
+        cloud_id = token.get('cloudId')
+        project_id = token.get('projectId')
+        project_name = token.get('projectName')
+        project_name = "AKA"
+        body_request = request.get_json()
+        day = datetime.date.today()
+        stories = body_request.get("stories", [])
+        if len(stories) == 0:
+            return send_error(message="No data export")
+        if not os.path.exists(FILE_PATH):
+            os.makedirs(FILE_PATH)
+        filename = f'BTest_Traceability Report Detail_{day}.xlsx'
+
+        if os.path.exists(os.path.join(FILE_PATH + filename)):
+            os.remove(FILE_PATH + filename)
+        workbook = xlsxwriter.Workbook(FILE_PATH+filename)
+        worksheet = workbook.add_worksheet()
+        list_testing = stories[0]["test_execution"][0]["testing"]
+        list_bug = stories[0]["bug"]
+        # create column of execution
+        col_execution = len(list_testing)*2 + 1
+        # create column of bug
+        col_bug = len(list_bug)*2
+        """
+            create table with number of columns = 2 row(story, test_set) + col_execution + col_bug
+        """
+        col_file = 2 + col_execution + col_bug
+
+        format_cell = workbook.add_format({'align': 'center', 'valign': 'vcenter'})
+        # merge cell : TRACEABILITY REPORT DETAIL - NAME PROJECT
+        worksheet.merge_range(0, 0, 0, col_file - 1, f'TRACEABILITY REPORT DETAIL - {project_name}', format_cell)
+        # merge cell : story
+        worksheet.merge_range(1, 0, 3, 0, "Story", format_cell)
+        # merge cell : test set
+        worksheet.merge_range(1, 1, 3, 1, "Test Set", format_cell)
+        # merge cell : Execution Result
+        worksheet.merge_range(1, 2, 1, col_execution + 1, "Execution Result", format_cell)
+        # merge cell : Bug
+        worksheet.merge_range(1, col_execution + 2, 1, col_file - 1, "Bug", format_cell)
+        # merge cell : issue_test_execution
+        worksheet.merge_range(2, 2, 3, 2, "Issue Key", format_cell)
+        col = 3
+        for i, testing in enumerate(list_testing):
+            worksheet.merge_range(2, col, 2, col+1, testing["status_name"], format_cell)
+            col = col + 2
+        for i, bug in enumerate(list_bug):
+            worksheet.merge_range(2, col, 2, col + 1, bug["status_name"], format_cell)
+            col = col + 2
+        # write column count, percent for Execution and Bug
+        for i in range(3, col_file, 2):
+            worksheet.write(3, i, 'Count')
+            worksheet.write(3, i+1, 'Percent')
+        row = 4
+        for story in stories:
+            set_column = 3
+            # write data to exel : column test_set
+            for i, test_set_key in enumerate(story["test_set"]):
+                worksheet.write(row+i, 1, test_set_key)
+            # write data to exel : column test_execution
+            for i, execution in enumerate(story["test_execution"]):
+                worksheet.write(row+i, 2, execution["issue_key"])
+                for index, status in enumerate(execution["testing"]):
+                    worksheet.write(row + i, set_column + index*2, status["count"])
+                    worksheet.write(row + i, set_column + index*2 + 1, status["percent"])
+            set_column = set_column + col_execution - 1
+            # write data to exel : column bug
+            for status_bug in story["bug"]:
+                worksheet.merge_range(row, set_column, row + len(story["test_execution"]) - 1, set_column,
+                                      status_bug["count"], format_cell)
+                worksheet.merge_range(row, set_column+1, row + len(story["test_execution"]) - 1, set_column+1,
+                                      status_bug["percent"], format_cell)
+                set_column = set_column + 2
+            # up row and write data to exel : column story
+            if len(story["test_set"]) > len(story["test_execution"]):
+                row = row + len(story["test_set"])
+                row_up = len(story["test_set"])
+            else:
+                row = row + len(story["test_execution"])
+                row_up = len(story["test_execution"])
+            worksheet.merge_range(row - row_up, 0, row - 1, 0, story["story_name"], format_cell)
+        workbook.close()
+        if os.path.exists(FILE_PATH+filename):
+            filepath = os.path.abspath(filename)
+            return send_result(data=filepath, message=f"Tạo file {filename} thành công.")
+        else:
+            return send_result(message=f"Tạo file {filename} không thành công.")
     except Exception as ex:
         return send_error(message=str(ex))
