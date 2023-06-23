@@ -100,35 +100,28 @@ def report_execution_coverage():
         cloud_id = token.get('cloudId')
         project_id = token.get('projectId')
         body_request = request.get_json()
-        test_execution_ids = body_request.get("test_execution_ids", [])
-        test_executions = TestExecution.query.filter(TestExecution.cloud_id == cloud_id,
-                                                     TestExecution.project_id == project_id,
-                                                     TestExecution.issue_id.in_(test_execution_ids)) \
-            .order_by(asc(TestExecution.issue_key)).all()
+        stories = body_request.get("stories", [])
+        """
+            stories : [{ "story_name":"" , "test_execution_issue_id":[]
+                        },{}]
+        """
+        data = []
         test_status = TestStatus.query.filter(TestStatus.project_id == project_id,
                                               TestStatus.cloud_id == cloud_id) \
             .order_by(asc(TestStatus.created_date)).all()
-        data = []
-        for test_execution in test_executions:
-            sum_status = 0
+        for story in stories:
+            test_executions = TestExecution.query.filter(TestExecution.cloud_id == cloud_id,
+                                                         TestExecution.project_id == project_id,
+                                                         TestExecution.issue_id.in_(story["test_execution_issue_id"]))\
+                .all()
+            test_execution_ids = [test_execution.id for test_execution in test_executions]
+            test_runs = TestRun.query.filter(TestRun.test_execution_id.in_(test_execution_ids))
             dict_testing = []
-            test_runs = TestRun.query.filter(TestRun.test_execution_id == test_execution,
-                                             TestRun.project_id == project_id, TestRun.cloud_id == cloud_id)
             for i, status in enumerate(test_status):
                 count_status = test_runs.filter(TestRun.test_status_id == status.id).count()
-                if (i + 1) < len(test_status):
-                    dict_testing.append({"percent": int(count_status * 100 / len(test_runs.all())),
-                                         "count": count_status})
-                    sum_status += int(count_status * 100 / len(test_runs.all()))
-                else:
-
-                    dict_testing.append({"percent": 100-sum_status,
-                                         "count": count_status})
-            add_data = {
-                "issue_key": test_execution.issue_key,
-                "testing": dict_testing
-            }
-            data.append(add_data)
+                dict_testing.append({"percent": int(count_status * 100 / len(test_runs.all())),
+                                     "count": count_status, "status_name": status.name})
+            data.append({"story_name": story["story_name"], "testing": dict_testing})
         return send_result(data=data)
     except Exception as ex:
         return send_error(message=str(ex))
