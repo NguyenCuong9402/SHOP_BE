@@ -4,6 +4,8 @@ from flask import Blueprint, request, make_response, send_file, Response
 from flask_jwt_extended import get_jwt_identity
 from sqlalchemy import asc
 from io import BytesIO
+import datetime
+from app.enums import FILE_PATH
 from app.gateway import authorization_require
 from app.models import db, TestExecution, TestRun, TestExecutionsTestEnvironments, \
     TestEnvironment, Defects, TestStatus
@@ -187,13 +189,17 @@ def export_traceability():
         project_name = token.get('projectName')
         project_name = "AKA"
         body_request = request.get_json()
-        day = body_request.get("day")
-        day = "942002"
+        day = datetime.date.today()
         stories = body_request.get("stories", [])
         if len(stories) == 0:
             return send_error(message="No data export")
+        if not os.path.exists(FILE_PATH):
+            os.makedirs(FILE_PATH)
         filename = f'BTest_Traceability Report Detail_{day}.xlsx'
-        workbook = xlsxwriter.Workbook(filename)
+
+        if os.path.exists(os.path.join(FILE_PATH + filename)):
+            os.remove(FILE_PATH + filename)
+        workbook = xlsxwriter.Workbook(FILE_PATH+filename)
         worksheet = workbook.add_worksheet()
         list_testing = stories[0]["test_execution"][0]["testing"]
         list_bug = stories[0]["bug"]
@@ -259,7 +265,7 @@ def export_traceability():
                 row_up = len(story["test_execution"])
             worksheet.merge_range(row - row_up, 0, row - 1, 0, story["story_name"], format_cell)
         workbook.close()
-        if os.path.exists(filename):
+        if os.path.exists(FILE_PATH+filename):
             filepath = os.path.abspath(filename)
             return send_result(data=filepath, message=f"Tạo file {filename} thành công.")
         else:
