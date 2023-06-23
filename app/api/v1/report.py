@@ -11,9 +11,6 @@ from app.models import db, TestExecution, TestRun, TestExecutionsTestEnvironment
     TestEnvironment, Defects, TestStatus
 from app.utils import send_result, send_error, get_timestamp_now
 import xlsxwriter
-import matplotlib.pyplot as plt
-import pandas as pd
-import openpyxl
 import io
 
 
@@ -102,8 +99,8 @@ def report_execution_coverage():
         body_request = request.get_json()
         stories = body_request.get("stories", [])
         """
-            stories : [{ "story_name":"" , "test_execution_issue_id":[]
-                        },{}]
+            request  stories:[{ "story_name":"" , "test_execution_issue_id":[]},{}]
+            return   data = [{"story_name":"", "testing":[{"percent":"","count":"","status_name":""},{}]}]
         """
         data = []
         test_status = TestStatus.query.filter(TestStatus.project_id == project_id,
@@ -182,23 +179,23 @@ def export_traceability():
         project_name = token.get('projectName')
         body_request = request.get_json()
         day = datetime.date.today()
+        output = io.BytesIO()
         stories = body_request.get("stories", [])
         if len(stories) == 0:
             return send_error(message="No data export")
-        if not os.path.exists(FILE_PATH):
-            os.makedirs(FILE_PATH)
         filename = f'BTest_Traceability Report Detail_{day}.xlsx'
-
-        if os.path.exists(os.path.join(FILE_PATH + filename)):
-            os.remove(FILE_PATH + filename)
-        workbook = xlsxwriter.Workbook(FILE_PATH+filename)
+        if len(stories) == 0:
+            return send_error(message="No data export")
+        # Khởi tạo Workbook mới
+        workbook = xlsxwriter.Workbook(output)
+        # Tạo Worksheet mới
         worksheet = workbook.add_worksheet()
         list_testing = stories[0]["test_execution"][0]["testing"]
         list_bug = stories[0]["bug"]
         # create column of execution
-        col_execution = len(list_testing)*2 + 1
+        col_execution = len(list_testing) * 2 + 1
         # create column of bug
-        col_bug = len(list_bug)*2
+        col_bug = len(list_bug) * 2
         """
             create table with number of columns = 2 row(story, test_set) + col_execution + col_bug
         """
@@ -219,7 +216,7 @@ def export_traceability():
         worksheet.merge_range(2, 2, 3, 2, "Issue Key", format_cell)
         col = 3
         for i, testing in enumerate(list_testing):
-            worksheet.merge_range(2, col, 2, col+1, testing["status_name"], format_cell)
+            worksheet.merge_range(2, col, 2, col + 1, testing["status_name"], format_cell)
             col = col + 2
         for i, bug in enumerate(list_bug):
             worksheet.merge_range(2, col, 2, col + 1, bug["status_name"], format_cell)
@@ -227,25 +224,25 @@ def export_traceability():
         # write column count, percent for Execution and Bug
         for i in range(3, col_file, 2):
             worksheet.write(3, i, 'Count')
-            worksheet.write(3, i+1, 'Percent')
+            worksheet.write(3, i + 1, 'Percent')
         row = 4
         for story in stories:
             set_column = 3
             # write data to exel : column test_set
             for i, test_set_key in enumerate(story["test_set"]):
-                worksheet.write(row+i, 1, test_set_key)
+                worksheet.write(row + i, 1, test_set_key)
             # write data to exel : column test_execution
             for i, execution in enumerate(story["test_execution"]):
-                worksheet.write(row+i, 2, execution["issue_key"])
+                worksheet.write(row + i, 2, execution["issue_key"])
                 for index, status in enumerate(execution["testing"]):
-                    worksheet.write(row + i, set_column + index*2, status["count"])
-                    worksheet.write(row + i, set_column + index*2 + 1, status["percent"])
+                    worksheet.write(row + i, set_column + index * 2, status["count"])
+                    worksheet.write(row + i, set_column + index * 2 + 1, status["percent"])
             set_column = set_column + col_execution - 1
             # write data to exel : column bug
             for status_bug in story["bug"]:
                 worksheet.merge_range(row, set_column, row + len(story["test_execution"]) - 1, set_column,
                                       status_bug["count"], format_cell)
-                worksheet.merge_range(row, set_column+1, row + len(story["test_execution"]) - 1, set_column+1,
+                worksheet.merge_range(row, set_column + 1, row + len(story["test_execution"]) - 1, set_column + 1,
                                       status_bug["percent"], format_cell)
                 set_column = set_column + 2
             # up row and write data to exel : column story
@@ -256,11 +253,11 @@ def export_traceability():
                 row = row + len(story["test_execution"])
                 row_up = len(story["test_execution"])
             worksheet.merge_range(row - row_up, 0, row - 1, 0, story["story_name"], format_cell)
+        # all border 0,0  -> row,colum_file
+        # add after FE fix
         workbook.close()
-        if os.path.exists(FILE_PATH+filename):
-            filepath = os.path.abspath(FILE_PATH+filename)
-            return send_file(filepath, as_attachment=True)
-        else:
-            return send_result(message=f"Tạo file {filename} không thành công.")
+        # Lấy nội dung của Workbook và gửi đi như là file đính kèm
+        excel_data = output.getvalue()
+        return send_file(io.BytesIO(excel_data), attachment_filename=filename, as_attachment=True)
     except Exception as ex:
         return send_error(message=str(ex))
