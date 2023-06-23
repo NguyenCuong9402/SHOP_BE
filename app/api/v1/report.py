@@ -187,7 +187,6 @@ def export_traceability():
         cloud_id = token.get('cloudId')
         project_id = token.get('projectId')
         project_name = token.get('projectName')
-        project_name = "AKA"
         body_request = request.get_json()
         day = datetime.date.today()
         stories = body_request.get("stories", [])
@@ -266,8 +265,8 @@ def export_traceability():
             worksheet.merge_range(row - row_up, 0, row - 1, 0, story["story_name"], format_cell)
         workbook.close()
         if os.path.exists(FILE_PATH+filename):
-            filepath = os.path.abspath(filename)
-            return send_result(data=filepath, message=f"Tạo file {filename} thành công.")
+            filepath = os.path.abspath(FILE_PATH+filename)
+            return send_file(filepath, as_attachment=True)
         else:
             return send_result(message=f"Tạo file {filename} không thành công.")
     except Exception as ex:
