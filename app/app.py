@@ -56,7 +56,11 @@ def register_blueprints(app):
     :return:
     """
 
-    app.register_blueprint(api_v1.product.api, url_prefix='/api/v1/report')
+    app.register_blueprint(api_v1.product.api, url_prefix='/api/v1/product')
+    app.register_blueprint(api_v1.product.api, url_prefix='/api/v1/orders')
+    app.register_blueprint(api_v1.product.api, url_prefix='/api/v1/order_items')
+    app.register_blueprint(api_v1.product.api, url_prefix='/api/v1/cart_items')
+    app.register_blueprint(api_v1.product.api, url_prefix='/api/v1/user')
 
 
 
