@@ -2,19 +2,16 @@
 import os
 import traceback
 
-from time import strftime
-from flask import Flask, request
+from flask import Flask
 
 from flask_cors import CORS
 from flask_admin import Admin
 from flask_admin.contrib.sqla import ModelView
-from werkzeug.exceptions import NotFound
 
 from app.extensions import jwt, migrate, ma
 from app.models import db, Message
 from app.api import v1 as api_v1
 from app.settings import DevConfig
-from app.utils import send_result, send_error
 
 
 def create_app():
