@@ -19,7 +19,7 @@ def create_app():
     Init App
     :return:
     """
-    config_object =  DevConfig
+    config_object = DevConfig
     app = Flask(__name__, static_url_path="", static_folder="./files")
     app.config.from_object(config_object)
     register_extensions(app)
