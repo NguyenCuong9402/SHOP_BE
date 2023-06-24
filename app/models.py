@@ -35,7 +35,7 @@ class Product(db.Model):
 class Orders(db.Model):
     __tablename__ = 'orders'
     id = db.Column(db.String(50), primary_key=True)
-    user_id = db.Column(db.String(50), db.ForeignKey('user.id', ondelete='SET NULL', onupdate='SET NULL'),
+    user_id = db.Column(db.String(50), db.ForeignKey('user.id', ondelete='CASCADE', onupdate='CASCADE'),
                         nullable=False)
     phone_number = db.Column(db.String(100), nullable=True)
     address = db.Column(db.Text(), nullable=True)
@@ -46,14 +46,14 @@ class Orders(db.Model):
 class OrderItems(db.Model):
     __tablename__ = 'order_items'
     id = db.Column(db.String(50), primary_key=True)
-    product_id = db.Column(db.String(50), db.ForeignKey('product.id', ondelete='SET NULL', onupdate='SET NULL'),
+    product_id = db.Column(db.String(50), db.ForeignKey('product.id', ondelete='CASCADE', onupdate='CASCADE'),
                            nullable=False)
-    order_id = db.Column(db.String(50), db.ForeignKey('orders.id', ondelete='SET NULL', onupdate='SET NULL'),
+    order_id = db.Column(db.String(50), db.ForeignKey('orders.id', ondelete='CASCADE', onupdate='CASCADE'),
                          nullable=False)
     quantity = db.Column(db.Integer, nullable=True, default=1)
     count = db.Column(db.Integer, nullable=True, default=0)
-    size = db.Column(db.String(5), nullable=True, default="M")
-    color = db.Column(db.String(50), nullable=True, default="black")
+    size = db.Column(db.String(5), nullable=True)
+    color = db.Column(db.String(50), nullable=True)
     created_date = db.Column(db.Integer, default=0)
 
 
@@ -70,14 +70,14 @@ class User(db.Model):
 class CartItems(db.Model):
     __tablename__ = 'cart_items'
     id = db.Column(db.String(50), primary_key=True)
-    product_id = db.Column(db.String(50), db.ForeignKey('product.id', ondelete='SET NULL', onupdate='SET NULL'),
+    product_id = db.Column(db.String(50), db.ForeignKey('product.id', ondelete='CASCADE', onupdate='CASCADE'),
                            nullable=False)
-    user_id = db.Column(db.String(50), db.ForeignKey('user.id', ondelete='SET NULL', onupdate='SET NULL'),
+    user_id = db.Column(db.String(50), db.ForeignKey('user.id', ondelete='CASCADE', onupdate='CASCADE'),
                         nullable=False)
     quantity = db.Column(db.Integer, nullable=True)
     count = db.Column(db.Integer, nullable=True, default=0)
-    size = db.Column(db.String(5), nullable=True, default="M")
-    color = db.Column(db.String(50), nullable=True, default="black")
+    size = db.Column(db.String(5), nullable=True)
+    color = db.Column(db.String(50), nullable=True)
     created_date = db.Column(db.Integer, default=0)
 
 
