@@ -74,12 +74,12 @@ def put_item_to_cart(cart_item_id):
         if quantity <= 0:
             return send_error(message="Số lượng sản phẩm > 0 hoặc xóa ra khỏi giỏ hàng")
         check_item_cart = CartItems.query.filter(CartItems.id == cart_item_id).first()
-        if check_item_cart:
+        if check_item_cart is None:
             return send_error(message="Sản phẩm không có trong giỏ hàng, vui lòng F5", is_dynamic=True)
         check_item_cart.quantity = quantity
         db.session.flush()
         db.session.commit()
-        return send_result(message="Bỏ ra giỏ hàng thành công", show=True)
+        return send_result(message="Thay đổi số lượng sản phẩm trong giỏ hàng thành công", show=True)
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
