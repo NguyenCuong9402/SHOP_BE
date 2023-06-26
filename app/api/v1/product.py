@@ -58,10 +58,10 @@ def fix_item(product_id):
         body_request = request.get_json()
         name = body_request.get("name", "")
         price = body_request.get("price", 0)
-        type_item = body_request.get("type","")
-        describe = body_request.get("describe","")
+        type_item = body_request.get("type", "")
+        describe = body_request.get("describe", "")
         check_item = Product.query.filter(Product.id == product_id).first()
-        if check_item:
+        if check_item is None:
             return send_error(message="Sản phẩm không tồn tại, F5 lại web", is_dynamic=True)
         if name != "":
             check_item.name = name
@@ -73,7 +73,8 @@ def fix_item(product_id):
             check_item.describe = describe
         db.session.flush()
         db.session.commit()
-        return send_result(message="Thay đổi thông tin sản phẩm thành công", show=True)
+        return send_result(data=ProductSchema().dump(check_item),
+                           message="Thay đổi thông tin sản phẩm thành công", show=True)
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
@@ -104,7 +105,7 @@ def remove_item():
 def get_item(product_id):
     try:
         check_item = Product.query.filter(Product.id == product_id).first()
-        if check_item:
+        if check_item is None:
             return send_error(message="Sản phẩm không tồn tại, F5 lại web", is_dynamic=True)
         data = ProductSchema().dump(check_item)
         return send_result(data=data)
