@@ -2,12 +2,13 @@ import os
 import uuid
 from flask import Blueprint, request, make_response, send_file, Response
 from flask_jwt_extended import get_jwt_identity
-from sqlalchemy import asc
+from sqlalchemy import asc, desc
 from io import BytesIO
 import datetime
 import io
 from app.models import db, Product, User, Orders, OrderItems, CartItems
-from app.utils import send_error, get_timestamp_now
+from app.schema import ProductSchema
+from app.utils import send_error, get_timestamp_now, send_result
 
 api = Blueprint('product', __name__)
 
@@ -33,11 +34,20 @@ def add_product():
         db.session.add(product)
         db.session.flush()
         db.session.commit()
-        return
+        return send_result(message="Tao Thanh Cong")
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
 
+
+@api.route("", methods=["GET"])
+def get_list_item():
+    try:
+        product = Product.query.filter().order_by(desc(Product.created_date)).all()
+        data = ProductSchema(many=True).dump(product)
+        return send_result(data=data)
+    except Exception as ex:
+        return send_error(message=str(ex))
 
 
 def check_coincided_name(name=''):
