@@ -92,6 +92,17 @@ def remove_item(product_id):
         return send_error(message=str(ex))
 
 
+@api.route("/<product_id>", methods=["GET"])
+def get_item(product_id):
+    try:
+        check_item = Product.query.filter(Product.id == product_id).first()
+        if check_item:
+            return send_error(message="Sản phẩm không tồn tại, F5 lại web", is_dynamic=True)
+        data = ProductSchema().dump(check_item)
+        return send_result(data=data)
+    except Exception as ex:
+        db.session.rollback()
+        return send_error(message=str(ex))
 
 
 def check_coincided_name(name=''):
