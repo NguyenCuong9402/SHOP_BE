@@ -7,6 +7,7 @@ ma = Marshmallow()
 
 
 class ProductSchema(Schema):
+    id = fields.String()
     name = fields.String()
     price = fields.Integer()
     type = fields.String()

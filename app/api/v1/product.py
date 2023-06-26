@@ -22,7 +22,7 @@ def add_product():
         type_item = body_request.get("type")
         describe = body_request.get("describe")
         if check_coincided_name(name):
-            return send_error(message="Name is existed")
+            return send_error(message="Tên sản phẩm đã tồn tại", is_dynamic=True)
         product = Product(
             id=str(uuid.uuid4()),
             name=name,
@@ -34,7 +34,7 @@ def add_product():
         db.session.add(product)
         db.session.flush()
         db.session.commit()
-        return send_result(message="Tao Thanh Cong")
+        return send_result(message="Thêm sản phẩm thành công", show=True)
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
@@ -48,6 +48,50 @@ def get_list_item():
         return send_result(data=data)
     except Exception as ex:
         return send_error(message=str(ex))
+
+
+@api.route("/<product_id>", methods=["PUT"])
+def fix_item(product_id):
+    try:
+        body_request = request.get_json()
+        name = body_request.get("name", "")
+        price = body_request.get("price", 0)
+        type_item = body_request.get("type","")
+        describe = body_request.get("describe","")
+        check_item = Product.query.filter(Product.id == product_id).first()
+        if check_item:
+            return send_error(message="Sản phẩm không tồn tại, F5 lại web", is_dynamic=True)
+        if name != "":
+            check_item.name = name
+        if price != 0:
+            check_item.price = price
+        if type_item != "":
+            check_item.type = type_item
+        if describe != "":
+            check_item.describe = describe
+        db.session.flush()
+        db.session.commit()
+        return send_result(message="Thay đổi thông tin sản phẩm thành công", show=True)
+    except Exception as ex:
+        db.session.rollback()
+        return send_error(message=str(ex))
+
+
+@api.route("/<product_id>", methods=["DELETE"])
+def remove_item(product_id):
+    try:
+        check_item = Product.query.filter(Product.id == product_id).first()
+        if check_item:
+            return send_error(message="Sản phẩm không tồn tại, F5 lại web", is_dynamic=True)
+        db.session.delete(check_item)
+        db.session.flush()
+        db.session.commit()
+        return send_result(message="Thay đổi thông tin sản phẩm thành công", show=True)
+    except Exception as ex:
+        db.session.rollback()
+        return send_error(message=str(ex))
+
+
 
 
 def check_coincided_name(name=''):
