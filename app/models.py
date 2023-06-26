@@ -71,11 +71,10 @@ class CartItems(db.Model):
     __tablename__ = 'cart_items'
     id = db.Column(db.String(50), primary_key=True)
     product_id = db.Column(db.String(50), db.ForeignKey('product.id', ondelete='CASCADE', onupdate='CASCADE'),
-                           nullable=False)
+                           nullable=True)
     user_id = db.Column(db.String(50), db.ForeignKey('user.id', ondelete='CASCADE', onupdate='CASCADE'),
-                        nullable=False)
+                        nullable=True)
     quantity = db.Column(db.Integer, nullable=True)
-    count = db.Column(db.Integer, nullable=True, default=0)
     size = db.Column(db.String(5), nullable=True)
     color = db.Column(db.String(50), nullable=True)
     created_date = db.Column(db.Integer, default=0)

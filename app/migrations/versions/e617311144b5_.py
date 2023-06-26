@@ -54,7 +54,6 @@ def upgrade():
     sa.Column('product_id', sa.String(length=50), nullable=False),
     sa.Column('user_id', sa.String(length=50), nullable=False),
     sa.Column('quantity', sa.Integer(), nullable=True),
-    sa.Column('count', sa.Integer(), nullable=True),
     sa.Column('size', sa.String(length=5), nullable=True),
     sa.Column('color', sa.String(length=50), nullable=True),
     sa.Column('created_date', sa.Integer(), nullable=True),
