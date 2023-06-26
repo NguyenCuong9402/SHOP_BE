@@ -13,3 +13,12 @@ class ProductSchema(Schema):
     type = fields.String()
     describe = fields.String()
     created_date = fields.Integer()
+
+
+class OrdersSchema(Schema):
+    id = fields.String()
+    user_id = fields.String()
+    phone_number = fields.String()
+    address = fields.String()
+    count = fields.Integer()
+    created_date = fields.Integer()
