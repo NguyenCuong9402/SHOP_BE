@@ -55,7 +55,6 @@ def register_blueprints(app):
 
     app.register_blueprint(api_v1.product.api, url_prefix='/api/v1/product')
     app.register_blueprint(api_v1.orders.api, url_prefix='/api/v1/orders')
-    app.register_blueprint(api_v1.order_items.api, url_prefix='/api/v1/order_items')
     app.register_blueprint(api_v1.cart_items.api, url_prefix='/api/v1/cart_items')
     app.register_blueprint(api_v1.user.api, url_prefix='/api/v1/user')
 
