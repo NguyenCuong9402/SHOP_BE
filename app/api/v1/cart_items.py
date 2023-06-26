@@ -23,7 +23,7 @@ def add_item_to_cart(product_id):
         size = body_request.get("size")
         color = body_request.get("color")
         check_item = Product.query.filter(Product.id == product_id).first()
-        if check_item:
+        if check_item is None:
             return send_error(message="Sản phẩm không tồn tại, F5 lại web", is_dynamic=True)
         check_to_cart = CartItems.query.filter(CartItems.product_id == product_id, CartItems.color == color,
                                                CartItems.size == size).first()
@@ -47,11 +47,15 @@ def add_item_to_cart(product_id):
         return send_error(message=str(ex))
 
 
-@api.route("<cart_item_id>", methods=["POST"])
-def delete_item_to_cart(cart_item_id):
+@api.route("", methods=["DELETE"])
+def delete_item_to_cart():
     try:
-        check_item_cart = CartItems.query.filter(CartItems.id == cart_item_id).first()
-        if check_item_cart:
+        body_request = request.get_json()
+        cart_item_ids = body_request.get("cart_item_ids",[])
+        if len(cart_item_ids) == 0:
+            return send_error(message="Chưa chọn sản phẩm nào!", is_dynamic=True)
+        check_item_cart = CartItems.query.filter(CartItems.id.in_(cart_item_ids)).first()
+        if check_item_cart is None:
             return send_error(message="Sản phẩm không có trong giỏ hàng, vui lòng F5", is_dynamic=True)
         db.session.delete(check_item_cart)
         db.session.flush()
