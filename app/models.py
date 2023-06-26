@@ -36,7 +36,7 @@ class Orders(db.Model):
     __tablename__ = 'orders'
     id = db.Column(db.String(50), primary_key=True)
     user_id = db.Column(db.String(50), db.ForeignKey('user.id', ondelete='CASCADE', onupdate='CASCADE'),
-                        nullable=False)
+                        nullable=True)
     phone_number = db.Column(db.String(100), nullable=True)
     address = db.Column(db.Text(), nullable=True)
     count = db.Column(db.Integer, nullable=True, default=0)

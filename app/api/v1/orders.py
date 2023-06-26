@@ -25,14 +25,21 @@ def add_order():
         cart_items = CartItems.query.filter(CartItems.id.in_(cart_item_ids)).all()
         if len(cart_items) != len(cart_item_ids):
             return send_error(message="Lỗi FE")
-        order_id = str(uuid.uuid4()),
+        order = Orders(
+            id=str(uuid.uuid4()),
+            phone_number=phone_number,
+            address=address,
+            created_date=get_timestamp_now()
+        )
+        db.session.add(order)
+        db.session.flush()
         count = 0
         for cart_item in cart_items:
             product = Product.query.filter(Product.id == cart_item.product_id).first()
             count_order_item = product.price*cart_item.quantity
             order_item = OrderItems(
                 id=str(uuid.uuid4()),
-                order_id=order_id,
+                order_id=order.id,
                 product_id=product.id,
                 quantity=cart_item.quantity,
                 count=count_order_item,
@@ -43,15 +50,7 @@ def add_order():
             db.session.add(order_item)
             db.session.flush()
             count = count + count_order_item
-        order = Orders(
-            id=order_id,
-            phone_number=phone_number,
-            address=address,
-            count=count,
-            created_date=get_timestamp_now()
-        )
-        db.session.add(order)
-        db.session.flush()
+        order.count = count
         # Xóa item trong giỏ hàng sau khi đặt hàng
         CartItems.query.filter(CartItems.id.in_(cart_item_ids)).delete()
         db.session.flush()

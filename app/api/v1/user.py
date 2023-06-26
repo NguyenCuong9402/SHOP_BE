@@ -9,3 +9,4 @@ import io
 
 
 api = Blueprint('user', __name__)
+
