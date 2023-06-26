@@ -21,6 +21,8 @@ def add_product():
         price = body_request.get("price", 0)
         type_item = body_request.get("type")
         describe = body_request.get("describe")
+        if name == "" or price <= 0 or type_item == "":
+            return send_result(message="Vui lòng điền thêm thông tin", show=True)
         if check_coincided_name(name):
             return send_error(message="Tên sản phẩm đã tồn tại", is_dynamic=True)
         product = Product(
