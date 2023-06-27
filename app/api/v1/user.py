@@ -60,7 +60,7 @@ def login():
 
         access_token = create_access_token(identity=user.id, fresh=True)
         refresh_token = create_refresh_token(user.id)
-        return send_result(data={"access_token": access_token, "refresh_token":refresh_token})
+        return {"access_token": access_token, "refresh_token": refresh_token}
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
@@ -81,7 +81,7 @@ def refresh():
 
 @api.route("/logout", methods=["GET"])
 @jwt_required()
-def post():
+def logout():
     try:
         jti = get_jwt()["jti"]
         BLOCKLIST.add(jti)
