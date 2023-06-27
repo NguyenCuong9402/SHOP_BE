@@ -7,6 +7,15 @@ from io import BytesIO
 import datetime
 import io
 
+from app.utils import send_error, send_result
 
 api = Blueprint('user', __name__)
+
+
+@api.route("/register", methods=["POST"])
+def register():
+    try:
+        pass
+    except Exception as ex:
+        return send_error(message=str(ex))
 
