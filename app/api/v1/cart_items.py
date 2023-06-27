@@ -1,7 +1,7 @@
 import os
 import uuid
 from flask import Blueprint, request, make_response, send_file, Response
-from flask_jwt_extended import get_jwt_identity
+from flask_jwt_extended import get_jwt_identity, jwt_required
 from sqlalchemy import asc
 from io import BytesIO
 import datetime
@@ -16,6 +16,7 @@ api = Blueprint('cart_items', __name__)
 
 # Thêm User ID để kiểm soát
 @api.route("<product_id>", methods=["POST"])
+@jwt_required()
 def add_item_to_cart(product_id):
     try:
         body_request = request.get_json()
@@ -48,6 +49,7 @@ def add_item_to_cart(product_id):
 
 
 @api.route("", methods=["DELETE"])
+@jwt_required()
 def delete_item_to_cart():
     try:
         body_request = request.get_json()
@@ -67,6 +69,7 @@ def delete_item_to_cart():
 
 
 @api.route("<cart_item_id>", methods=["PUT"])
+@jwt_required()
 def put_item_to_cart(cart_item_id):
     try:
         body_request = request.get_json()

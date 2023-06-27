@@ -1,7 +1,7 @@
 import os
 import uuid
 from flask import Blueprint, request, make_response, send_file, Response
-from flask_jwt_extended import get_jwt_identity
+from flask_jwt_extended import get_jwt_identity, get_jwt, jwt_required
 from sqlalchemy import asc, desc
 from io import BytesIO
 import datetime
@@ -14,8 +14,12 @@ api = Blueprint('product', __name__)
 
 
 @api.route("", methods=["POST"])
+@jwt_required()
 def add_product():
     try:
+        jwt = get_jwt()
+        if not jwt.get("is_admin"):
+            return send_result(message="Bạn không phải admin.")
         body_request = request.get_json()
         name = body_request.get("name", "")
         price = body_request.get("price", 0)
@@ -43,6 +47,7 @@ def add_product():
 
 
 @api.route("", methods=["GET"])
+@jwt_required()
 def get_list_item():
     try:
         product = Product.query.filter().order_by(desc(Product.created_date)).all()
@@ -53,8 +58,12 @@ def get_list_item():
 
 
 @api.route("/<product_id>", methods=["PUT"])
+@jwt_required()
 def fix_item(product_id):
     try:
+        jwt = get_jwt()
+        if not jwt.get("is_admin"):
+            return send_result(message="Bạn không phải admin.")
         body_request = request.get_json()
         name = body_request.get("name", "")
         price = body_request.get("price", 0)
@@ -81,8 +90,12 @@ def fix_item(product_id):
 
 
 @api.route("/", methods=["DELETE"])
+@jwt_required()
 def remove_item():
     try:
+        jwt = get_jwt()
+        if not jwt.get("is_admin"):
+            return send_result(message="Bạn không phải admin.")
         body_request = request.get_json()
         product_ids = body_request.get("product_ids", [])
         if len(product_ids) == 0:
@@ -102,6 +115,7 @@ def remove_item():
 
 
 @api.route("/<product_id>", methods=["GET"])
+@jwt_required()
 def get_item(product_id):
     try:
         check_item = Product.query.filter(Product.id == product_id).first()

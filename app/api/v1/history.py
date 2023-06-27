@@ -1,7 +1,7 @@
 import os
 import uuid
 from flask import Blueprint, request, make_response, send_file, Response
-from flask_jwt_extended import get_jwt_identity
+from flask_jwt_extended import get_jwt_identity, jwt_required
 from sqlalchemy import asc, desc
 from io import BytesIO
 import datetime
@@ -14,6 +14,7 @@ api = Blueprint('history', __name__)
 
 
 @api.route("", methods=["POST"])
+@jwt_required()
 def history():
     try:
         orders = Orders.query.filter().order_by(desc(Orders.created_date)).all()

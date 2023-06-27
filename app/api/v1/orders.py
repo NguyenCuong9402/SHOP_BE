@@ -1,7 +1,7 @@
 import os
 import uuid
 from flask import Blueprint, request, make_response, send_file, Response
-from flask_jwt_extended import get_jwt_identity
+from flask_jwt_extended import get_jwt_identity, jwt_required
 from sqlalchemy import asc
 from io import BytesIO
 import datetime
@@ -14,6 +14,7 @@ api = Blueprint('orders', __name__)
 
 
 @api.route("", methods=["POST"])
+@jwt_required()
 def add_order():
     try:
         body_request = request.get_json()
