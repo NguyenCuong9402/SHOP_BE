@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: e617311144b5
+Revision ID: 25923b3f45ba
 Revises: 
-Create Date: 2023-06-24 21:03:37.205297
+Create Date: 2023-06-27 22:39:02.965477
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'e617311144b5'
+revision = '25923b3f45ba'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -33,9 +33,9 @@ def upgrade():
     )
     op.create_table('product',
     sa.Column('id', sa.String(length=50), nullable=False),
-    sa.Column('name', sa.Text(), nullable=True),
+    sa.Column('name', sa.Text(collation='utf8mb4_unicode_ci'), nullable=True),
     sa.Column('price', sa.Integer(), nullable=True),
-    sa.Column('describe', sa.Text(), nullable=True),
+    sa.Column('describe', sa.Text(collation='utf8mb4_unicode_ci'), nullable=True),
     sa.Column('type', sa.String(length=50), nullable=True),
     sa.Column('created_date', sa.Integer(), nullable=True),
     sa.PrimaryKeyConstraint('id')
@@ -44,15 +44,17 @@ def upgrade():
     sa.Column('id', sa.String(length=50), nullable=False),
     sa.Column('email', sa.String(length=100), nullable=True),
     sa.Column('password', sa.String(length=100), nullable=True),
-    sa.Column('name_user', sa.Text(), nullable=True),
+    sa.Column('name_user', sa.Text(collation='utf8mb4_unicode_ci'), nullable=True),
     sa.Column('phone_number', sa.String(length=100), nullable=True),
+    sa.Column('address', sa.Text(collation='utf8mb4_unicode_ci'), nullable=True),
+    sa.Column('admin', sa.Integer(), nullable=True),
     sa.Column('created_date', sa.Integer(), nullable=True),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('cart_items',
     sa.Column('id', sa.String(length=50), nullable=False),
-    sa.Column('product_id', sa.String(length=50), nullable=False),
-    sa.Column('user_id', sa.String(length=50), nullable=False),
+    sa.Column('product_id', sa.String(length=50), nullable=True),
+    sa.Column('user_id', sa.String(length=50), nullable=True),
     sa.Column('quantity', sa.Integer(), nullable=True),
     sa.Column('size', sa.String(length=5), nullable=True),
     sa.Column('color', sa.String(length=50), nullable=True),
@@ -63,9 +65,9 @@ def upgrade():
     )
     op.create_table('orders',
     sa.Column('id', sa.String(length=50), nullable=False),
-    sa.Column('user_id', sa.String(length=50), nullable=False),
+    sa.Column('user_id', sa.String(length=50), nullable=True),
     sa.Column('phone_number', sa.String(length=100), nullable=True),
-    sa.Column('address', sa.Text(), nullable=True),
+    sa.Column('address', sa.Text(collation='utf8mb4_unicode_ci'), nullable=True),
     sa.Column('count', sa.Integer(), nullable=True),
     sa.Column('created_date', sa.Integer(), nullable=True),
     sa.ForeignKeyConstraint(['user_id'], ['user.id'], onupdate='CASCADE', ondelete='CASCADE'),
@@ -76,7 +78,6 @@ def upgrade():
     sa.Column('product_id', sa.String(length=50), nullable=False),
     sa.Column('order_id', sa.String(length=50), nullable=False),
     sa.Column('quantity', sa.Integer(), nullable=True),
-    sa.Column('count', sa.Integer(), nullable=True),
     sa.Column('size', sa.String(length=5), nullable=True),
     sa.Column('color', sa.String(length=50), nullable=True),
     sa.Column('created_date', sa.Integer(), nullable=True),

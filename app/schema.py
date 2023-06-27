@@ -15,12 +15,21 @@ class ProductSchema(Schema):
     created_date = fields.Integer()
 
 
+class OrderItemsSchema(Schema):
+    id = fields.String()
+    product_id = fields.String()
+    quantity = fields.Integer()
+    size = fields.String()
+    color = fields.String()
+    created_date = fields.Integer()
+
 class OrdersSchema(Schema):
     id = fields.String()
     user_id = fields.String()
     phone_number = fields.String()
     address = fields.String()
     count = fields.Integer()
+    order_items = fields.List(fields.Nested(OrderItemsSchema))
     created_date = fields.Integer()
 
 

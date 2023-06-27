@@ -3,7 +3,7 @@ import json
 from typing import List
 
 from sqlalchemy.orm import relationship
-from sqlalchemy import ForeignKey, TEXT, asc, CheckConstraint
+from sqlalchemy import ForeignKey, TEXT, asc, CheckConstraint, desc
 from app.extensions import db
 from sqlalchemy.dialects.mysql import INTEGER , DOUBLE
 from sqlalchemy.ext.hybrid import hybrid_property
@@ -25,9 +25,9 @@ class Message(db.Model):
 class Product(db.Model):
     __tablename__ = 'product'
     id = db.Column(db.String(50), primary_key=True)
-    name = db.Column(db.Text(), nullable=True)
+    name = db.Column(db.Text(collation='utf8mb4_unicode_ci'), nullable=True)
     price = db.Column(db.Integer, nullable=True, default=0)
-    describe = db.Column(db.Text(), nullable=True)
+    describe = db.Column(db.Text(collation='utf8mb4_unicode_ci'), nullable=True)
     type = db.Column(db.String(50), nullable=True)
     created_date = db.Column(db.Integer, default=0)
 
@@ -38,9 +38,15 @@ class Orders(db.Model):
     user_id = db.Column(db.String(50), db.ForeignKey('user.id', ondelete='CASCADE', onupdate='CASCADE'),
                         nullable=True)
     phone_number = db.Column(db.String(100), nullable=True)
-    address = db.Column(db.Text(), nullable=True)
+    address = db.Column(db.Text(collation='utf8mb4_unicode_ci'), nullable=True)
     count = db.Column(db.Integer, nullable=True, default=0)
     created_date = db.Column(db.Integer, default=0)
+
+    @hybrid_property
+    def order_items(self):
+        order_items = OrderItems.query.filter(OrderItems.order_id == self.id)\
+            .order_by(desc(OrderItems.created_date)).all()
+        return order_items
 
 
 class OrderItems(db.Model):
@@ -51,7 +57,6 @@ class OrderItems(db.Model):
     order_id = db.Column(db.String(50), db.ForeignKey('orders.id', ondelete='CASCADE', onupdate='CASCADE'),
                          nullable=False)
     quantity = db.Column(db.Integer, nullable=True, default=1)
-    count = db.Column(db.Integer, nullable=True, default=0)
     size = db.Column(db.String(5), nullable=True)
     color = db.Column(db.String(50), nullable=True)
     created_date = db.Column(db.Integer, default=0)
@@ -62,9 +67,9 @@ class User(db.Model):
     id = db.Column(db.String(50), primary_key=True)
     email = db.Column(db.String(100), nullable=True)
     password = db.Column(db.String(100), nullable=True)
-    name_user = db.Column(db.Text(), nullable=True)
+    name_user = db.Column(db.Text(collation='utf8mb4_unicode_ci'), nullable=True)
     phone_number = db.Column(db.String(100), nullable=True)
-    address = db.Column(db.Text(), nullable=True)
+    address = db.Column(db.Text(collation='utf8mb4_unicode_ci'), nullable=True)
     admin = db.Column(db.Integer, default=0)
     created_date = db.Column(db.Integer, default=0)
 
