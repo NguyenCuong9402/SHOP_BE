@@ -1,12 +1,14 @@
 import os
 import uuid
 from flask import Blueprint, request, make_response, send_file, Response
-from flask_jwt_extended import get_jwt_identity, create_access_token, create_refresh_token
+from flask_jwt_extended import get_jwt_identity, create_access_token, create_refresh_token, jwt_required, get_jwt
 from sqlalchemy import asc
 
+from app.blocklist import BLOCKLIST
 from app.models import db, Product, User, Orders, OrderItems, CartItems
 
 from app.utils import send_error, get_timestamp_now, send_result
+
 
 api = Blueprint('user', __name__)
 
@@ -62,5 +64,30 @@ def login():
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
+
+
+@api.route("/refresh", methods=["GET"])
+@jwt_required(refresh=True)
+def refresh():
+    try:
+        user_id = get_jwt_identity()
+        new_token = create_access_token(identity=user_id, fresh=False)
+        jti = get_jwt()["jti"]
+        BLOCKLIST.add(jti)
+        return send_result(data=new_token)
+    except Exception as ex:
+        return send_error(message=str(ex))
+
+
+@api.route("/logout", methods=["GET"])
+@jwt_required()
+def post():
+    try:
+        jti = get_jwt()["jti"]
+        BLOCKLIST.add(jti)
+        return send_result(message="Log out!")
+    except Exception as ex:
+        return send_error(message=str(ex))
+
 
 
