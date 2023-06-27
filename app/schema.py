@@ -22,3 +22,14 @@ class OrdersSchema(Schema):
     address = fields.String()
     count = fields.Integer()
     created_date = fields.Integer()
+
+
+class UserSchema(Schema):
+    id = fields.String()
+    email = fields.String()
+    password = fields.String()
+    name = fields.Integer()
+    phone_number = fields.String()
+    address = fields.String()
+    created_date = fields.Integer()
+
