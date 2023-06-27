@@ -23,6 +23,7 @@ class OrderItemsSchema(Schema):
     color = fields.String()
     created_date = fields.Integer()
 
+
 class OrdersSchema(Schema):
     id = fields.String()
     user_id = fields.String()
