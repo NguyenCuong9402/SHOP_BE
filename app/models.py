@@ -64,6 +64,7 @@ class User(db.Model):
     password = db.Column(db.String(100), nullable=True)
     name_user = db.Column(db.Text(), nullable=True)
     phone_number = db.Column(db.String(100), nullable=True)
+    address = db.Column(db.Text(), nullable=True)
     created_date = db.Column(db.Integer, default=0)
 
 
