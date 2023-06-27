@@ -18,8 +18,10 @@ api = Blueprint('product', __name__)
 def add_product():
     try:
         jwt = get_jwt()
-        if not jwt.get("is_admin"):
-            return send_result(message="Bạn không phải admin.", is_dynamic=True)
+        user_id = get_jwt_identity()
+        user = User.query.filter(User.id == user_id).first()
+        if user.admin == 0 or (not jwt.get("is_admin")):
+            return send_result(message="Bạn không phải admin.")
         body_request = request.get_json()
         name = body_request.get("name", "")
         price = body_request.get("price", 0)
@@ -61,7 +63,9 @@ def get_list_item():
 def fix_item(product_id):
     try:
         jwt = get_jwt()
-        if not jwt.get("is_admin"):
+        user_id = get_jwt_identity()
+        user = User.query.filter(User.id == user_id).first()
+        if user.admin == 0 or (not jwt.get("is_admin")):
             return send_result(message="Bạn không phải admin.")
         body_request = request.get_json()
         name = body_request.get("name", "")
@@ -93,7 +97,9 @@ def fix_item(product_id):
 def remove_item():
     try:
         jwt = get_jwt()
-        if not jwt.get("is_admin"):
+        user_id = get_jwt_identity()
+        user = User.query.filter(User.id == user_id).first()
+        if user.admin == 0 or (not jwt.get("is_admin")):
             return send_result(message="Bạn không phải admin.")
         body_request = request.get_json()
         product_ids = body_request.get("product_ids", [])

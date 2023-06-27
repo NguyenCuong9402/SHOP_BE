@@ -17,7 +17,12 @@ api = Blueprint('history', __name__)
 @jwt_required()
 def history():
     try:
-        orders = Orders.query.filter().order_by(desc(Orders.created_date)).all()
+        user_id = get_jwt_identity()
+        user = User.query.filter(User.id == user_id).first()
+        if user.admin == 1:
+            orders = Orders.query.filter().order_by(desc(Orders.created_date)).all()
+        else:
+            orders = Orders.query.filter(Orders.user_id == user_id).order_by(desc(Orders.created_date)).all()
         data = OrdersSchema(many=True).dump(orders)
         return send_result(data=data)
     except Exception as ex:

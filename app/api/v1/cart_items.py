@@ -19,6 +19,7 @@ api = Blueprint('cart_items', __name__)
 @jwt_required()
 def add_item_to_cart(product_id):
     try:
+        user_id = get_jwt_identity()
         body_request = request.get_json()
         quantity = body_request.get("quantity", 1)
         size = body_request.get("size")
@@ -37,7 +38,8 @@ def add_item_to_cart(product_id):
                 quantity=quantity,
                 size=size,
                 color=color,
-                created_date=get_timestamp_now()
+                created_date=get_timestamp_now(),
+                user_id=user_id
             )
             db.session.add(cart_item)
         db.session.flush()
@@ -52,11 +54,12 @@ def add_item_to_cart(product_id):
 @jwt_required()
 def delete_item_to_cart():
     try:
+        user_id = get_jwt_identity()
         body_request = request.get_json()
         cart_item_ids = body_request.get("cart_item_ids",[])
         if len(cart_item_ids) == 0:
             return send_error(message="Chưa chọn sản phẩm nào!", is_dynamic=True)
-        check_item_cart = CartItems.query.filter(CartItems.id.in_(cart_item_ids)).first()
+        check_item_cart = CartItems.query.filter(CartItems.id.in_(cart_item_ids), CartItems.user_id == user_id ).all()
         if check_item_cart is None:
             return send_error(message="Sản phẩm không có trong giỏ hàng, vui lòng F5", is_dynamic=True)
         db.session.delete(check_item_cart)
@@ -72,11 +75,12 @@ def delete_item_to_cart():
 @jwt_required()
 def put_item_to_cart(cart_item_id):
     try:
+        user_id = get_jwt_identity()
         body_request = request.get_json()
         quantity = body_request.get("quantity", 0)
         if quantity <= 0:
             return send_error(message="Số lượng sản phẩm > 0 hoặc xóa ra khỏi giỏ hàng")
-        check_item_cart = CartItems.query.filter(CartItems.id == cart_item_id).first()
+        check_item_cart = CartItems.query.filter(CartItems.id == cart_item_id, CartItems.user_id == user_id).first()
         if check_item_cart is None:
             return send_error(message="Sản phẩm không có trong giỏ hàng, vui lòng F5", is_dynamic=True)
         check_item_cart.quantity = quantity
