@@ -19,7 +19,7 @@ def add_product():
     try:
         jwt = get_jwt()
         if not jwt.get("is_admin"):
-            return send_result(message="Bạn không phải admin.")
+            return send_result(message="Bạn không phải admin.", is_dynamic=True)
         body_request = request.get_json()
         name = body_request.get("name", "")
         price = body_request.get("price", 0)
@@ -47,7 +47,6 @@ def add_product():
 
 
 @api.route("", methods=["GET"])
-@jwt_required()
 def get_list_item():
     try:
         product = Product.query.filter().order_by(desc(Product.created_date)).all()
@@ -115,7 +114,6 @@ def remove_item():
 
 
 @api.route("/<product_id>", methods=["GET"])
-@jwt_required()
 def get_item(product_id):
     try:
         check_item = Product.query.filter(Product.id == product_id).first()
