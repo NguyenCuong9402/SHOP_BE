@@ -4,3 +4,4 @@ from app.api.v1 import cart_items
 from app.api.v1 import user
 from app.api.v1 import orders
 from app.api.v1 import history
+from app.api.v1 import reviews

@@ -51,3 +51,10 @@ class UserSchema(Schema):
     address = fields.String()
     created_date = fields.Integer()
 
+
+class ReviewsSchema(Schema):
+    id = fields.String()
+    user_name = fields.String()
+    comment = fields.String()
+    created_date = fields.Integer()
+

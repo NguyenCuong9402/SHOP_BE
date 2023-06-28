@@ -45,11 +45,7 @@ class Orders(db.Model):
     @hybrid_property
     def user_name(self):
         user = User.query.filter(User.id == self.user_id).first()
-        if user is None:
-            name_user = "Tài khoản đã xóa"
-        else:
-            name_user = user.name_user
-        return name_user
+        return user.name_user
 
     @hybrid_property
     def order_items(self):
@@ -95,6 +91,25 @@ class CartItems(db.Model):
     size = db.Column(db.String(5), nullable=True)
     color = db.Column(db.String(50), nullable=True)
     created_date = db.Column(db.Integer, default=0)
+
+
+class Reviews(db.Model):
+    __tablename__ = 'reviews'
+    id = db.Column(db.String(50), primary_key=True)
+    product_id = db.Column(db.String(50), db.ForeignKey('product.id', ondelete='CASCADE', onupdate='CASCADE'),
+                           nullable=True)
+    user_id = db.Column(db.String(50), db.ForeignKey('user.id', ondelete='CASCADE', onupdate='CASCADE'),
+                        nullable=True)
+    comment = db.Column(db.Text(collation='utf8mb4_unicode_ci'), nullable=True)
+    created_date = db.Column(db.Integer, default=0)
+
+    @hybrid_property
+    def user_name(self):
+        user = User.query.filter(User.id == self.user_id).first()
+        return user.name_user
+
+
+
 
 
 
