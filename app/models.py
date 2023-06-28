@@ -43,6 +43,15 @@ class Orders(db.Model):
     created_date = db.Column(db.Integer, default=0)
 
     @hybrid_property
+    def user_name(self):
+        user = User.query.filter(User.id == self.user_id).first()
+        if user is None:
+            name_user = "Tài khoản đã xóa"
+        else:
+            name_user = user.name_user
+        return name_user
+
+    @hybrid_property
     def order_items(self):
         order_items = OrderItems.query.filter(OrderItems.order_id == self.id)\
             .order_by(desc(OrderItems.created_date)).all()
