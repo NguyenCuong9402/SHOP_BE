@@ -56,13 +56,13 @@ def delete_item_to_cart():
     try:
         user_id = get_jwt_identity()
         body_request = request.get_json()
-        cart_item_ids = body_request.get("cart_item_ids",[])
+        cart_item_ids = body_request.get("cart_item_ids", [])
         if len(cart_item_ids) == 0:
             return send_error(message="Chưa chọn sản phẩm nào!", is_dynamic=True)
-        check_item_cart = CartItems.query.filter(CartItems.id.in_(cart_item_ids), CartItems.user_id == user_id ).all()
+        check_item_cart = CartItems.query.filter(CartItems.id.in_(cart_item_ids), CartItems.user_id == user_id)
         if check_item_cart is None:
             return send_error(message="Sản phẩm không có trong giỏ hàng, vui lòng F5", is_dynamic=True)
-        db.session.delete(check_item_cart)
+        check_item_cart.delete()
         db.session.flush()
         db.session.commit()
         return send_result(message="Bỏ ra giỏ hàng thành công", show=True)

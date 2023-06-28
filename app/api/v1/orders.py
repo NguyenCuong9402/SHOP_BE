@@ -17,10 +17,16 @@ api = Blueprint('orders', __name__)
 @jwt_required()
 def add_order():
     try:
+        user_id = get_jwt_identity()
         body_request = request.get_json()
         cart_item_ids = body_request.get("cart_item_ids", [])
         phone_number = body_request.get("phone_number", "")
         address = body_request.get("address", "")
+        user = User.query.filter(User.id == user_id).first()
+        if phone_number == "":
+            phone_number = user.phone_number
+        if address == "":
+            address = user.address
         if len(cart_item_ids) == 0:
             return send_error(message="Bạn chưa chọn món hàng nào để thanh toán", is_dynamic=True)
         cart_items = CartItems.query.filter(CartItems.id.in_(cart_item_ids)).all()
@@ -28,6 +34,7 @@ def add_order():
             return send_error(message="Lỗi FE")
         order = Orders(
             id=str(uuid.uuid4()),
+            user_id=user_id,
             phone_number=phone_number,
             address=address,
             created_date=get_timestamp_now()
@@ -56,7 +63,7 @@ def add_order():
         CartItems.query.filter(CartItems.id.in_(cart_item_ids)).delete()
         db.session.flush()
         db.session.commit()
-        return send_result(message="Đơn hàng đã được đặt!", show=True)
+        return send_result(data=count, message="Đơn hàng đã được đặt!", show=True)
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))

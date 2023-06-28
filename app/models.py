@@ -57,6 +57,7 @@ class OrderItems(db.Model):
     order_id = db.Column(db.String(50), db.ForeignKey('orders.id', ondelete='CASCADE', onupdate='CASCADE'),
                          nullable=False)
     quantity = db.Column(db.Integer, nullable=True, default=1)
+    count = db.Column(db.Integer, default=0)
     size = db.Column(db.String(5), nullable=True)
     color = db.Column(db.String(50), nullable=True)
     created_date = db.Column(db.Integer, default=0)
