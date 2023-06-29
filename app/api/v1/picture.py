@@ -27,21 +27,15 @@ def upload_picture(product_id):
         user = User.query.filter(User.id == user_id).first()
         if user.admin == 0 or (not jwt.get("is_admin")):
             return send_result(message="Bạn không phải admin.")
-        file = request.files['file']
         product = Product.query.filter(Product.id == product_id).first()
-        if len(file.read()) > 100000000:
-            return send_error(message="Can not upload file(s) bigger than 100MB.", is_dynamic=True)
-        # filename, file_extension = os.path.splitext(file.filename)
-        # file_path = product.id + file_extension
-
-        file_name = secure_filename(file.filename)
-
+        if product is None:
+            return send_error(message="F5 Web")
+        file = request.files['file']
+        filename, file_extension = os.path.splitext(file.filename)
+        file_name = secure_filename(product.id + file_extension)
         if not os.path.exists(FILE_PATH):
             os.makedirs(FILE_PATH)
-        if product.picture is not None:
-            pass
-        if product is None:
-            return send_error(message="Sản phẩm không tồn tại, F5 lại web!", is_dynamic= True)
+
         file.save(os.path.join(FILE_PATH + file_name))
         product.picture = file_name
         db.session.flush()

@@ -6,6 +6,8 @@ from sqlalchemy import asc, desc
 from io import BytesIO
 import datetime
 import io
+
+from app.api.v1.picture import FILE_PATH
 from app.models import db, Product, User, Orders, OrderItems, CartItems
 from app.schema import ProductSchema
 from app.utils import send_error, get_timestamp_now, send_result
@@ -106,6 +108,10 @@ def remove_item():
         if len(product_ids) == 0:
             return send_error(message="Chưa chọn sản phẩm để xóa", is_dynamic=True)
         check_item = Product.query.filter(Product.id.in_(product_ids)).all()
+        for item in check_item:
+            file_path = FILE_PATH + item.picture
+            if os.path.exists(os.path.join(file_path)):
+                os.remove(file_path)
         if check_item is None:
             return send_error(message="Sản phẩm không tồn tại, F5 lại web", is_dynamic=True)
         if len(check_item) != len(product_ids):
@@ -113,7 +119,7 @@ def remove_item():
         Product.query.filter(Product.id.in_(product_ids)).delete()
         db.session.flush()
         db.session.commit()
-        return send_result(message="Thay đổi thông tin sản phẩm thành công", show=True)
+        return send_result(message="Xóa sản phẩm thành công", show=True)
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
