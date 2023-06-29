@@ -37,7 +37,7 @@ def create_app():
     def revoked_token_callback(jwt_header, jwt_payload):
         return (
             jsonify(
-                {"description": "the token has been revoked", "error": " token_revoked"}
+                {"description": "Mã token đã bị thu hồi.", "error": "token_revoked"}
             ), 401
         )
 
@@ -47,8 +47,8 @@ def create_app():
         return (
             jsonify(
                 {
-                    "description": "the token is not fresh",
-                    "error": " fresh_token_required"
+                    "description": "Hãy làm mới token.",
+                    "error": "fresh_token_required"
                 }
             ), 401
         )
@@ -64,17 +64,17 @@ def create_app():
     # mã đã hết hạn
     @jwt.expired_token_loader
     def expired_token_callback(jwt_header, jwt_payload):
-        return jsonify({"mes": "the token has expired.", "error": " token_expired"}), 401
+        return jsonify({"message": "Mã token đã hết hạn.", "error": "token_expired"}), 401
 
     # mã không hợp lệ
     @jwt.invalid_token_loader
     def invalid_token_callback(error):
-        return jsonify({"mes": "signature verification failed.", "error": " invalid_expired"}), 401
+        return jsonify({"message": "Mã token không hợp lệ.", "error": "invalid_expired"}), 401
 
     @jwt.unauthorized_loader
     def missing_token_callback(error):
         return (jsonify(
-            {"description": " Request does not contain an access token",
+            {"description": "Request does not contain an access token",
              "error": "authorization_required"}
         ), 401)
     return app

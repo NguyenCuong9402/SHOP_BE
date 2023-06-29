@@ -90,4 +90,29 @@ def logout():
         return send_error(message=str(ex))
 
 
+@api.route("/change-password", methods=["PUT"])
+@jwt_required()
+def change_pass():
+    try:
+        user_id = get_jwt_identity()
+        body_request = request.get_json()
+        new_password_one = body_request.get("new_password_one", "")
+        new_password_two = body_request.get("new_password_two", "")
+        if new_password_two != new_password_two:
+            return send_error(message="Mời điền lại mật khẩu mới")
+        if new_password_one == "":
+            return send_error(message="Không để trống mật khẩu", is_dynamic=True)
+        user = User.query.filter(User.id == user_id).first()
+        user.password = new_password_two
+        db.session.commit()
+        jti = get_jwt()["jti"]
+        BLOCKLIST.add(jti)
+        return send_result(message="Thay đổi mật khẩu thành công! \n Vui lòng đăng nhập lại")
+    except Exception as ex:
+        db.session.rollback()
+        return send_error(message=str(ex))
+
+
+
+
 
