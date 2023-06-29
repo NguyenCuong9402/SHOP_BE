@@ -49,15 +49,27 @@ def login():
         body_request = request.get_json()
         email = body_request.get("email", "")
         password = body_request.get("password", "")
-        if email == "" or password == "":
-            return send_error(message="Vui lòng điền email và mật khẩu", is_dynamic=True)
-        user = User.query.filter(User.email == email).first()
-        if user is None:
-            return send_error(message="Tài khoản không tồn tại!", is_dynamic=True)
-        else:
+        admin = body_request.get("admin", False)
+        if admin:
+            if email == "" or password == "":
+                return send_error(message="Vui lòng điền email và mật khẩu", is_dynamic=True)
+            user = User.query.filter(User.email == email).first()
+            if user is None:
+                return send_error(message="Tài khoản không tồn tại!", is_dynamic=True)
             if user.password != password:
                 return send_error(message="Sai mật khẩu, vui lòng đăng nhập lại!", is_dynamic=True)
-
+            if user.admin == 0:
+                return send_error(message="Tài khoản không phải admin!", is_dynamic=True)
+        else:
+            if email == "" or password == "":
+                return send_error(message="Vui lòng điền email và mật khẩu", is_dynamic=True)
+            user = User.query.filter(User.email == email).first()
+            if user is None:
+                return send_error(message="Tài khoản không tồn tại!", is_dynamic=True)
+            if user.password != password:
+                return send_error(message="Sai mật khẩu, vui lòng đăng nhập lại!", is_dynamic=True)
+            if user.admin == 1:
+                return send_error(message="Tài khoản admin!", is_dynamic=True)
         access_token = create_access_token(identity=user.id, fresh=True)
         refresh_token = create_refresh_token(user.id)
         return {"access_token": access_token, "refresh_token": refresh_token}

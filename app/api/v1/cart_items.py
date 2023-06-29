@@ -14,7 +14,6 @@ from app.schema import ProductSchema
 api = Blueprint('cart_items', __name__)
 
 
-# Thêm User ID để kiểm soát
 @api.route("<product_id>", methods=["POST"])
 @jwt_required()
 def add_item_to_cart(product_id):
