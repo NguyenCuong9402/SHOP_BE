@@ -30,6 +30,8 @@ class Product(db.Model):
     describe = db.Column(db.Text(collation='utf8mb4_unicode_ci'), nullable=True)
     type = db.Column(db.String(50), nullable=True)
     created_date = db.Column(db.Integer, default=0)
+    file_picture = db.Column(db.String(50), nullable=True)
+    attached_file = db.Column(db.Text(), nullable=True)
 
 
 class Orders(db.Model):
