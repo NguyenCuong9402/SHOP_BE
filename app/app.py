@@ -110,6 +110,8 @@ def register_blueprints(app):
     app.register_blueprint(api_v1.user.api, url_prefix='/api/v1/user')
     app.register_blueprint(api_v1.history.api, url_prefix='/api/v1/history')
     app.register_blueprint(api_v1.reviews.api, url_prefix='/api/v1/reviews')
+    app.register_blueprint(api_v1.picture.api, url_prefix='/api/v1/picture')
+
 
 
 
