@@ -93,8 +93,8 @@ def put_item_to_cart(cart_item_id):
             check_item_cart.quantity = quantity
         elif size != "" and color == "":
             cart_new = CartItems.query.filter(CartItems.user_id == user_id, CartItems.color == check_item_cart.color,
-                                              CartItems.product_id == check_item_cart.product_id
-                                              , CartItems.size == size.upper()).first()
+                                              CartItems.product_id == check_item_cart.product_id,
+                                              CartItems.size == size.upper()).first()
             if cart_new is None:
                 check_item_cart.size = size
                 check_item_cart.quantity = quantity
