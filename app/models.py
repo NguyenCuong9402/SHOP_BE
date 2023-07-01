@@ -88,7 +88,7 @@ class CartItems(db.Model):
                            nullable=True)
     user_id = db.Column(db.String(50), db.ForeignKey('user.id', ondelete='CASCADE', onupdate='CASCADE'),
                         nullable=True)
-    quantity = db.Column(db.Integer, nullable=True)
+    quantity = db.Column(db.Integer, nullable=True, default=1)
     size = db.Column(db.String(5), nullable=True)
     color = db.Column(db.String(50), nullable=True)
     created_date = db.Column(db.Integer, default=0)
