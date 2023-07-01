@@ -54,7 +54,9 @@ def get_picture(product_id):
     try:
         product = Product.query.filter(Product.id == product_id).first()
         if product is None:
-            pass
+            return send_error(message="Sản phẩm không tồn tại")
+        if product.picture is None:
+            return send_result(message="Sản phẩm chưa có ảnh")
         file_path = FILE_PATH + product.picture
         if not os.path.isfile(file_path):
             return send_error(message='File not found')
