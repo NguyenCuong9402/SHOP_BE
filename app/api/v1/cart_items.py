@@ -21,13 +21,17 @@ def add_item_to_cart(product_id):
         user_id = get_jwt_identity()
         body_request = request.get_json()
         quantity = body_request.get("quantity", 1)
-        size = body_request.get("size")
-        color = body_request.get("color")
+        size = body_request.get("size", "")
+        color = body_request.get("color", "")
+        if size == "":
+            size = "M"
+        if color == "":
+            color = "black"
         check_item = Product.query.filter(Product.id == product_id).first()
         if check_item is None:
             return send_error(message="Sản phẩm không tồn tại, F5 lại web", is_dynamic=True)
-        check_to_cart = CartItems.query.filter(CartItems.product_id == product_id, CartItems.color == color,
-                                               CartItems.size == size).first()
+        check_to_cart = CartItems.query.filter(CartItems.product_id == product_id, CartItems.color == color.lower(),
+                                               CartItems.size == size.upper()).first()
         if check_to_cart:
             check_to_cart.quantity = check_to_cart.quantity + quantity
         else:
@@ -77,13 +81,53 @@ def put_item_to_cart(cart_item_id):
         user_id = get_jwt_identity()
         body_request = request.get_json()
         quantity = body_request.get("quantity", 0)
+        size = body_request.get("size", "")
+        color = body_request.get("color", "")
         if quantity <= 0:
             return send_error(message="Số lượng sản phẩm > 0 hoặc xóa ra khỏi giỏ hàng")
         check_item_cart = CartItems.query.filter(CartItems.id == cart_item_id, CartItems.user_id == user_id).first()
+
         if check_item_cart is None:
             return send_error(message="Sản phẩm không có trong giỏ hàng, vui lòng F5", is_dynamic=True)
-        check_item_cart.quantity = quantity
-        db.session.flush()
+        if size == "" and color == "":
+            check_item_cart.quantity = quantity
+        elif size != "" and color == "":
+            cart_new = CartItems.query.filter(CartItems.user_id == user_id, CartItems.color == check_item_cart.color,
+                                              CartItems.product_id == check_item_cart.product_id
+                                              , CartItems.size == size.upper()).first()
+            if cart_new is None:
+                check_item_cart.size = size
+                check_item_cart.quantity = quantity
+            else:
+                cart_new.quantity = cart_new.quantity + quantity
+                db.session.delete(check_item_cart)
+            db.session.flush()
+
+        elif size == "" and color != "":
+            cart_new = CartItems.query.filter(CartItems.user_id == user_id, CartItems.size == check_item_cart.size,
+                                              CartItems.product_id == check_item_cart.product_id
+                                              , CartItems.color == color.lower()).first()
+            if cart_new is None:
+                check_item_cart.color = color
+                check_item_cart.quantity = quantity
+            else:
+                cart_new.quantity = cart_new.quantity + quantity
+                db.session.delete(check_item_cart)
+            db.session.flush()
+
+        elif size != "" and color != "":
+            cart_new = CartItems.query.filter(CartItems.user_id == user_id, CartItems.size == size.upper(),
+                                              CartItems.product_id == check_item_cart.product_id
+                                              , CartItems.color == color.lower()).first()
+            if cart_new is None:
+                check_item_cart.color = color.lower()
+                check_item_cart.size = size.upper()
+                check_item_cart.quantity = quantity
+
+            else:
+                cart_new.quantity = cart_new.quantity + quantity
+                db.session.delete(check_item_cart)
+            db.session.flush()
         db.session.commit()
         return send_result(message="Thay đổi số lượng sản phẩm trong giỏ hàng thành công", show=True)
     except Exception as ex:
