@@ -16,8 +16,8 @@ from app.models import db, Product, User, Orders, OrderItems, CartItems
 api = Blueprint('picture', __name__)
 
 FILE_PATH = "app/files/"
-FILE_PATH_PRODUCT = "app/files/product"
-FILE_PATH_AVATAR = "app/files/avatar"
+FILE_PATH_PRODUCT = "app/files/product/"
+FILE_PATH_AVATAR = "app/files/avatar/"
 
 
 @api.route('', methods=['POST'])
@@ -71,8 +71,27 @@ def get_picture(product_id):
         if product is None:
             return send_error(message="Sản phẩm không tồn tại")
         if product.picture is None:
-            return send_result(message="Sản phẩm chưa có ảnh")
-        file_path = FILE_PATH + product.picture
+            file_path = FILE_PATH + "model-picture"
+        else:
+            file_path = FILE_PATH_PRODUCT + product.picture
+        if not os.path.isfile(file_path):
+            return send_error(message='File not found')
+        file = os.path.abspath(file_path)
+        return send_file(file, as_attachment=True)
+    except Exception as ex:
+        return send_error(message=str(ex))
+
+
+@api.route('', methods=['GET'])
+@jwt_required()
+def get_picture_avatar():
+    try:
+        user_id = get_jwt_identity()
+        user = User.query.filter(User.id == user_id).first()
+        if user.picture is None:
+            file_path = FILE_PATH + "model-picture.jpg"
+        else:
+            file_path = FILE_PATH_AVATAR + user.picture
         if not os.path.isfile(file_path):
             return send_error(message='File not found')
         file = os.path.abspath(file_path)
