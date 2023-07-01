@@ -79,6 +79,7 @@ class User(db.Model):
     address = db.Column(db.Text(collation='utf8mb4_unicode_ci'), nullable=True)
     admin = db.Column(db.Integer, default=0)
     created_date = db.Column(db.Integer, default=0)
+    picture = db.Column(db.Text(), nullable=True)
 
 
 class CartItems(db.Model):

@@ -16,33 +16,48 @@ from app.models import db, Product, User, Orders, OrderItems, CartItems
 api = Blueprint('picture', __name__)
 
 FILE_PATH = "app/files/"
+FILE_PATH_PRODUCT = "app/files/product"
+FILE_PATH_AVATAR = "app/files/avatar"
 
 
-@api.route('/<product_id>', methods=['POST'])
+@api.route('', methods=['POST'])
 @jwt_required()
-def upload_picture(product_id):
+def upload_picture():
     try:
+        where = request.args.get('where', '', type=str)
         user_id = get_jwt_identity()
-        jwt = get_jwt()
-        user = User.query.filter(User.id == user_id).first()
-        if user.admin == 0 or (not jwt.get("is_admin")):
-            return send_result(message="Bạn không phải admin.")
-        product = Product.query.filter(Product.id == product_id).first()
-        if product is None:
-            return send_error(message="F5 Web")
         file = request.files['file']
         filename, file_extension = os.path.splitext(file.filename)
-        file_name = secure_filename(product.id + file_extension)
-        if not os.path.exists(FILE_PATH):
-            os.makedirs(FILE_PATH)
+        if where == "product":
+            body_request = request.get_json()
+            product_id = body_request.get("product_id", "")
+            jwt = get_jwt()
+            user = User.query.filter(User.id == user_id).first()
+            if user.admin == 0 or (not jwt.get("is_admin")):
+                return send_result(message="Bạn không phải admin.")
+            product = Product.query.filter(Product.id == product_id).first()
+            if product is None:
+                return send_error(message="F5 Web")
+            file_name = secure_filename(product.id + file_extension)
+            if not os.path.exists(FILE_PATH_PRODUCT):
+                os.makedirs(FILE_PATH_PRODUCT)
+            file.save(os.path.join(FILE_PATH_PRODUCT + file_name))
+            product.picture = file_name
 
-        file.save(os.path.join(FILE_PATH + file_name))
-        product.picture = file_name
-        db.session.flush()
-        db.session.commit()
+        elif where == "user":
+            user = User.query.filter(User.id == user_id).first()
+            file_name = secure_filename(user.id + file_extension)
+            if not os.path.exists(FILE_PATH_AVATAR):
+                os.makedirs(FILE_PATH_AVATAR)
+            file.save(os.path.join(FILE_PATH_AVATAR + file_name))
+            user.picture = file_name
+        else:
+            return send_error(message="Param failed")
         dt = {
             "file_url": file_name
         }
+        db.session.flush()
+        db.session.commit()
         return send_result(data=dt, message="Ok")
     except Exception as ex:
         db.session.rollback()
