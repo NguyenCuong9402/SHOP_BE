@@ -10,7 +10,7 @@ import io
 from app.api.v1.picture import FILE_PATH
 from app.models import db, Product, User, Orders, OrderItems, CartItems
 from app.schema import ProductSchema
-from app.utils import send_error, get_timestamp_now, send_result
+from app.utils import send_error, get_timestamp_now, send_result, escape_wildcard
 
 api = Blueprint('product', __name__)
 
@@ -53,8 +53,30 @@ def add_product():
 @api.route("", methods=["GET"])
 def get_list_item():
     try:
-        product = Product.query.filter().order_by(desc(Product.created_date)).all()
-        data = ProductSchema(many=True).dump(product)
+        type = request.args.get('type', '', type=str)
+        text_search = request.args.get('text_search', '', type=str)
+        order_by = request.args.get('order_by', '', type=str)
+        order = request.args.get('order', 'desc', type=str)
+        if order_by == "":
+            order_by = "created_date"
+        if order == "":
+            order = "desc"
+
+        if type == "":
+            query = Product.query.filter()
+        else:
+            if type not in ["quan", "ao", "thatlung"]:
+                return send_error(message="Invalid request", is_dynamic=True)
+            query = Product.query.filter(Product.type == type)
+        if text_search is not None:
+            text_search = text_search.strip()
+            text_search = text_search.lower()
+            text_search = escape_wildcard(text_search)
+            text_search = "%{}%".format(text_search)
+            query = query.filter(Product.name.like(text_search))
+        column_sorted = getattr(Product, order_by)
+        query = query.order_by(desc(column_sorted)) if order == "desc" else query.order_by(asc(column_sorted))
+        data = ProductSchema(many=True).dump(query.all())
         return send_result(data=data)
     except Exception as ex:
         return send_error(message=str(ex))
@@ -128,6 +150,7 @@ def remove_item():
 @api.route("/<product_id>", methods=["GET"])
 def get_item(product_id):
     try:
+
         check_item = Product.query.filter(Product.id == product_id).first()
         if check_item is None:
             return send_error(message="Sản phẩm không tồn tại, F5 lại web", is_dynamic=True)

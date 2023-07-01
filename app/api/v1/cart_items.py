@@ -21,8 +21,8 @@ def add_item_to_cart(product_id):
         user_id = get_jwt_identity()
         body_request = request.get_json()
         quantity = body_request.get("quantity", 1)
-        size = body_request.get("size", "")
-        color = body_request.get("color", "")
+        size = body_request.get("size", "").upper()
+        color = body_request.get("color", "").lower()
         if size == "":
             size = "M"
         if color == "":
