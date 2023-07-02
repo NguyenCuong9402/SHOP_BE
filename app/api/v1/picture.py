@@ -82,7 +82,7 @@ def get_picture(product_id):
         return send_error(message=str(ex))
 
 
-@api.route('', methods=['GET'])
+@api.route('/avatar', methods=['GET'])
 @jwt_required()
 def get_picture_avatar():
     try:
