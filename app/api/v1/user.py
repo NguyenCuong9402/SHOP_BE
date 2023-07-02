@@ -108,14 +108,14 @@ def change_pass():
     try:
         user_id = get_jwt_identity()
         body_request = request.get_json()
-        new_password_one = body_request.get("new_password_one", "")
-        new_password_two = body_request.get("new_password_two", "")
-        if new_password_two != new_password_two:
-            return send_error(message="Mời điền lại mật khẩu mới")
-        if new_password_one == "":
+        old_password = body_request.get("old_password", "")
+        new_password = body_request.get("new_password", "")
+        if new_password == "" or old_password == "":
             return send_error(message="Không để trống mật khẩu", is_dynamic=True)
         user = User.query.filter(User.id == user_id).first()
-        user.password = new_password_two
+        if user.password != old_password:
+            return send_error(message=" Password sai, xin moi nhap lai.")
+        user.password = new_password
         db.session.commit()
         jti = get_jwt()["jti"]
         BLOCKLIST.add(jti)
@@ -124,6 +124,23 @@ def change_pass():
         db.session.rollback()
         return send_error(message=str(ex))
 
+
+@api.route("created-admin", methods=["POST"])
+@jwt_required()
+def add_admin():
+    try:
+        jwt = get_jwt()
+        user_id = get_jwt_identity()
+        user = User.query.filter(User.id == user_id).first()
+        if user.admin == 0 or (not jwt.get("is_admin")):
+            return send_result(message="Bạn không phải admin.")
+        body_request = request.get_json()
+        email = body_request.get("email", "")
+        password = body_request.get("password", "")
+        admin = body_request.get("admin", False)
+    except Exception as ex:
+        db.session.rollback()
+        return send_error(message=str(ex))
 
 
 

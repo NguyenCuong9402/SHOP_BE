@@ -57,7 +57,7 @@ def create_app():
     @jwt.additional_claims_loader
     def add_claims_to_jwt(identity):
         user = User.query.filter(User.id == identity).first()
-        if user.admin == 1:
+        if user.admin != 0:
             return {"is_admin": True}
         return {"is_admin": False}
 
