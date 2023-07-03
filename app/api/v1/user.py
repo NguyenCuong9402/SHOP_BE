@@ -72,7 +72,7 @@ def login():
                 return send_error(message="Tài khoản admin!", is_dynamic=True)
         access_token = create_access_token(identity=user.id, fresh=True)
         refresh_token = create_refresh_token(user.id)
-        return {"access_token": access_token, "refresh_token": refresh_token}
+        return send_result(data={"access_token": access_token, "refresh_token": refresh_token})
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
