@@ -13,6 +13,7 @@ class ProductSchema(Schema):
     type = fields.String()
     describe = fields.String()
     created_date = fields.Integer()
+    picture = fields.String()
 
 
 class OrderItemsSchema(Schema):
@@ -50,6 +51,7 @@ class UserSchema(Schema):
     phone_number = fields.String()
     address = fields.String()
     created_date = fields.Integer()
+    picture = fields.String()
 
 
 class ReviewsSchema(Schema):
