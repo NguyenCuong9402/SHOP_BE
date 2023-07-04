@@ -9,6 +9,7 @@ from app.models import db, Product, User, Orders, OrderItems, CartItems
 
 from app.utils import send_error, get_timestamp_now, send_result
 
+from DuAnCntt.app.schema import UserSchema
 
 api = Blueprint('user', __name__)
 
@@ -72,9 +73,10 @@ def login():
                 return send_error(message="Sai mật khẩu, vui lòng đăng nhập lại!", is_dynamic=True)
             if user.admin == 1:
                 return send_error(message="Tài khoản admin!", is_dynamic=True)
-        access_token = create_access_token(identity=user.id, fresh=True)
+        access_token = create_access_token(identity=user.id, fresh=True, expires_delta=False)
         refresh_token = create_refresh_token(user.id)
-        return send_result(data={"access_token": access_token, "refresh_token": refresh_token})
+        return send_result(data={"access_token": access_token, "refresh_token": refresh_token,
+                                 "user": UserSchema().dump(user)})
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
