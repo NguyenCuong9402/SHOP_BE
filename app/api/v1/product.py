@@ -76,8 +76,20 @@ def get_list_item():
             query = query.filter(Product.name.like(text_search))
         column_sorted = getattr(Product, order_by)
         query = query.order_by(desc(column_sorted)) if order == "desc" else query.order_by(asc(column_sorted))
-        data = ProductSchema(many=True).dump(query.all())
-        return send_result(data=data)
+        products = query.paginate(page=1, per_page=21, error_out=False).items
+
+        total = query.count()
+
+        extra = 1 if (total % 20) else 0
+        total_pages = int(total / 20) + extra
+
+        results = {
+            "products": ProductSchema(many=True).dump(products),
+            "total": total,
+            "total_pages": total_pages
+        }
+
+        return send_result(data=results)
     except Exception as ex:
         return send_error(message=str(ex))
 
