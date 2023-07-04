@@ -45,8 +45,7 @@ class HistoryOrdersSchema(Schema):
 
 class UserSchema(Schema):
     id = fields.String()
-
-    name = fields.Integer()
+    name_user = fields.String()
     phone_number = fields.String()
     address = fields.String()
     created_date = fields.Integer()
