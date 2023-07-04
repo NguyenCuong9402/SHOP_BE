@@ -22,6 +22,8 @@ def register():
         address = body_request.get("address", "")
         email = body_request.get("email", "")
         password = body_request.get("password", "")
+        if name_user == "" or phone_number == "" or address == "" or email == "email" or password =="":
+            return send_error(message="Yêu cầu nhập thông tin")
         check_user = User.query.filter(User.email == email).first()
         if check_user:
             return send_error(message="Email đã tồn tại", is_dynamic=True)
