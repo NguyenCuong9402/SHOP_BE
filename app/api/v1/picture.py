@@ -52,13 +52,12 @@ def upload_picture(product_id):
 
 @api.route('/avatar', methods=['POST'])
 @jwt_required()
-def upload_picture():
+def upload_picture_avatar():
     try:
         user_id = get_jwt_identity()
         file = request.files['file']
-        filename, file_extension = os.path.splitext(file.filename)
         user = User.query.filter(User.id == user_id).first()
-
+        filename, file_extension = os.path.splitext(file.filename)
         file_name = secure_filename(user.id + file_extension)
         if not os.path.exists(FILE_PATH_AVATAR):
             os.makedirs(FILE_PATH_AVATAR)
