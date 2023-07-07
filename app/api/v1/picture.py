@@ -92,11 +92,9 @@ def get_picture(product_id):
         return send_error(message=str(ex))
 
 
-@api.route('/avatar', methods=['GET'])
-@jwt_required()
-def get_picture_avatar():
+@api.route('/avatar/<user_id>', methods=['GET'])
+def get_picture_avatar(user_id):
     try:
-        user_id = get_jwt_identity()
         user = User.query.filter(User.id == user_id).first()
         if user.picture is None:
             file_path = FILE_PATH + "model-picture.jpg"
