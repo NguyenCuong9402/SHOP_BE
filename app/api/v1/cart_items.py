@@ -135,4 +135,16 @@ def put_item_to_cart(cart_item_id):
         return send_error(message=str(ex))
 
 
+@api.route("", methods=["GET"])
+@jwt_required()
+def get_item_to_cart():
+    try:
+        user_id = get_jwt_identity()
+        cart = CartItems.query.filter(CartItems.user_id == user_id).order_by(asc(CartItems.created_date)).all()
+
+
+
+    except Exception as ex:
+        return send_error(message=str(ex))
+
 

@@ -9,7 +9,7 @@ from app.models import db, Product, User, Orders, OrderItems, CartItems
 
 from app.utils import send_error, get_timestamp_now, send_result
 
-from DuAnCntt.app.schema import UserSchema
+from app.schema import UserSchema
 
 api = Blueprint('user', __name__)
 

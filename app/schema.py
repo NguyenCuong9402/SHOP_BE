@@ -58,3 +58,13 @@ class ReviewsSchema(Schema):
     comment = fields.String()
     created_date = fields.Integer()
 
+
+class CartItemsSchema(Schema):
+    id = fields.String()
+    product_id = fields.Integer()
+    name_product = fields.String()
+    created_date = fields.Integer()
+    quantity = fields.Integer()
+    size = fields.String()
+    color = fields.String()
+

@@ -94,6 +94,11 @@ class CartItems(db.Model):
     color = db.Column(db.String(50), nullable=True)
     created_date = db.Column(db.Integer, default=0)
 
+    @hybrid_property
+    def name_product(self):
+        product = Product.query.filter(Product.id == self.product_id).first()
+        return product.name
+
 
 class Reviews(db.Model):
     __tablename__ = 'reviews'
