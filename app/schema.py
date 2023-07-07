@@ -24,6 +24,7 @@ class OrderItemsSchema(Schema):
     color = fields.String()
     created_date = fields.Integer()
     product_name = fields.String()
+    count = fields.Integer()
 
 
 class OrdersSchema(Schema):

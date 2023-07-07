@@ -130,7 +130,7 @@ def get_order():
     try:
         user_id = get_jwt_identity()
         orders = Orders.query.filter(Orders.user_id == user_id).order_by(desc(Orders.created_date)).all()
-        data = HistoryOrdersSchema(many=True).dumps(orders)
+        data = HistoryOrdersSchema(many=True).dump(orders)
         return send_result(data=data, message="oke", show=True)
     except Exception as ex:
         db.session.rollback()
@@ -143,7 +143,7 @@ def get_order_detail(order_id):
     try:
         user_id = get_jwt_identity()
         orders = OrderItems.query.filter(OrderItems.order_id == order_id).order_by(desc(OrderItems.created_date)).all()
-        data = OrderItemsSchema(many=True).dumps(orders)
+        data = OrderItemsSchema(many=True).dump(orders)
         return send_result(data=data, message="oke", show=True)
     except Exception as ex:
         db.session.rollback()
