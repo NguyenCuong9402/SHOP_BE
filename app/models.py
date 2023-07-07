@@ -99,10 +99,10 @@ class CartItems(db.Model):
         product = Product.query.filter(Product.id == self.product_id).first()
         return product.name
 
-    def count(self):
+    @hybrid_property
+    def price(self):
         product = Product.query.filter(Product.id == self.product_id).first()
-        count = self.quantity*product.price
-        return count
+        return product.price*self.quantity
 
 
 class Reviews(db.Model):

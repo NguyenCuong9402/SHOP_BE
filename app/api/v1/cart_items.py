@@ -135,8 +135,8 @@ def put_item_to_cart(cart_item_id):
 def get_item_to_cart():
     try:
         user_id = get_jwt_identity()
-        cart = CartItems.query.filter(CartItems.user_id == user_id).order_by(desc(CartItems.created_date)).all()
-        data = CartItemsSchema(many=True).dump(cart)
+        carts = CartItems.query.filter(CartItems.user_id == user_id).order_by(desc(CartItems.created_date))
+        data = CartItemsSchema(many=True).dump(carts)
 
         return send_result(data=data)
     except Exception as ex:
