@@ -60,7 +60,8 @@ def add_order():
         CartItems.query.filter(CartItems.user_id == user_id).delete()
         db.session.flush()
         db.session.commit()
-        return send_result(data=count, message="Đơn hàng đã được đặt!", show=True)
+        return send_result(data=count, message=f"Đơn hàng đã được đặt! \n"
+                                               f" Hóa đơn của bạn là {count}", show=True)
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
