@@ -23,6 +23,7 @@ class OrderItemsSchema(Schema):
     size = fields.String()
     color = fields.String()
     created_date = fields.Integer()
+    product_name = fields.String()
 
 
 class OrdersSchema(Schema):

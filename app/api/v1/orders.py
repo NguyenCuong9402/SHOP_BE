@@ -2,10 +2,12 @@ import os
 import uuid
 from flask import Blueprint, request, make_response, send_file, Response
 from flask_jwt_extended import get_jwt_identity, jwt_required
-from sqlalchemy import asc
+from sqlalchemy import asc, desc
 from io import BytesIO
 import datetime
 import io
+
+from app.schema import HistoryOrdersSchema, OrderItemsSchema
 from app.utils import send_error, get_timestamp_now, send_result
 from app.models import db, Product, User, Orders, OrderItems, CartItems
 
@@ -117,6 +119,32 @@ def order_now():
         db.session.flush()
         db.session.commit()
         return send_result(message="Đặt hàng thành công", show=True)
+    except Exception as ex:
+        db.session.rollback()
+        return send_error(message=str(ex))
+
+
+@api.route("", methods=["GET"])
+@jwt_required()
+def get_order():
+    try:
+        user_id = get_jwt_identity()
+        orders = Orders.query.filter(Orders.user_id == user_id).order_by(desc(Orders.created_date)).all()
+        data = HistoryOrdersSchema(many=True).dumps(orders)
+        return send_result(data=data, message="oke", show=True)
+    except Exception as ex:
+        db.session.rollback()
+        return send_error(message=str(ex))
+
+
+@api.route("/<order_id>", methods=["GET"])
+@jwt_required()
+def get_order_detail(order_id):
+    try:
+        user_id = get_jwt_identity()
+        orders = OrderItems.query.filter(OrderItems.order_id == order_id).order_by(desc(OrderItems.created_date)).all()
+        data = OrderItemsSchema(many=True).dumps(orders)
+        return send_result(data=data, message="oke", show=True)
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))

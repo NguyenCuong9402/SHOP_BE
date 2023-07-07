@@ -68,6 +68,11 @@ class OrderItems(db.Model):
     color = db.Column(db.String(50), nullable=True)
     created_date = db.Column(db.Integer, default=0)
 
+    @hybrid_property
+    def product_name(self):
+        product = Product.query.filter(Product.id == self.product_id).first()
+        return product.name
+
 
 class User(db.Model):
     __tablename__ = 'user'
