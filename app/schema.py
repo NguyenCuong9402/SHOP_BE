@@ -63,6 +63,7 @@ class CartItemsSchema(Schema):
     id = fields.String()
     product_id = fields.Integer()
     name_product = fields.String()
+    count = fields.Integer()
     created_date = fields.Integer()
     quantity = fields.Integer()
     size = fields.String()

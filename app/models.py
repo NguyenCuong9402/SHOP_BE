@@ -99,6 +99,11 @@ class CartItems(db.Model):
         product = Product.query.filter(Product.id == self.product_id).first()
         return product.name
 
+    def count(self):
+        product = Product.query.filter(Product.id == self.product_id).first()
+        count = self.quantity*product.price
+        return count
+
 
 class Reviews(db.Model):
     __tablename__ = 'reviews'
