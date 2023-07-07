@@ -159,5 +159,28 @@ def get_user():
         return send_error(message=str(ex))
 
 
+@api.route("/update", methods=["PUT"])
+@jwt_required()
+def update_user():
+    try:
+        user_id = get_jwt_identity()
+        body_request = request.get_json()
+        name_user = body_request.get("name_user", "")
+        phone_number = body_request.get("phone_number", "")
+        address = body_request.get("address", "")
+        if name_user =="" or phone_number == "" or address == "":
+            return send_error(message="Data empty")
+        user = User.query.filter(User.id == user_id).first()
+        user.name_user = name_user
+        user.address = address
+        user.phone_number = phone_number
+        db.session.flush()
+        db.session.commit()
+        return send_result(message="oke")
+    except Exception as ex:
+        return send_error(message=str(ex))
+
+
+
 
 
