@@ -19,7 +19,6 @@ def add_order():
     try:
         user_id = get_jwt_identity()
         body_request = request.get_json()
-        cart_item_ids = body_request.get("cart_item_ids", [])
         phone_number = body_request.get("phone_number", "")
         address = body_request.get("address", "")
         user = User.query.filter(User.id == user_id).first()
@@ -27,11 +26,9 @@ def add_order():
             phone_number = user.phone_number
         if address == "":
             address = user.address
-        if len(cart_item_ids) == 0:
-            return send_error(message="Bạn chưa chọn món hàng nào để thanh toán", is_dynamic=True)
-        cart_items = CartItems.query.filter(CartItems.id.in_(cart_item_ids)).all()
-        if len(cart_items) != len(cart_item_ids):
-            return send_error(message="Lỗi FE")
+        cart_items = CartItems.query.filter(CartItems.user_id == user_id).all()
+        if len(cart_items) == 0:
+            return send_error(message="Bạn chưa có đơn hàng nào")
         order = Orders(
             id=str(uuid.uuid4()),
             user_id=user_id,
@@ -60,7 +57,7 @@ def add_order():
             count = count + count_order_item
         order.count = count
         # Xóa item trong giỏ hàng sau khi đặt hàng
-        CartItems.query.filter(CartItems.id.in_(cart_item_ids)).delete()
+        CartItems.query.filter(CartItems.user_id == user_id).delete()
         db.session.flush()
         db.session.commit()
         return send_result(data=count, message="Đơn hàng đã được đặt!", show=True)
