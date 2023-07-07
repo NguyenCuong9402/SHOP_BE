@@ -81,7 +81,7 @@ def get_picture(product_id):
         if product is None:
             return send_error(message="Sản phẩm không tồn tại")
         if product.picture is None:
-            file_path = FILE_PATH + "model-picture"
+            file_path = FILE_PATH + "model-picture.jpg"
         else:
             file_path = FILE_PATH_PRODUCT + product.picture
         if not os.path.isfile(file_path):
