@@ -2,14 +2,13 @@ import os
 import uuid
 from flask import Blueprint, request, make_response, send_file, Response
 from flask_jwt_extended import get_jwt_identity, jwt_required
-from sqlalchemy import asc
+from sqlalchemy import asc, desc
 from io import BytesIO
 import datetime
 import io
 from app.models import db, Product, User, Orders, OrderItems, CartItems
 from app.utils import send_error, get_timestamp_now, send_result
-from app.schema import ProductSchema
-
+from app.schema import ProductSchema, CartItemsSchema
 
 api = Blueprint('cart_items', __name__)
 
@@ -140,10 +139,9 @@ def put_item_to_cart(cart_item_id):
 def get_item_to_cart():
     try:
         user_id = get_jwt_identity()
-        cart = CartItems.query.filter(CartItems.user_id == user_id).order_by(asc(CartItems.created_date)).all()
-
-
-
+        cart = CartItems.query.filter(CartItems.user_id == user_id).order_by(desc(CartItems.created_date)).all()
+        data = CartItemsSchema(many=True).dump(cart)
+        return send_result(data=data)
     except Exception as ex:
         return send_error(message=str(ex))
 
