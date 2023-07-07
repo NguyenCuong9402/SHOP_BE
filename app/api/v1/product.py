@@ -65,7 +65,7 @@ def get_list_item():
         if type == "":
             query = Product.query.filter()
         else:
-            if type not in ["quan", "ao", "thatlung"]:
+            if type not in ["quan", "ao", "phukien"]:
                 return send_error(message="Invalid request", is_dynamic=True)
             query = Product.query.filter(Product.type == type)
         if text_search is not None:
@@ -76,17 +76,9 @@ def get_list_item():
             query = query.filter(Product.name.like(text_search))
         column_sorted = getattr(Product, order_by)
         query = query.order_by(desc(column_sorted)) if order == "desc" else query.order_by(asc(column_sorted))
-        products = query.paginate(page=1, per_page=21, error_out=False).items
-
-        total = query.count()
-
-        extra = 1 if (total % 20) else 0
-        total_pages = int(total / 20) + extra
-
+        products = query.all()
         results = {
             "products": ProductSchema(many=True).dump(products),
-            "total": total,
-            "total_pages": total_pages
         }
 
         return send_result(data=results)

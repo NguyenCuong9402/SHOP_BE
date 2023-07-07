@@ -168,7 +168,7 @@ def update_user():
         name_user = body_request.get("name_user", "")
         phone_number = body_request.get("phone_number", "")
         address = body_request.get("address", "")
-        if name_user =="" or phone_number == "" or address == "":
+        if name_user == "" or phone_number == "" or address == "":
             return send_error(message="Data empty")
         user = User.query.filter(User.id == user_id).first()
         user.name_user = name_user
@@ -176,7 +176,7 @@ def update_user():
         user.phone_number = phone_number
         db.session.flush()
         db.session.commit()
-        return send_result(message="oke")
+        return send_result(data=UserSchema().dump(user))
     except Exception as ex:
         return send_error(message=str(ex))
 
