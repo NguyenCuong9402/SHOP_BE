@@ -7,7 +7,7 @@ from io import BytesIO
 import datetime
 import io
 
-from app.api.v1.picture import FILE_PATH
+from app.api.v1.picture import FILE_PATH, FILE_PATH_PRODUCT
 from app.models import db, Product, User, Orders, OrderItems, CartItems
 from app.schema import ProductSchema
 from app.utils import send_error, get_timestamp_now, send_result, escape_wildcard
@@ -130,11 +130,12 @@ def remove_item(product_id):
         if user.admin == 0 or (not jwt.get("is_admin")):
             return send_result(message="Bạn không phải admin.")
         check_item = Product.query.filter(Product.id == product_id).first()
-        file_path = FILE_PATH + check_item.picture
-        if os.path.exists(os.path.join(file_path)):
-            os.remove(file_path)
         if check_item is None:
             return send_error(message="Sản phẩm không tồn tại, F5 lại web", is_dynamic=True)
+        if check_item.picture is not None and check_item.picture != "":
+            file_path = FILE_PATH_PRODUCT + check_item.picture
+            if os.path.exists(os.path.join(file_path)):
+                os.remove(file_path)
         Product.query.filter(Product.id == product_id).delete()
         db.session.flush()
         db.session.commit()
