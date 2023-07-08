@@ -52,6 +52,7 @@ class UserSchema(Schema):
     address = fields.String()
     created_date = fields.Integer()
     picture = fields.String()
+    admin = fields.Integer()
 
 
 class ReviewsSchema(Schema):
