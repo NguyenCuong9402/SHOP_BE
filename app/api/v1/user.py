@@ -28,6 +28,9 @@ def register():
         check_user = User.query.filter(User.email == email).first()
         if check_user:
             return send_error(message="Email đã tồn tại", is_dynamic=True)
+        user_phone_number = User.query.filter(User.phone_number == phone_number).first()
+        if user_phone_number:
+            return send_error(message="SĐT đã được đăng ký, vui lòng thay đổi SĐT")
         user = User(
             id=str(uuid.uuid4()),
             email=email,
@@ -141,7 +144,29 @@ def add_admin():
         body_request = request.get_json()
         email = body_request.get("email", "")
         password = body_request.get("password", "")
-        admin = body_request.get("admin", False)
+        name_user = body_request.get("name_user", "")
+        phone_number = body_request.get("phone_number", "")
+        address = body_request.get("address", "")
+        user_admin = User.query.filter(User.email == email).first()
+        if user_admin:
+            return send_error(message="Email đã được đăng ký, vui lòng thay đổi Email")
+        user_admin_phone_number = User.query.filter(User.phone_number == phone_number).first()
+        if user_admin_phone_number:
+            return send_error(message="SĐT đã được đăng ký, vui lòng thay đổi SĐT")
+        user = User(
+            id=str(uuid.uuid4()),
+            email=email,
+            password=password,
+            phone_number=phone_number,
+            address=address,
+            name_user=name_user,
+            created_date=get_timestamp_now(),
+            admin=1
+        )
+        db.session.add(user)
+        db.session.flush()
+        db.session.commit()
+        return send_result(message="Đăng ký toàn khoản thành công", show=True)
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
@@ -179,6 +204,7 @@ def update_user():
         return send_result(data=UserSchema().dump(user))
     except Exception as ex:
         return send_error(message=str(ex))
+
 
 
 
