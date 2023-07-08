@@ -120,29 +120,22 @@ def fix_item(product_id):
         return send_error(message=str(ex))
 
 
-@api.route("/", methods=["DELETE"])
+@api.route("/<product_id>", methods=["DELETE"])
 @jwt_required()
-def remove_item():
+def remove_item(product_id):
     try:
         jwt = get_jwt()
         user_id = get_jwt_identity()
         user = User.query.filter(User.id == user_id).first()
         if user.admin == 0 or (not jwt.get("is_admin")):
             return send_result(message="Bạn không phải admin.")
-        body_request = request.get_json()
-        product_ids = body_request.get("product_ids", [])
-        if len(product_ids) == 0:
-            return send_error(message="Chưa chọn sản phẩm để xóa", is_dynamic=True)
-        check_item = Product.query.filter(Product.id.in_(product_ids)).all()
-        for item in check_item:
-            file_path = FILE_PATH + item.picture
-            if os.path.exists(os.path.join(file_path)):
-                os.remove(file_path)
+        check_item = Product.query.filter(Product.id == product_id).first()
+        file_path = FILE_PATH + check_item.picture
+        if os.path.exists(os.path.join(file_path)):
+            os.remove(file_path)
         if check_item is None:
             return send_error(message="Sản phẩm không tồn tại, F5 lại web", is_dynamic=True)
-        if len(check_item) != len(product_ids):
-            return send_error(message="Lỗi FE", is_dynamic=True)
-        Product.query.filter(Product.id.in_(product_ids)).delete()
+        Product.query.filter(Product.id == product_id).delete()
         db.session.flush()
         db.session.commit()
         return send_result(message="Xóa sản phẩm thành công", show=True)

@@ -80,7 +80,7 @@ def get_picture(product_id):
         product = Product.query.filter(Product.id == product_id).first()
         if product is None:
             return send_error(message="Sản phẩm không tồn tại")
-        if product.picture is None:
+        if product.picture is None or product.picture == "":
             file_path = FILE_PATH + "model-picture.jpg"
         else:
             file_path = FILE_PATH_PRODUCT + product.picture
@@ -96,7 +96,7 @@ def get_picture(product_id):
 def get_picture_avatar(user_id):
     try:
         user = User.query.filter(User.id == user_id).first()
-        if user.picture is None:
+        if user.picture is None or user.picture =="":
             file_path = FILE_PATH + "model-picture.jpg"
         else:
             file_path = FILE_PATH_AVATAR + user.picture
