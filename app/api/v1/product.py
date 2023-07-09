@@ -118,6 +118,8 @@ def fix_item(product_id):
         file = request.files.get('file', None)
         name = request.form.get('name', '')
         price_str = request.form.get('price', 0)
+        if price_str == "":
+            price_str = 0
         price = int(price_str)
         type_item = request.form.get('type_item', '')
         describe = request.form.get('describe', '')
