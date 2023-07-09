@@ -7,6 +7,8 @@ from io import BytesIO
 import datetime
 import io
 
+from werkzeug.utils import secure_filename
+
 from app.api.v1.picture import FILE_PATH, FILE_PATH_PRODUCT
 from app.models import db, Product, User, Orders, OrderItems, CartItems
 from app.schema import ProductSchema
@@ -24,23 +26,41 @@ def add_product():
         user = User.query.filter(User.id == user_id).first()
         if user.admin == 0 or (not jwt.get("is_admin")):
             return send_result(message="Bạn không phải admin.")
-        body_request = request.get_json()
-        name = body_request.get("name", "")
-        price = body_request.get("price", 0)
-        type_item = body_request.get("type")
-        describe = body_request.get("describe")
-        if name == "" or price <= 0 or type_item == "":
-            return send_result(message="Vui lòng điền thêm thông tin", show=True)
+        file = request.files.get('file', None)
+        name = request.form.get('name', '')
+        price = request.form.get('price', 0)
+        type_item = request.form.get('type_item', '')
+        describe = request.form.get('describe', '')
+
+        if name == "" or int(price) <= 0 or type_item not in ["ao","quan","phukien"]:
+            return send_error(message="Vui lòng điền thêm thông tin", show=True)
         if check_coincided_name(name):
             return send_error(message="Tên sản phẩm đã tồn tại", is_dynamic=True)
-        product = Product(
-            id=str(uuid.uuid4()),
-            name=name,
-            price=price,
-            type=type_item,
-            describe=describe,
-            created_date=get_timestamp_now()
-        )
+        if file is None:
+            product = Product(
+                id=str(uuid.uuid4()),
+                name=name,
+                price=int(price),
+                type=type_item,
+                describe=describe,
+                created_date=get_timestamp_now()
+            )
+        else:
+            filename, file_extension = os.path.splitext(file.filename)
+            id_product = str(uuid.uuid4())
+            file_name = secure_filename(id_product + file_extension)
+            if not os.path.exists(FILE_PATH_PRODUCT):
+                os.makedirs(FILE_PATH_PRODUCT)
+            file.save(os.path.join(FILE_PATH_PRODUCT + file_name))
+            product = Product(
+                id=id_product,
+                name=name,
+                price=int(price),
+                type=type_item,
+                describe=describe,
+                created_date=get_timestamp_now(),
+                picture=file_name
+            )
         db.session.add(product)
         db.session.flush()
         db.session.commit()
