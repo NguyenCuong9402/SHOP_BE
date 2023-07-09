@@ -115,25 +115,48 @@ def fix_item(product_id):
         user = User.query.filter(User.id == user_id).first()
         if user.admin == 0 or (not jwt.get("is_admin")):
             return send_result(message="Bạn không phải admin.")
-        body_request = request.get_json()
-        name = body_request.get("name", "")
-        price = body_request.get("price", 0)
-        type_item = body_request.get("type", "")
-        describe = body_request.get("describe", "")
-        check_item = Product.query.filter(Product.id == product_id).first()
-        if check_item is None:
-            return send_error(message="Sản phẩm không tồn tại, F5 lại web", is_dynamic=True)
+        file = request.files.get('file', None)
+        name = request.form.get('name', '')
+        price_str = request.form.get('price', 0)
+        price = int(price_str)
+        type_item = request.form.get('type_item', '')
+        describe = request.form.get('describe', '')
+        if price <= 0:
+            return send_error(message="Giá không hơp lệ", show=True)
+        if type_item not in ["ao", "quan", "phukien"]:
+            return send_error(message="Type không hơp lệ", show=True)
+        product = Product.query.filter(Product.id == product_id).first()
+        if product is None:
+            return send_error(message="Sản phẩm không tồn tại")
+        if check_coincided_name_product(name=name, product_id=product_id):
+            return send_error(message="Tên sản phẩm đã tồn tại", is_dynamic=True)
         if name != "":
-            check_item.name = name
+            product.name = name
+            db.session.flush()
+
         if price != 0:
-            check_item.price = price
-        if type_item != "":
-            check_item.type = type_item
+            product.price = price
+            db.session.flush()
+
         if describe != "":
-            check_item.describe = describe
-        db.session.flush()
+            product.describe = describe
+            db.session.flush()
+
+        if type_item != "":
+            product.type = type_item
+            db.session.flush()
+
+        if file:
+            filename, file_extension = os.path.splitext(file.filename)
+            id_product = str(uuid.uuid4())
+            file_name = secure_filename(id_product + file_extension)
+            if not os.path.exists(FILE_PATH_PRODUCT):
+                os.makedirs(FILE_PATH_PRODUCT)
+            file.save(os.path.join(FILE_PATH_PRODUCT + file_name))
+            product.price = file_name
+            db.session.flush()
         db.session.commit()
-        return send_result(data=ProductSchema().dump(check_item),
+        return send_result(data=ProductSchema().dump(product),
                            message="Thay đổi thông tin sản phẩm thành công", show=True)
     except Exception as ex:
         db.session.rollback()
@@ -181,6 +204,13 @@ def get_item(product_id):
 
 def check_coincided_name(name=''):
     existed_name = Product.query.filter(Product.name == name).first()
+    if existed_name is None:
+        return False
+    return True
+
+
+def check_coincided_name_product(name='', product_id=''):
+    existed_name = Product.query.filter(Product.name == name, Product.id != product_id).first()
     if existed_name is None:
         return False
     return True
