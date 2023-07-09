@@ -123,7 +123,7 @@ def fix_item(product_id):
         describe = request.form.get('describe', '')
         if price <= 0:
             return send_error(message="Giá không hơp lệ", show=True)
-        if type_item not in ["ao", "quan", "phukien"]:
+        if type_item not in ["ao", "quan", "phukien", ""]:
             return send_error(message="Type không hơp lệ", show=True)
         product = Product.query.filter(Product.id == product_id).first()
         if product is None:
@@ -153,7 +153,7 @@ def fix_item(product_id):
             if not os.path.exists(FILE_PATH_PRODUCT):
                 os.makedirs(FILE_PATH_PRODUCT)
             file.save(os.path.join(FILE_PATH_PRODUCT + file_name))
-            product.price = file_name
+            product.picture = file_name
             db.session.flush()
         db.session.commit()
         return send_result(data=ProductSchema().dump(product),
