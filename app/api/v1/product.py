@@ -118,12 +118,17 @@ def fix_item(product_id):
         file = request.files.get('file', None)
         name = request.form.get('name', '')
         price_str = request.form.get('price', 0)
+        type_item = request.form.get('type_item', '')
+        describe = request.form.get('describe', '')
+        if file is None and price_str == "" and name == "" and type_item == "" and describe == "":
+            return send_error(message="Bạn không thay đổi thông tin nào", show=True)
+        if price_str == "0":
+            return send_error(message="Giá không hơp lệ", show=True)
         if price_str == "":
             price_str = 0
         price = int(price_str)
-        type_item = request.form.get('type_item', '')
-        describe = request.form.get('describe', '')
-        if price <= 0:
+
+        if price < 0:
             return send_error(message="Giá không hơp lệ", show=True)
         if type_item not in ["ao", "quan", "phukien", ""]:
             return send_error(message="Type không hơp lệ", show=True)
