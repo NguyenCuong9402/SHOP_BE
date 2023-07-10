@@ -172,11 +172,27 @@ def add_admin():
         return send_error(message=str(ex))
 
 
+@api.route("/list-user", methods=["GET"])
+@jwt_required()
+def get_list_user():
+    try:
+        user_id = get_jwt_identity()
+        user = User.query.filter(User.id == user_id).first()
+        if user.admin == 0:
+            return send_result(message="Bạn không phải admin.")
+        users = User.query.filter().order_by(User.created_date).all()
+        data = UserSchema(many=True).dump(users)
+        return send_result(data=data)
+    except Exception as ex:
+        return send_error(message=str(ex))
+
+
 @api.route("", methods=["GET"])
 @jwt_required()
 def get_user():
     try:
         user_id = get_jwt_identity()
+
         user = User.query.filter(User.id == user_id).first()
         data = UserSchema().dump(user)
         return send_result(data=data)

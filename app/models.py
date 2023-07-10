@@ -85,6 +85,7 @@ class User(db.Model):
     admin = db.Column(db.Integer, default=0)
     created_date = db.Column(db.Integer, default=0)
     picture = db.Column(db.Text(), nullable=True)
+    count_money_buy = db.Column(db.Integer, default=0)
 
 
 class CartItems(db.Model):

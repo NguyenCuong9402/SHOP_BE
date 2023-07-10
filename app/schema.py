@@ -49,6 +49,7 @@ class UserSchema(Schema):
     id = fields.String()
     name_user = fields.String()
     phone_number = fields.String()
+    email = fields.String()
     address = fields.String()
     created_date = fields.Integer()
     picture = fields.String()
