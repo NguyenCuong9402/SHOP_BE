@@ -31,6 +31,8 @@ class Product(db.Model):
     type = db.Column(db.String(50), nullable=True)
     created_date = db.Column(db.Integer, default=0)
     picture = db.Column(db.Text(), nullable=True)
+    revenue = db.Column(db.Integer, default=0)
+    count_sold = db.Column(db.Integer, default=0)
 
 
 class Orders(db.Model):

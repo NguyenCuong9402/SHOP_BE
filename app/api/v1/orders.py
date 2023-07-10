@@ -43,6 +43,9 @@ def add_order():
         count = 0
         for cart_item in cart_items:
             product = Product.query.filter(Product.id == cart_item.product_id).first()
+            if product is None:
+                return send_error(message="Sản phẩm không tồn tại!")
+
             count_order_item = product.price*cart_item.quantity
             order_item = OrderItems(
                 id=str(uuid.uuid4()),
@@ -56,6 +59,7 @@ def add_order():
             )
             db.session.add(order_item)
             db.session.flush()
+
             count = count + count_order_item
         order.count = count
         user.count = user.count + count
