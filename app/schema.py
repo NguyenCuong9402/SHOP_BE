@@ -15,7 +15,7 @@ class ProductSchema(Schema):
     created_date = fields.Integer()
     picture = fields.String()
     count_sold = fields.Integer()
-    revenue_sold = fields.Integer()
+    revenue = fields.Integer()
 
 
 class OrderItemsSchema(Schema):

@@ -15,3 +15,19 @@ from app.schema import ProductSchema
 from app.utils import send_error, get_timestamp_now, send_result, escape_wildcard
 
 api = Blueprint('report', __name__)
+
+
+@api.route("", methods=["GET"])
+@jwt_required()
+def report():
+    try:
+        jwt = get_jwt()
+        user_id = get_jwt_identity()
+        user = User.query.filter(User.id == user_id).first()
+        if user.admin == 0 or (not jwt.get("is_admin")):
+            return send_result(message="Bạn không phải admin.")
+        products = Product.query.filter().order_by(desc(Product.revenue)).all()
+        data = ProductSchema(many=True).dump(products)
+        return send_result(data=data)
+    except Exception as ex:
+        return send_error(message=str(ex))
