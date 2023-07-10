@@ -59,8 +59,10 @@ def add_order():
             )
             db.session.add(order_item)
             db.session.flush()
-
             count = count + count_order_item
+            product.count_sold = product.count_sold + cart_item.quantity
+            product.revenue = count_order_item
+            db.session.flush()
         order.count = count
         user.count = user.count + count
         db.session.flush()
