@@ -61,10 +61,11 @@ def add_order():
             db.session.flush()
             count = count + count_order_item
             product.count_sold = product.count_sold + cart_item.quantity
+            db.session.flush()
             product.revenue = count_order_item
             db.session.flush()
         order.count = count
-        user.count = user.count + count
+        user.count_money_buy = user.count_money_buy + count
         db.session.flush()
         # Xóa item trong giỏ hàng sau khi đặt hàng
         CartItems.query.filter(CartItems.user_id == user_id).delete()
