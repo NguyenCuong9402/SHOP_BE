@@ -54,6 +54,7 @@ class UserSchema(Schema):
     created_date = fields.Integer()
     picture = fields.String()
     admin = fields.Integer()
+    count_money_buy = fields.Integer()
 
 
 class ReviewsSchema(Schema):

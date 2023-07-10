@@ -2,7 +2,7 @@ import os
 import uuid
 from flask import Blueprint, request, make_response, send_file, Response
 from flask_jwt_extended import get_jwt_identity, create_access_token, create_refresh_token, jwt_required, get_jwt
-from sqlalchemy import asc
+from sqlalchemy import asc, desc
 
 from app.blocklist import BLOCKLIST
 from app.models import db, Product, User, Orders, OrderItems, CartItems
@@ -180,7 +180,7 @@ def get_list_user():
         user = User.query.filter(User.id == user_id).first()
         if user.admin == 0:
             return send_result(message="Bạn không phải admin.")
-        users = User.query.filter().order_by(User.created_date).all()
+        users = User.query.filter(User.admin == 0).order_by(desc(User.count_money_buy)).all()
         data = UserSchema(many=True).dump(users)
         return send_result(data=data)
     except Exception as ex:
