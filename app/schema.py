@@ -6,6 +6,14 @@ from flask_marshmallow import Marshmallow
 ma = Marshmallow()
 
 
+class ReviewsSchema(Schema):
+    id = fields.String()
+    user_id = fields.String()
+    user_name = fields.String()
+    comment = fields.String()
+    created_date = fields.Integer()
+
+
 class ProductSchema(Schema):
     id = fields.String()
     name = fields.String()
@@ -16,6 +24,7 @@ class ProductSchema(Schema):
     picture = fields.String()
     count_sold = fields.Integer()
     revenue = fields.Integer()
+    reviews = fields.List(fields.Nested(ReviewsSchema))
 
 
 class OrderItemsSchema(Schema):
@@ -59,11 +68,7 @@ class UserSchema(Schema):
     count_money_buy = fields.Integer()
 
 
-class ReviewsSchema(Schema):
-    id = fields.String()
-    user_name = fields.String()
-    comment = fields.String()
-    created_date = fields.Integer()
+
 
 
 class CartItemsSchema(Schema):

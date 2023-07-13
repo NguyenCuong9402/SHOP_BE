@@ -19,6 +19,9 @@ def post_comment(product_id):
         user_id = get_jwt_identity()
         body_request = request.get_json()
         comment = body_request.get("comment", "")
+        user = User.query.filter(User.id == user_id).first()
+        if user is None:
+            return send_error(message="Mời bạn đang nhập lại")
         product = Product.query.filter(Product.id == product_id).first()
         if product is None:
             return send_error(message="Sản phẩm không tồn tại, F5 lại web", is_dynamic=True)
@@ -34,6 +37,7 @@ def post_comment(product_id):
         db.session.add(review)
         db.session.flush()
         db.session.commit()
+        return send_result(message="Comment thành công!")
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))

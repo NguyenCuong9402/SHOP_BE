@@ -34,6 +34,11 @@ class Product(db.Model):
     revenue = db.Column(db.Integer, default=0)
     count_sold = db.Column(db.Integer, default=0)
 
+    @hybrid_property
+    def reviews(self):
+        reviews = Reviews.query.filter(Product.id == self.id).order_by(desc(Reviews.created_date)).all()
+        return reviews
+
 
 class Orders(db.Model):
     __tablename__ = 'orders'
