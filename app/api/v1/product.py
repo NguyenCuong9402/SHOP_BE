@@ -79,9 +79,10 @@ def get_list_item():
         order = request.args.get('order', 'desc', type=str)
         if order_by == "":
             order_by = "created_date"
+        else:
+            order_by = "price"
         if order == "":
             order = "desc"
-
         if type == "":
             query = Product.query.filter()
         else:
