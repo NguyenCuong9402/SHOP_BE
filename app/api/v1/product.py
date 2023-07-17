@@ -32,7 +32,7 @@ def add_product():
         type_item = request.form.get('type_item', '')
         describe = request.form.get('describe', '')
 
-        if name == "" or int(price) <= 0 or type_item not in ["ao","quan","phukien"]:
+        if name == "" or int(price) <= 0 or type_item not in ["ao", "quan", "phukien"]:
             return send_error(message="Vui lòng điền thêm thông tin", show=True)
         if check_coincided_name(name):
             return send_error(message="Tên sản phẩm đã tồn tại", is_dynamic=True)
@@ -127,7 +127,10 @@ def fix_item(product_id):
             return send_error(message="Giá không hơp lệ", show=True)
         if price_str == "":
             price_str = 0
-        price = int(price_str)
+        try:
+            price = int(price_str)
+        except:
+            return send_error(message="Giá phải là số")
 
         if price < 0:
             return send_error(message="Giá không hơp lệ", show=True)
