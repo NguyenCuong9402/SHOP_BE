@@ -49,7 +49,7 @@ class OrdersSchema(Schema):
 class HistoryOrdersSchema(Schema):
     id = fields.String()
     user_id = fields.String()
-    name_user = fields.String()
+    user_name = fields.String()
     phone_number = fields.String()
     address = fields.String()
     count = fields.Integer()
