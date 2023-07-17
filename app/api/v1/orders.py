@@ -8,7 +8,7 @@ import datetime
 import io
 
 from app.schema import HistoryOrdersSchema, OrderItemsSchema
-from app.utils import send_error, get_timestamp_now, send_result
+from app.utils import send_error, get_timestamp_now, send_result, escape_wildcard
 from app.models import db, Product, User, Orders, OrderItems, CartItems
 
 
@@ -150,11 +150,19 @@ def get_order():
 @jwt_required()
 def get_order_admin():
     try:
+        text_search = request.args.get('text_search', '', type=str)
         user_id = get_jwt_identity()
         user = User.query.filter(User.id == user_id).first()
         if user.admin == 0:
             return send_result(message="Bạn không phải admin.")
-        orders = Orders.query.filter().order_by(desc(Orders.created_date)).all()
+        query = Orders.query.filter()
+        if text_search is not None:
+            text_search = text_search.strip()
+            text_search = text_search.lower()
+            text_search = escape_wildcard(text_search)
+            text_search = "%{}%".format(text_search)
+            query = query.filter(Orders.id.like(text_search))
+        orders = query.order_by(desc(Orders.created_date)).all()
         data = HistoryOrdersSchema(many=True).dump(orders)
         return send_result(data=data, message="oke", show=True)
     except Exception as ex:
