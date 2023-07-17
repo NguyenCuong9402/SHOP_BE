@@ -146,6 +146,22 @@ def get_order():
         return send_error(message=str(ex))
 
 
+@api.route("/manage", methods=["GET"])
+@jwt_required()
+def get_order_admin():
+    try:
+        user_id = get_jwt_identity()
+        user = User.query.filter(User.id == user_id).first()
+        if user.admin == 0:
+            return send_result(message="Bạn không phải admin.")
+        orders = Orders.query.filter().order_by(desc(Orders.created_date)).all()
+        data = HistoryOrdersSchema(many=True).dump(orders)
+        return send_result(data=data, message="oke", show=True)
+    except Exception as ex:
+        db.session.rollback()
+        return send_error(message=str(ex))
+
+
 @api.route("/<order_id>", methods=["GET"])
 @jwt_required()
 def get_order_detail(order_id):
