@@ -245,3 +245,28 @@ def send_email():
         return jsonify(r), 200
     except Exception as ex:
         return send_error(message=str(ex))
+
+
+@api.route("/send_email2", methods=["POST"])
+def send_email2():
+    try:
+        files = request.files.getlist("files[]")
+        resend.api_key = "re_bcnYrnvN_4qxFKmnBkCQ7SQU7LQ6BuybN"
+        attachments = []
+        for file in files:
+            item = {
+                "filename": file.filename,
+                "content": list(file.read())
+            }
+            attachments.append(item)
+        email = {
+            "from": "cuong.nguyen@boot.ai",
+            "to": ["cuong09042002@gmail.com"],
+            "subject": "TEST",
+            "html": f'<p>SEND <strong>FILE</strong>!</p>',
+            "attachments":  attachments
+        }
+        r = resend.Emails.send(email)
+        return jsonify(r), 200
+    except Exception as ex:
+        return send_error(message=str(ex))
