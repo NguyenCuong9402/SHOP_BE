@@ -1,9 +1,13 @@
 import os
 import uuid
+import base64
 from flask import Blueprint, request, make_response, send_file, Response, jsonify
 from flask_jwt_extended import get_jwt_identity, create_access_token, create_refresh_token, jwt_required, get_jwt
 from sqlalchemy import asc, desc
 import resend
+from werkzeug.utils import secure_filename
+import io
+
 from app.blocklist import BLOCKLIST
 from app.models import db, Product, User, Orders, OrderItems, CartItems
 from app.utils import send_error, get_timestamp_now, send_result
@@ -225,14 +229,19 @@ def update_user():
 @api.route("/send_email", methods=["POST"])
 def send_email():
     try:
-        resend.api_key = "re_L8N1K9DW_2VgDpEyj7tEzt5P41Xje3tvy"
+        file = request.files.get('file', None)
+        resend.api_key = "re_bcnYrnvN_4qxFKmnBkCQ7SQU7LQ6BuybN"
         email = {
-            "from": "onboarding@resend.dev",
-            "to": "cuong09042002@gmail.com",
-            "subject": "Hello World",
-            "html": "<p>Congrats on sending your <strong>first email</strong>!</p>"
+            "from": "cuong.nguyen@boot.ai",
+            "to": ["cuong09042002@gmail.com"],
+            "subject": "TEST",
+            "html": f'<p>SEND <strong>FILE</strong>!</p>',
+            "attachments":  [{
+                "filename": file.filename,
+                "content": list(file.read())
+            }]
         }
         r = resend.Emails.send(email)
-        return jsonify(r)
+        return jsonify(r), 200
     except Exception as ex:
         return send_error(message=str(ex))
