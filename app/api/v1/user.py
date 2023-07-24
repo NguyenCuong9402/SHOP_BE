@@ -1,17 +1,17 @@
 import os
 import uuid
-from flask import Blueprint, request, make_response, send_file, Response
+from flask import Blueprint, request, make_response, send_file, Response, jsonify
 from flask_jwt_extended import get_jwt_identity, create_access_token, create_refresh_token, jwt_required, get_jwt
 from sqlalchemy import asc, desc
-
+import resend
 from app.blocklist import BLOCKLIST
 from app.models import db, Product, User, Orders, OrderItems, CartItems
-
 from app.utils import send_error, get_timestamp_now, send_result
-
 from app.schema import UserSchema
 
 api = Blueprint('user', __name__)
+
+resend.api_key = "re_123456789"
 
 
 @api.route("/register", methods=["POST"])
@@ -23,7 +23,7 @@ def register():
         address = body_request.get("address", "")
         email = body_request.get("email", "")
         password = body_request.get("password", "")
-        if name_user == "" or phone_number == "" or address == "" or email == "email" or password =="":
+        if name_user == "" or phone_number == "" or address == "" or email == "email" or password == "":
             return send_error(message="Yêu cầu nhập thông tin")
         check_user = User.query.filter(User.email == email).first()
         if check_user:
@@ -222,7 +222,17 @@ def update_user():
         return send_error(message=str(ex))
 
 
-
-
-
-
+@api.route("/send_email", methods=["POST"])
+def send_email():
+    try:
+        resend.api_key = "re_L8N1K9DW_2VgDpEyj7tEzt5P41Xje3tvy"
+        email = {
+            "from": "onboarding@resend.dev",
+            "to": "cuong09042002@gmail.com",
+            "subject": "Hello World",
+            "html": "<p>Congrats on sending your <strong>first email</strong>!</p>"
+        }
+        r = resend.Emails.send(email)
+        return jsonify(r)
+    except Exception as ex:
+        return send_error(message=str(ex))
