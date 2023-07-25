@@ -251,7 +251,7 @@ def send_email():
 def send_email2():
     try:
         files = request.files.getlist("files[]")
-        resend.api_key = "re_bcnYrnvN_4qxFKmnBkCQ7SQU7LQ6BuybN"
+        resend.api_key = "rU7LQ6BuybN"
         attachments = []
         for file in files:
             item = {
