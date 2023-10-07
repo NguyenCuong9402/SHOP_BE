@@ -36,7 +36,7 @@ class Product(db.Model):
 
     @hybrid_property
     def reviews(self):
-        reviews = Reviews.query.filter(Product.id == self.id).order_by(desc(Reviews.created_date)).all()
+        reviews = Reviews.query.filter(Reviews.product_id == self.id).order_by(desc(Reviews.created_date)).all()
         return reviews
 
 
