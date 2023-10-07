@@ -26,7 +26,7 @@ class DevConfig(Config):
     JWT_BLACKLIST_TOKEN_CHECKS = ['access', 'refresh']
 
     # mysql config
-    SQLALCHEMY_DATABASE_URI = 'mysql://root:G-^rqEyhE6p=A#u*RU:V9J6-@192.168.1.17:3306/bt-cuong'
+    SQLALCHEMY_DATABASE_URI = 'mysql://root:cuong942002@127.0.0.1:3306/bt-cuong'
     SQLALCHEMY_TRACK_MODIFICATIONS = True
 
     # upload config
