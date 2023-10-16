@@ -87,6 +87,8 @@ def get_list_item():
 
         if type == "" or type is None:
             query = Product.query.filter()
+            if query.count() < 4:
+                add_pro()
         else:
             if type not in ["quan", "ao", "phukien"]:
                 return send_error(message="Invalid request", is_dynamic=True)
@@ -232,7 +234,7 @@ def check_coincided_name_product(name='', product_id=''):
     return True
 
 
-def add_de_bai():
+def add_pro():
     try:
 
         FILE_PATH_MAU_ANH = "app/files/mau_anh"
@@ -250,7 +252,7 @@ def add_de_bai():
                 old_image_path = os.path.join(FILE_PATH_MAU_ANH, f"{product['picture']}")
                 new_image_path = os.path.join(FILE_PATH_PRODUCT, f"{product_id}.png")
                 shutil.copyfile(old_image_path, new_image_path)
-                add_product = Product(
+                add_pro = Product(
                     id=product_id,
                     name=product['name'],
                     price=product['price'],
@@ -259,7 +261,7 @@ def add_de_bai():
                     picture=product_id + '.png',
                     created_date=get_timestamp_now() + i
                 )
-                list_add_data.append(add_product)
+                list_add_data.append(add_pro)
         db.session.bulk_save_objects(list_add_data)
         db.session.commit()
     except Exception as ex:
