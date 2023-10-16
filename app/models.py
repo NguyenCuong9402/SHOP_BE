@@ -31,8 +31,6 @@ class Product(db.Model):
     type = db.Column(db.String(50), nullable=True)
     created_date = db.Column(db.Integer, default=0)
     picture = db.Column(db.Text(), nullable=True)
-    revenue = db.Column(db.Integer, default=0)
-    count_sold = db.Column(db.Integer, default=0)
 
     @hybrid_property
     def reviews(self):
@@ -65,7 +63,7 @@ class Orders(db.Model):
 class OrderItems(db.Model):
     __tablename__ = 'order_items'
     id = db.Column(db.String(50), primary_key=True)
-    product_id = db.Column(db.String(50), db.ForeignKey('product.id', ondelete='CASCADE', onupdate='CASCADE'),
+    product_id = db.Column(db.String(50), db.ForeignKey('product.id', ondelete='SET NULL', onupdate='SET NULL'),
                            nullable=False)
     order_id = db.Column(db.String(50), db.ForeignKey('orders.id', ondelete='CASCADE', onupdate='CASCADE'),
                          nullable=False)
@@ -77,22 +75,26 @@ class OrderItems(db.Model):
 
     @hybrid_property
     def product_name(self):
-        product = Product.query.filter(Product.id == self.product_id).first()
-        return product.name
+        if self.product_id is None or self.product_id == "":
+            return "sản phẩm đã bị xóa"
+        else:
+            product = Product.query.filter(Product.id == self.product_id).first()
+            return product.name
 
 
 class User(db.Model):
     __tablename__ = 'user'
     id = db.Column(db.String(50), primary_key=True)
     email = db.Column(db.String(100), nullable=True)
+    birthday = db.Column(db.Date)
     password = db.Column(db.String(100), nullable=True)
     name_user = db.Column(db.Text(collation='utf8mb4_unicode_ci'), nullable=True)
     phone_number = db.Column(db.String(100), nullable=True)
     address = db.Column(db.Text(collation='utf8mb4_unicode_ci'), nullable=True)
+    gender = db.Column(db.Boolean, nullable=True)  # 0: Nam , Nu : 1
     admin = db.Column(db.Integer, default=0)
     created_date = db.Column(db.Integer, default=0)
     picture = db.Column(db.Text(), nullable=True)
-    count_money_buy = db.Column(db.Integer, default=0)
 
 
 class CartItems(db.Model):

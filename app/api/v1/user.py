@@ -4,31 +4,43 @@ import base64
 from flask import Blueprint, request, make_response, send_file, Response, jsonify
 from flask_jwt_extended import get_jwt_identity, create_access_token, create_refresh_token, jwt_required, get_jwt
 from sqlalchemy import asc, desc
-import resend
+from app.schema import UserSchema
 from werkzeug.utils import secure_filename
 import io
-
 from app.blocklist import BLOCKLIST
-from app.models import db, Product, User, Orders, OrderItems, CartItems
-from app.utils import send_error, get_timestamp_now, send_result
-from app.schema import UserSchema
+from app.extensions import mail
+from app.models import db, User
+from app.utils import send_error, get_timestamp_now, send_result, generate_password
+from flask_mail import Message as MessageMail
 
 api = Blueprint('user', __name__)
-
-resend.api_key = "re_123456789"
 
 
 @api.route("/register", methods=["POST"])
 def register():
     try:
         body_request = request.get_json()
-        name_user = body_request.get("name_user", "")
-        phone_number = body_request.get("phone_number", "")
+        name_user = body_request.get("fullName", "")
+        phone_number = body_request.get("phoneNumber", "")
         address = body_request.get("address", "")
         email = body_request.get("email", "")
         password = body_request.get("password", "")
-        if name_user == "" or phone_number == "" or address == "" or email == "email" or password == "":
-            return send_error(message="Yêu cầu nhập thông tin")
+        confirmPassword = body_request.get("confirmPassword", "")
+        gender = body_request.get("gender", "")
+        if name_user == "":
+            return send_error(message="Không được để trống thông tin")
+        if "phone_number" == "":
+            return send_error(message='Không được để trống thông tin')
+        if email == "":
+            return send_error(message='Không được để trống thông tin')
+        if password == "":
+            return send_error(message='Không được để trống thông tin')
+        if confirmPassword == "":
+            return send_error(message='Không được để trống thông tin')
+
+        if password != confirmPassword:
+            return send_error(message='Confirm false')
+        gender = 0 if gender == 'male' else 1
         check_user = User.query.filter(User.email == email).first()
         if check_user:
             return send_error(message="Email đã tồn tại", is_dynamic=True)
@@ -42,6 +54,7 @@ def register():
             phone_number=phone_number,
             address=address,
             name_user=name_user,
+            gender=gender,
             created_date=get_timestamp_now()
         )
         db.session.add(user)
@@ -119,12 +132,12 @@ def change_pass():
     try:
         user_id = get_jwt_identity()
         body_request = request.get_json()
-        old_password = body_request.get("old_password", "")
         new_password = body_request.get("new_password", "")
-        if new_password == "" or old_password == "":
+        confirm_password = body_request.get("confirm_password", "")
+        if new_password == "" or confirm_password == "":
             return send_error(message="Không để trống mật khẩu", is_dynamic=True)
         user = User.query.filter(User.id == user_id).first()
-        if user.password != old_password:
+        if new_password != confirm_password:
             return send_error(message=" Password sai, xin moi nhap lai.")
         user.password = new_password
         db.session.commit()
@@ -209,16 +222,20 @@ def get_user():
 def update_user():
     try:
         user_id = get_jwt_identity()
+        user = User.query.filter(User.id == user_id).first()
+
         body_request = request.get_json()
-        name_user = body_request.get("name_user", "")
-        phone_number = body_request.get("phone_number", "")
-        address = body_request.get("address", "")
+        name_user = body_request.get("name_user", None)
+        phone_number = body_request.get("phone_number", None)
+        address = body_request.get("address", None)
         if name_user == "" or phone_number == "" or address == "":
             return send_error(message="Data empty")
-        user = User.query.filter(User.id == user_id).first()
-        user.name_user = name_user
-        user.address = address
-        user.phone_number = phone_number
+        if name_user is not None:
+            user.name_user = name_user
+        if phone_number is not None:
+            user.phone_number = phone_number
+        if address is not None:
+            user.address = address
         db.session.flush()
         db.session.commit()
         return send_result(data=UserSchema().dump(user))
@@ -226,47 +243,53 @@ def update_user():
         return send_error(message=str(ex))
 
 
-@api.route("/send_email", methods=["POST"])
+@api.route('/send_pass_email', methods=['POST'])
 def send_email():
     try:
-        file = request.files.get('file', None)
-        resend.api_key = "re_bcnYrnvN_4qxFKmnBkCQ7SQU7LQ6BuybN"
-        email = {
-            "from": "cuong.nguyen@boot.ai",
-            "to": ["cuong09042002@gmail.com"],
-            "subject": "TEST",
-            "html": f'<p>SEND <strong>FILE</strong>!</p>',
-            "attachments":  [{
-                "filename": file.filename,
-                "content": list(file.read())
-            }]
-        }
-        r = resend.Emails.send(email)
-        return jsonify(r), 200
-    except Exception as ex:
-        return send_error(message=str(ex))
-
-
-@api.route("/send_email2", methods=["POST"])
-def send_email2():
-    try:
-        files = request.files.getlist("files[]")
-        resend.api_key = "rU7LQ6BuybN"
-        attachments = []
-        for file in files:
-            item = {
-                "filename": file.filename,
-                "content": list(file.read())
+        body_request = request.get_json()
+        email = body_request.get('email', "")
+        msg = MessageMail('THAY ĐỔI MẬT KHẨU TÀI KHOẢN WORD SCAMBLE', recipients=[email])
+        html_content = """
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <style>
+                .container {
+              padding: 100px;
             }
-            attachments.append(item)
-        email = {
-            "from": "cuong.nguyen@boot.ai",
-            "to": ["cuong09042002@gmail.com"],
-            "subject": "TEST",
-            "html": f'<p>SEND <strong>FILE</strong>!</p>',
-            "attachments":  attachments
-        }
-        r = resend.Emails.send(email)
-        return jsonify(r), 200
+            .envelop {
+              width: 300px;
+              height: 200px;
+              box-sizing: border-box;
+              border-color: grey;
+              border-style: solid;
+              border-top: 100px solid #F4F9F9;
+              border-right: 150px solid #CCF2F4;
+              border-bottom: 100px solid #A4EBF3;
+              border-left: 150px solid #A4EBF3;
+            }
+            </style>
+        </head>
+        <div class="container">
+          <div class="envelop"></div>
+        </div>
+        <div>Xin chào UserName</div>
+        <div>Mật Khẩu của bạn là: NEWPASSWORD</div>
+
+        </html>
+        """
+        user = User.query.filter(User.email == email).first()
+        if user is None:
+            return send_error(message='Tài Khoản Không Tồn Tại')
+        html_content = html_content.replace("UserName", user.name_user)
+        new_password = generate_password()
+        html_content = html_content.replace("NEWPASSWORD", new_password)
+        msg.html = html_content
+        mail.send(msg)
+        user.password = new_password
+        db.session.flush()
+        db.session.commit()
+        return send_result(message='Check EMAIL lấy mật khẩu')
     except Exception as ex:
+        db.session.rollback()
         return send_error(message=str(ex))
