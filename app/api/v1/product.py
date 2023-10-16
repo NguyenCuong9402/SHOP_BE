@@ -6,6 +6,7 @@ from sqlalchemy import asc, desc
 from io import BytesIO
 import datetime
 import io
+import shutil
 
 from sqlalchemy_pagination import paginate
 from werkzeug.utils import secure_filename
@@ -229,3 +230,37 @@ def check_coincided_name_product(name='', product_id=''):
     if existed_name is None:
         return False
     return True
+
+
+def add_de_bai():
+    try:
+
+        FILE_PATH_MAU_ANH = "app/files/mau_anh"
+        FILE_PATH_PRODUCT = "app/files/product/"
+
+        product_default = [{'name': 'quần âu', 'picture': 'quan_au.webp', "price":100, "type": "quan"},
+                           {'name': 'quần beggy', 'picture': 'quan_beggy.jpg', "price": 100, "type": "quan"},
+                           {'name': 'quần âu nâu', 'picture': 'quan_au_nau.webp', "price": 100, "type": "quan"},
+                           {'name': 'quần thanh lịch', 'picture': 'quan_thanh_lich.webp', "price": 100, "type": "quan"}]
+        list_add_data = []
+        for i, product in enumerate(product_default):
+            check = Product.query.filter(Product.name == product['name']).first()
+            if check is None:
+                product_id = str(uuid.uuid4())
+                old_image_path = os.path.join(FILE_PATH_MAU_ANH, f"{product['picture']}")
+                new_image_path = os.path.join(FILE_PATH_PRODUCT, f"{product_id}.png")
+                shutil.copyfile(old_image_path, new_image_path)
+                add_cau_do = Product(
+                    id=product_id,
+                    name=product['name'],
+                    price=product['price'],
+                    type=product['type'],
+                    describe="Sản phẩm tuyệt vời",
+                    picture=product_id + '.png',
+                    created_date=get_timestamp_now() + i
+                )
+                list_add_data.append(add_cau_do)
+        db.session.bulk_save_objects(list_add_data)
+        db.session.commit()
+    except Exception as ex:
+        return send_error(message=str(ex))
