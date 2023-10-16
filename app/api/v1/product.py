@@ -7,6 +7,7 @@ from io import BytesIO
 import datetime
 import io
 
+from sqlalchemy_pagination import paginate
 from werkzeug.utils import secure_filename
 
 from app.api.v1.picture import FILE_PATH, FILE_PATH_PRODUCT
@@ -73,34 +74,39 @@ def add_product():
 @api.route("", methods=["GET"])
 def get_list_item():
     try:
-        type = request.args.get('type', '', type=str)
-        text_search = request.args.get('text_search', '', type=str)
-        order_by = request.args.get('order_by', '', type=str)
-        order = request.args.get('order', 'desc', type=str)
-        if order_by == "":
-            order_by = "created_date"
-        if order == "":
-            order = "desc"
-        if type == "":
+        page = request.args.get('page', 1, int)
+        page_size = request.args.get('page_size', 10, int)
+        order = request.args.get('order', 'desc')
+        text_search = request.args.get('text_search', None)
+        type = request.args.get('type', None)
+        user_id = get_jwt_identity()
+        user_admin = User.query.filter(User.id == user_id).first()
+        if user_admin.admin == 0:
+            return send_error(message="Bạn không phải admin.")
+
+        if type == "" or type is None:
             query = Product.query.filter()
         else:
             if type not in ["quan", "ao", "phukien"]:
                 return send_error(message="Invalid request", is_dynamic=True)
             query = Product.query.filter(Product.type == type)
-        if text_search is not None:
+        if text_search is not None and text_search != "":
             text_search = text_search.strip()
             text_search = text_search.lower()
             text_search = escape_wildcard(text_search)
             text_search = "%{}%".format(text_search)
-            query = query.filter(Product.name.like(text_search))
-        column_sorted = getattr(Product, order_by)
-        query = query.order_by(desc(column_sorted)) if order == "desc" else query.order_by(asc(column_sorted))
-        products = query.all()
-        results = {
-            "products": ProductSchema(many=True).dump(products),
-        }
+            query = query.filter(Product.name.ilike(text_search))
 
-        return send_result(data=results)
+        query = query.order_by(desc(Product.created_date)) if order == "desc" else query.order_by(asc(Product.created_date))
+        paginator = paginate(query, page, page_size)
+
+        products = ProductSchema(many=True).dump(paginator.items)
+        response_data = dict(
+            items=products,
+            total_pages=paginator.pages if paginator.pages > 0 else 1,
+            total=paginator.total
+        )
+        return send_result(data=response_data)
     except Exception as ex:
         return send_error(message=str(ex))
 

@@ -22,8 +22,6 @@ class ProductSchema(Schema):
     describe = fields.String()
     created_date = fields.Integer()
     picture = fields.String()
-    count_sold = fields.Integer()
-    revenue = fields.Integer()
     reviews = fields.List(fields.Nested(ReviewsSchema))
 
 

@@ -111,7 +111,7 @@ def register_blueprints(app):
     app.register_blueprint(api_v1.history.api, url_prefix='/api/v1/history')
     app.register_blueprint(api_v1.reviews.api, url_prefix='/api/v1/reviews')
     app.register_blueprint(api_v1.picture.api, url_prefix='/api/v1/picture')
-    app.register_blueprint(api_v1.report.api, url_prefix='/api/v1/report')
+    # app.register_blueprint(api_v1.report.api, url_prefix='/api/v1/report')
 
 
 

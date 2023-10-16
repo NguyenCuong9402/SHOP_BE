@@ -1,4 +1,3 @@
-from time import time
 
 from flask import jsonify
 
@@ -6,7 +5,10 @@ from werkzeug.security import generate_password_hash
 from pytz import timezone
 import datetime
 from app.models import Message
-from app.settings import Config
+from time import time
+import string
+import random
+from datetime import datetime
 
 
 def send_result(data: any = None, message_id: str = '', message: str = "OK", code: int = 200,
@@ -52,7 +54,6 @@ def send_result(data: any = None, message_id: str = '', message: str = "OK", cod
         "code": code,
         "data": data,
         "message": message_dict,
-        "version": Config.VERSION
     }
 
     return jsonify(res), 200
@@ -98,7 +99,6 @@ def send_error(data: any = None, message_id: str = '', message: str = "Error", c
         "code": code,
         "data": data,
         "message": message_dict,
-        "version": Config.VERSION
     }
 
     return jsonify(res), code
@@ -180,3 +180,14 @@ def escape_wildcard(search):
     search5 = str.replace(search4, r'"', r'\"')
     search6 = str.replace(search5, r"'", r"\'")
     return search6
+
+
+def generate_password():
+    """
+    :return: random password
+    """
+    symbol_list = ["@", "$", "!", "%", "*", "?", "&"]
+    number = '0123456789'
+    letters_and_digits = string.ascii_letters + string.digits
+    result_str = ''.join(random.choices(letters_and_digits, k=6))
+    return '{}{}{}'.format(result_str, random.choice(symbol_list), random.choice(number))
