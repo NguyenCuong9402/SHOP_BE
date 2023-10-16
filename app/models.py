@@ -64,7 +64,7 @@ class OrderItems(db.Model):
     __tablename__ = 'order_items'
     id = db.Column(db.String(50), primary_key=True)
     product_id = db.Column(db.String(50), db.ForeignKey('product.id', ondelete='SET NULL', onupdate='SET NULL'),
-                           nullable=False)
+                           nullable=True)
     order_id = db.Column(db.String(50), db.ForeignKey('orders.id', ondelete='CASCADE', onupdate='CASCADE'),
                          nullable=False)
     quantity = db.Column(db.Integer, nullable=True, default=1)
