@@ -250,7 +250,7 @@ def add_de_bai():
                 old_image_path = os.path.join(FILE_PATH_MAU_ANH, f"{product['picture']}")
                 new_image_path = os.path.join(FILE_PATH_PRODUCT, f"{product_id}.png")
                 shutil.copyfile(old_image_path, new_image_path)
-                add_cau_do = Product(
+                add_product = Product(
                     id=product_id,
                     name=product['name'],
                     price=product['price'],
@@ -259,7 +259,7 @@ def add_de_bai():
                     picture=product_id + '.png',
                     created_date=get_timestamp_now() + i
                 )
-                list_add_data.append(add_cau_do)
+                list_add_data.append(add_product)
         db.session.bulk_save_objects(list_add_data)
         db.session.commit()
     except Exception as ex:
