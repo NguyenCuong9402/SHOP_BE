@@ -248,7 +248,7 @@ def send_email():
     try:
         body_request = request.get_json()
         email = body_request.get('email', "")
-        msg = MessageMail('THAY ĐỔI MẬT KHẨU TÀI KHOẢN WORD SCAMBLE', recipients=[email])
+        msg = MessageMail('THAY ĐỔI MẬT KHẨU TÀI KHOẢN', recipients=[email])
         html_content = """
         <!DOCTYPE html>
         <html>
