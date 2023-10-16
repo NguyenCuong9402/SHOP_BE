@@ -80,14 +80,9 @@ def get_list_item():
         order = request.args.get('order', 'desc')
         text_search = request.args.get('text_search', None)
         type = request.args.get('type', None)
-        user_id = get_jwt_identity()
-        user_admin = User.query.filter(User.id == user_id).first()
-        if user_admin.admin == 0:
-            return send_error(message="Bạn không phải admin.")
-
         if type == "" or type is None:
             query = Product.query.filter()
-            if query.count() < 4:
+            if query.count() < 1:
                 add_pro()
         else:
             if type not in ["quan", "ao", "phukien"]:
