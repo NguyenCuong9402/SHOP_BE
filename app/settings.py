@@ -31,3 +31,13 @@ class DevConfig(Config):
 
     # upload config
     UPLOAD_FOLDER = "app/files"
+
+    # email config
+    MAIL_SERVER = 'smtp.gmail.com'
+    MAIL_PORT = 465
+    MAIL_USERNAME = 'nguyenngoccuong.ubtlu@gmail.com'
+    MAIL_PASSWORD = 'gufxxahiyzmzmxrr'
+    MAIL_DEFAULT_SENDER = 'nguyenngoccuong.ubtlu@gmail.com'
+    MAIL_USE_TLS = False
+    MAIL_USE_SSL = True
+    MAIL_DEBUG = False
