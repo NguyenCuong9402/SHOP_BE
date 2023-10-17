@@ -235,25 +235,27 @@ def add_pro():
         FILE_PATH_MAU_ANH = "app/files/mau_anh"
         FILE_PATH_PRODUCT = "app/files/product/"
 
-        product_default = [{'name': 'quần âu', 'picture': 'quan_au.webp', "price":100, "type": "quan"},
-                           {'name': 'quần beggy', 'picture': 'quan_beggy.jpg', "price": 100, "type": "quan"},
-                           {'name': 'quần âu nâu', 'picture': 'quan_au_nau.webp', "price": 100, "type": "quan"},
-                           {'name': 'quần thanh lịch', 'picture': 'quan_thanh_lich.webp', "price": 100, "type": "quan"}]
+        product_default = [{'name': 'quần âu caro trẻ trung', 'picture': 'quan_au_caro.jpg', "old_price":100, "type": "quan","giam_gia": 10},
+                           {'name': 'quần beggy', 'picture': 'quan_beggy.jpg', "old_price": 100, "type": "quan","giam_gia": 10},
+                           {'name': 'quần âu nâu', 'picture': 'quan_au_nau.jpg', "old_price": 100, "type": "quan", "giam_gia": 10},
+                           {'name': 'quần thanh lịch', 'picture': 'quan_thanh_lich.jpg', "old_price": 100, "type": "quan", "giam_gia": 10}]
         list_add_data = []
         for i, product in enumerate(product_default):
             check = Product.query.filter(Product.name == product['name']).first()
             if check is None:
                 product_id = str(uuid.uuid4())
                 old_image_path = os.path.join(FILE_PATH_MAU_ANH, f"{product['picture']}")
-                new_image_path = os.path.join(FILE_PATH_PRODUCT, f"{product_id}.png")
+                new_image_path = os.path.join(FILE_PATH_PRODUCT, f"{product_id}.jpg")
                 shutil.copyfile(old_image_path, new_image_path)
                 add_pro = Product(
                     id=product_id,
                     name=product['name'],
-                    price=product['price'],
+                    old_price=product['old_price'],
+                    giam_gia=product['giam_gia'],
+                    price=product['old_price']*(100-product['giam_gia']),
                     type=product['type'],
                     describe="Sản phẩm tuyệt vời",
-                    picture=product_id + '.png',
+                    picture=product_id + '.jpg',
                     created_date=get_timestamp_now() + i
                 )
                 list_add_data.append(add_pro)
