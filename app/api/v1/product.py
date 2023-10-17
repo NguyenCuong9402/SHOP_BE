@@ -252,7 +252,7 @@ def add_pro():
                     name=product['name'],
                     old_price=product['old_price'],
                     giam_gia=product['giam_gia'],
-                    price=product['old_price']*(100-product['giam_gia']),
+                    price=product['old_price']*(100-product['giam_gia'])/100,
                     type=product['type'],
                     describe="Sản phẩm tuyệt vời",
                     picture=product_id + '.jpg',
