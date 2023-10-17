@@ -31,6 +31,8 @@ class Product(db.Model):
     type = db.Column(db.String(50), nullable=True)
     created_date = db.Column(db.Integer, default=0)
     picture = db.Column(db.Text(), nullable=True)
+    old_price = db.Column(db.Integer, nullable=True, default=0)
+    giam_gia = db.Column(db.Integer, nullable=True, default=0)
 
     @hybrid_property
     def reviews(self):

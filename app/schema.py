@@ -23,7 +23,8 @@ class ProductSchema(Schema):
     created_date = fields.Integer()
     picture = fields.String()
     reviews = fields.List(fields.Nested(ReviewsSchema))
-
+    old_price = fields.Integer()
+    giam_gia = fields.Integer()
 
 class OrderItemsSchema(Schema):
     id = fields.String()
