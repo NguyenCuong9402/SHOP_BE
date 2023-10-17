@@ -26,6 +26,7 @@ class ProductSchema(Schema):
     old_price = fields.Integer()
     giam_gia = fields.Integer()
 
+
 class OrderItemsSchema(Schema):
     id = fields.String()
     product_id = fields.String()
