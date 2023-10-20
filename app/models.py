@@ -145,6 +145,14 @@ class Reviews(db.Model):
         return user.name_user
 
 
+class PhanLoai(db.Model):
+    __tablename__ = 'phan_loai'
+    id = db.Column(db.String(50), primary_key=True)
+    key = db.Column(db.Text)
+    name = db.Column(db.Text(collation='utf8mb4_unicode_ci'), nullable=True)
+    parent_id = db.Column(db.String(50), db.ForeignKey('phan_loai.id', ondelete='CASCADE', onupdate='CASCADE'),
+                          nullable=True)
+
 
 
 
