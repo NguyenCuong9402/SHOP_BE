@@ -28,7 +28,8 @@ class Product(db.Model):
     name = db.Column(db.Text(collation='utf8mb4_unicode_ci'), nullable=True)
     price = db.Column(db.Integer, nullable=True, default=0)
     describe = db.Column(db.Text(collation='utf8mb4_unicode_ci'), nullable=True)
-    type = db.Column(db.String(50), nullable=True)
+    phan_loai_id = db.Column(db.String(50), db.ForeignKey('phan_loai.id', ondelete='SET NULL',
+                                                          onupdate='SET NULL'), nullable=True)
     created_date = db.Column(db.Integer, default=0)
     picture = db.Column(db.Text(), nullable=True)
     old_price = db.Column(db.Integer, nullable=True, default=0)
