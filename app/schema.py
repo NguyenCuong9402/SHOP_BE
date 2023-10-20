@@ -27,6 +27,7 @@ class ProductSchema(Schema):
     giam_gia = fields.Integer()
     sold_count = fields.Integer()
 
+
 class OrderItemsSchema(Schema):
     id = fields.String()
     product_id = fields.String()
@@ -66,9 +67,6 @@ class UserSchema(Schema):
     picture = fields.String()
     admin = fields.Integer()
     count_money_buy = fields.Integer()
-
-
-
 
 
 class CartItemsSchema(Schema):
