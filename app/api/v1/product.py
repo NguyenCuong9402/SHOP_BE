@@ -263,10 +263,10 @@ def add_pro():
                 db.session.add(quan_au)
                 db.session.flush()
 
-        product_default = [{'name': 'quần âu caro trẻ trung', 'picture': 'quan_au_caro.jpg', "old_price":100, "type": "quan","giam_gia": 10},
-                           {'name': 'quần beggy', 'picture': 'quan_beggy.jpg', "old_price": 100, "type": "quan","giam_gia": 10},
-                           {'name': 'quần âu nâu', 'picture': 'quan_au_nau.jpg', "old_price": 100, "type": "quan", "giam_gia": 10},
-                           {'name': 'quần thanh lịch', 'picture': 'quan_thanh_lich.jpg', "old_price": 100, "type": "quan", "giam_gia": 10}]
+        product_default = [{'name': 'quần âu caro trẻ trung', 'picture': 'quan_au_caro.jpg', "old_price":100,"giam_gia": 10},
+                           {'name': 'quần beggy', 'picture': 'quan_beggy.jpg', "old_price": 100,"giam_gia": 10},
+                           {'name': 'quần âu nâu', 'picture': 'quan_au_nau.jpg', "old_price": 100,"giam_gia": 10},
+                           {'name': 'quần thanh lịch', 'picture': 'quan_thanh_lich.jpg', "old_price": 100, "giam_gia": 10}]
         list_add_data = []
         for i, product in enumerate(product_default):
             check = Product.query.filter(Product.name == product['name']).first()
