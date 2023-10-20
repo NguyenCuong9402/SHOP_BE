@@ -252,8 +252,8 @@ def add_pro():
             db.session.add(quan_au)
             db.session.flush()
         else:
-            quan_au_check = PhanLoai.query.filter(PhanLoai.key == 'quan_au').first()
-            if quan_au_check is None:
+            quan_au = PhanLoai.query.filter(PhanLoai.key == 'quan_au').first()
+            if quan_au is None:
                 quan_au = PhanLoai(
                     id=str(uuid.uuid4()),
                     key='quan_au',
@@ -281,7 +281,7 @@ def add_pro():
                     old_price=product['old_price'],
                     giam_gia=product['giam_gia'],
                     price=product['old_price']*(100-product['giam_gia'])/100,
-                    type=product['type'],
+                    phan_loai_id=quan_au.id,
                     describe="Sản phẩm tuyệt vời",
                     picture=product_id + '.jpg',
                     created_date=get_timestamp_now() + i
