@@ -79,3 +79,7 @@ class CartItemsSchema(Schema):
     size = fields.String()
     color = fields.String()
 
+
+class GetTypeSchema(Schema):
+    id = fields.String()
+    name = fields.String()

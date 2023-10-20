@@ -13,7 +13,7 @@ from werkzeug.utils import secure_filename
 
 from app.api.v1.picture import FILE_PATH, FILE_PATH_PRODUCT
 from app.models import db, Product, User, Orders, OrderItems, CartItems, PhanLoai
-from app.schema import ProductSchema
+from app.schema import ProductSchema, GetTypeSchema
 from app.utils import send_error, get_timestamp_now, send_result, escape_wildcard
 
 api = Blueprint('product', __name__)
@@ -79,15 +79,19 @@ def get_list_item():
         page_size = request.args.get('page_size', 10, int)
         order = request.args.get('order', 'desc')
         text_search = request.args.get('text_search', None)
-        type = request.args.get('type', None)
-        if type == "" or type is None:
+        phan_loai_id = request.args.get('phan_loai_id', None)
+        if phan_loai_id == "" or phan_loai_id is None:
             query = Product.query.filter()
             if query.count() < 1:
                 add_pro()
         else:
-            if type not in ["quan", "ao", "phukien"]:
-                return send_error(message="Invalid request", is_dynamic=True)
-            query = Product.query.filter(Product.type == type)
+            check = PhanLoai.query.filter(PhanLoai.id == phan_loai_id).first()
+            if check is None:
+                return send_error(message='Loại không tồn tại')
+            get_child_type = PhanLoai.query.filter(PhanLoai.parent_id == phan_loai_id).all()
+            list_id = [item.id for item in get_child_type]
+            list_id.append(phan_loai_id)
+            query = Product.query.filter(Product.phan_loai_id.in_(list_id))
         if text_search is not None and text_search != "":
             text_search = text_search.strip()
             text_search = text_search.lower()
@@ -105,6 +109,18 @@ def get_list_item():
             total=paginator.total
         )
         return send_result(data=response_data)
+    except Exception as ex:
+        return send_error(message=str(ex))
+
+
+@api.route("/get-type", methods=["GET"])
+def get_type():
+    try:
+        query = PhanLoai.query.filter().order_by(asc(PhanLoai.key)).all()
+        data1 = [{"id": "", "name": "Tất cả"}]
+        data = data1 + GetTypeSchema(many=True).dump(query)
+        return send_result(data=data)
+
     except Exception as ex:
         return send_error(message=str(ex))
 
@@ -291,3 +307,5 @@ def add_pro():
         db.session.commit()
     except Exception as ex:
         return send_error(message=str(ex))
+
+
