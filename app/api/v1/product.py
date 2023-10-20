@@ -77,6 +77,7 @@ def get_list_item():
     try:
         page = request.args.get('page', 1, int)
         page_size = request.args.get('page_size', 10, int)
+        order_by = request.args.get('order_by', 'created_date')
         order = request.args.get('order', 'desc')
         text_search = request.args.get('text_search', None)
         phan_loai_id = request.args.get('phan_loai_id', None)
@@ -99,7 +100,9 @@ def get_list_item():
             text_search = "%{}%".format(text_search)
             query = query.filter(Product.name.ilike(text_search))
 
-        query = query.order_by(desc(Product.created_date)) if order == "desc" else query.order_by(asc(Product.created_date))
+        column_sorted = getattr(Product, order_by)
+        query = query.order_by(desc(column_sorted)) if order == "desc" else query.order_by(asc(column_sorted))
+
         paginator = paginate(query, page, page_size)
 
         products = ProductSchema(many=True).dump(paginator.items)
