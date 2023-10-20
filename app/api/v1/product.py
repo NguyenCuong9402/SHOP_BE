@@ -12,7 +12,7 @@ from sqlalchemy_pagination import paginate
 from werkzeug.utils import secure_filename
 
 from app.api.v1.picture import FILE_PATH, FILE_PATH_PRODUCT
-from app.models import db, Product, User, Orders, OrderItems, CartItems
+from app.models import db, Product, User, Orders, OrderItems, CartItems, PhanLoai
 from app.schema import ProductSchema
 from app.utils import send_error, get_timestamp_now, send_result, escape_wildcard
 
@@ -234,6 +234,34 @@ def add_pro():
 
         FILE_PATH_MAU_ANH = "app/files/mau_anh"
         FILE_PATH_PRODUCT = "app/files/product/"
+        quan = PhanLoai.query.filter(PhanLoai.key == 'quan').first()
+        if quan is None:
+            quan = PhanLoai(
+                id=str(uuid.uuid4()),
+                key='quan',
+                name='Quần'
+            )
+            db.session.add(quan)
+            db.session.flush()
+            quan_au = PhanLoai(
+                id=str(uuid.uuid4()),
+                key='quan_au',
+                name='Quần Âu',
+                parent_id=quan.id
+            )
+            db.session.add(quan_au)
+            db.session.flush()
+        else:
+            quan_au_check = PhanLoai.query.filter(PhanLoai.key == 'quan_au').first()
+            if quan_au_check is None:
+                quan_au = PhanLoai(
+                    id=str(uuid.uuid4()),
+                    key='quan_au',
+                    name='Quần Âu',
+                    parent_id=quan.id
+                )
+                db.session.add(quan_au)
+                db.session.flush()
 
         product_default = [{'name': 'quần âu caro trẻ trung', 'picture': 'quan_au_caro.jpg', "old_price":100, "type": "quan","giam_gia": 10},
                            {'name': 'quần beggy', 'picture': 'quan_beggy.jpg', "old_price": 100, "type": "quan","giam_gia": 10},
