@@ -25,7 +25,7 @@ class ProductSchema(Schema):
     reviews = fields.List(fields.Nested(ReviewsSchema))
     old_price = fields.Integer()
     giam_gia = fields.Integer()
-
+    sold_count = fields.Integer()
 
 class OrderItemsSchema(Schema):
     id = fields.String()

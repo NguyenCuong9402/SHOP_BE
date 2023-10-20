@@ -1,7 +1,7 @@
 # coding: utf-8
 import json
 from typing import List
-
+from sqlalchemy import func
 from sqlalchemy.orm import relationship
 from sqlalchemy import ForeignKey, TEXT, asc, CheckConstraint, desc
 from app.extensions import db
@@ -38,6 +38,13 @@ class Product(db.Model):
     def reviews(self):
         reviews = Reviews.query.filter(Reviews.product_id == self.id).order_by(desc(Reviews.created_date)).all()
         return reviews
+
+    @property
+    def sold_count(self):
+        sold_count = db.session.query(func.sum(OrderItems.quantity)).filter(OrderItems.product_id == self.id).scalar()
+        if sold_count is None:
+            sold_count = 0
+        return sold_count
 
 
 class Orders(db.Model):
