@@ -102,16 +102,19 @@ def get_list_item():
             text_search = "%{}%".format(text_search)
             query = query.filter(Product.name.ilike(text_search))
         if len(khoang_tien) > 0:
-            if khoang_tien.get('start') is not None and khoang_tien.get('end') is None:
-                query = query.filter(Product.price >= khoang_tien.get('start'))
-            elif khoang_tien.get('start') is None and khoang_tien.get('end') is not None:
-                query = query.filter(Product.price <= khoang_tien.get('end'))
-            elif khoang_tien.get('start') is not None and khoang_tien.get('end') is not None:
-                if khoang_tien.get('start') > khoang_tien.get('end'):
-                    query = query.filter(Product.price >= khoang_tien.get('start'))
+            if (khoang_tien.get('start') != "" or khoang_tien.get('start') is not None) \
+                    and (khoang_tien.get('end') == "" or khoang_tien.get('end') is None):
+                query = query.filter(Product.price >= int(khoang_tien.get('start')))
+            elif (khoang_tien.get('start') == "" or khoang_tien.get('start') is None) \
+                    and (khoang_tien.get('end') != "" or khoang_tien.get('end') is not None):
+                query = query.filter(Product.price <= int(khoang_tien.get('end')))
+            elif (khoang_tien.get('start') != "" or khoang_tien.get('start') is not None) and \
+                    (khoang_tien.get('end') != "" or khoang_tien.get('end') is not None):
+                if int(khoang_tien.get('start')) > int(khoang_tien.get('end')):
+                    query = query.filter(Product.price >= int(khoang_tien.get('start')))
                 else:
-                    query = query.filter(Product.price >= khoang_tien.get('start'),
-                                         Product.price <= khoang_tien.get('end'))
+                    query = query.filter(Product.price >= int(khoang_tien.get('start')),
+                                         Product.price <= int(khoang_tien.get('end')))
         column_sorted = getattr(Product, order_by)
         query = query.order_by(desc(column_sorted)) if order == "desc" else query.order_by(asc(column_sorted))
 
