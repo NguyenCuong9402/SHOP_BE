@@ -72,9 +72,11 @@ def add_product():
         return send_error(message=str(ex))
 
 
-@api.route("", methods=["GET"])
+@api.route("/get-item", methods=["POST"])
 def get_list_item():
     try:
+        body_request = request.get_json()
+        khoang_tien = body_request.get("khoang_tien", {})
         page = request.args.get('page', 1, int)
         page_size = request.args.get('page_size', 10, int)
         order_by = request.args.get('order_by', 'created_date')
@@ -99,7 +101,14 @@ def get_list_item():
             text_search = escape_wildcard(text_search)
             text_search = "%{}%".format(text_search)
             query = query.filter(Product.name.ilike(text_search))
-
+        if len(khoang_tien) > 0:
+            if khoang_tien.get('start') is not None and khoang_tien.get('end') is None:
+                query = query.filter(Product.price >= khoang_tien.get('start'))
+            elif khoang_tien.get('start') is None and khoang_tien.get('end') is not None:
+                query = query.filter(Product.price <= khoang_tien.get('end'))
+            elif khoang_tien.get('start') is not None and khoang_tien.get('end') is not None:
+                query = query.filter(Product.price >= khoang_tien.get('start'),
+                                     Product.price <= khoang_tien.get('end'))
         column_sorted = getattr(Product, order_by)
         query = query.order_by(desc(column_sorted)) if order == "desc" else query.order_by(asc(column_sorted))
 
