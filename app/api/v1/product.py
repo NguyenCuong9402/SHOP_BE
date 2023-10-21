@@ -239,7 +239,14 @@ def get_item(product_id):
         check_item = Product.query.filter(Product.id == product_id).first()
         if check_item is None:
             return send_error(message="Sản phẩm không tồn tại, F5 lại web", is_dynamic=True)
-        data = ProductSchema().dump(check_item)
+        san_pham_lien_quan = Product.query.filter(Product.phan_loai_id == check_item.phan_loai_id,
+                                                  Product.id != check_item.id)\
+            .order_by(Product.created_date).limit(10).all()
+        data = {
+            "data": ProductSchema().dump(check_item),
+            "lien_quan": ProductSchema(many=True).dump(san_pham_lien_quan),
+        }
+
         return send_result(data=data)
     except Exception as ex:
         db.session.rollback()

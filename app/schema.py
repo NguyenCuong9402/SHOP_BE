@@ -18,7 +18,7 @@ class ProductSchema(Schema):
     id = fields.String()
     name = fields.String()
     price = fields.Integer()
-    type = fields.String()
+    phan_loai_id = fields.String()
     describe = fields.String()
     created_date = fields.Integer()
     picture = fields.String()
