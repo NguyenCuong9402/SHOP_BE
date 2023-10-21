@@ -34,6 +34,7 @@ class Product(db.Model):
     picture = db.Column(db.Text(), nullable=True)
     old_price = db.Column(db.Integer, nullable=True, default=0)
     giam_gia = db.Column(db.Integer, nullable=True, default=0)
+    cac_mau = db.Column(db.JSON)
 
     @hybrid_property
     def reviews(self):
