@@ -107,8 +107,11 @@ def get_list_item():
             elif khoang_tien.get('start') is None and khoang_tien.get('end') is not None:
                 query = query.filter(Product.price <= khoang_tien.get('end'))
             elif khoang_tien.get('start') is not None and khoang_tien.get('end') is not None:
-                query = query.filter(Product.price >= khoang_tien.get('start'),
-                                     Product.price <= khoang_tien.get('end'))
+                if khoang_tien.get('start') > khoang_tien.get('end'):
+                    query = query.filter(Product.price >= khoang_tien.get('start'))
+                else:
+                    query = query.filter(Product.price >= khoang_tien.get('start'),
+                                         Product.price <= khoang_tien.get('end'))
         column_sorted = getattr(Product, order_by)
         query = query.order_by(desc(column_sorted)) if order == "desc" else query.order_by(asc(column_sorted))
 
