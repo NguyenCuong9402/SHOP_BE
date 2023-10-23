@@ -36,6 +36,8 @@ def add_product():
 
         if name == "" or int(price) <= 0 or type_item not in ["ao", "quan", "phukien"]:
             return send_error(message="Vui lòng điền thêm thông tin", show=True)
+        if len(name) > 40:
+            return send_error(message='Tên quá dài!')
         if check_coincided_name(name):
             return send_error(message="Tên sản phẩm đã tồn tại", is_dynamic=True)
         if file is None:
