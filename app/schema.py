@@ -79,6 +79,7 @@ class CartItemsSchema(Schema):
     quantity = fields.Integer()
     size = fields.String()
     color = fields.String()
+    total = fields.Integer()
 
 
 class GetTypeSchema(Schema):

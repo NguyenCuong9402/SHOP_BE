@@ -128,6 +128,11 @@ class CartItems(db.Model):
     @hybrid_property
     def price(self):
         product = Product.query.filter(Product.id == self.product_id).first()
+        return product.price
+
+    @hybrid_property
+    def total(self):
+        product = Product.query.filter(Product.id == self.product_id).first()
         return product.price*self.quantity
 
 
