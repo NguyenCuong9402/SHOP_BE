@@ -52,18 +52,20 @@ def add_item_to_cart(product_id):
         return send_error(message=str(ex))
 
 
-@api.route("/<cart_item_id>", methods=["DELETE"])
+@api.route("", methods=["DELETE"])
 @jwt_required()
-def delete_item_to_cart(cart_item_id):
+def delete_item_to_cart():
     try:
         user_id = get_jwt_identity()
-        check_item_cart = CartItems.query.filter(CartItems.id == cart_item_id, CartItems.user_id == user_id)
-        if check_item_cart is None:
-            return send_error(message="Sản phẩm không có trong giỏ hàng, vui lòng F5", is_dynamic=True)
+        body_request = request.get_json()
+        list_id = body_request.get("list_id", [])
+        check_item_cart = CartItems.query.filter(CartItems.id.in_(list_id), CartItems.user_id == user_id)
+        if check_item_cart.count == 0:
+            return send_error(message="Bạn chưa chọn sản phẩm nào")
         check_item_cart.delete()
         db.session.flush()
         db.session.commit()
-        return send_result(message="Bỏ ra giỏ hàng thành công", show=True)
+        return send_result(message="Bỏ ra giỏ hàng thành công")
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
