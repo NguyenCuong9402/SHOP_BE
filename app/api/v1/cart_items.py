@@ -71,7 +71,7 @@ def delete_item_to_cart():
         return send_error(message=str(ex))
 
 
-@api.route("/get-total", methods=["GET"])
+@api.route("/get-total", methods=["POST"])
 @jwt_required()
 def get_to_tal_item_to_cart():
     try:
@@ -94,54 +94,17 @@ def put_item_to_cart(cart_item_id):
     try:
         user_id = get_jwt_identity()
         body_request = request.get_json()
-        quantity = body_request.get("quantity", 0)
-        size = body_request.get("size", "")
-        color = body_request.get("color", "")
+        quantity = body_request.get("new_quantity", None)
+        if quantity is None:
+            return send_error(status='none', message='None')
         if quantity <= 0:
-            return send_error(message="Số lượng sản phẩm > 0 hoặc xóa ra khỏi giỏ hàng")
+            return send_error(message="Số lượng sản phẩm > 0 hoặc xóa ra khỏi giỏ hàng", status='<0')
         check_item_cart = CartItems.query.filter(CartItems.id == cart_item_id, CartItems.user_id == user_id).first()
-
         if check_item_cart is None:
             return send_error(message="Sản phẩm không có trong giỏ hàng, vui lòng F5", is_dynamic=True)
-        if size == "" and color == "":
-            check_item_cart.quantity = quantity
-        elif size != "" and color == "":
-            cart_new = CartItems.query.filter(CartItems.user_id == user_id, CartItems.color == check_item_cart.color,
-                                              CartItems.product_id == check_item_cart.product_id,
-                                              CartItems.size == size.upper()).first()
-            if cart_new is None:
-                check_item_cart.size = size
-                check_item_cart.quantity = quantity
-            else:
-                cart_new.quantity = cart_new.quantity + quantity
-                db.session.delete(check_item_cart)
-            db.session.flush()
-
-        elif size == "" and color != "":
-            cart_new = CartItems.query.filter(CartItems.user_id == user_id, CartItems.size == check_item_cart.size,
-                                              CartItems.product_id == check_item_cart.product_id
-                                              , CartItems.color == color.lower()).first()
-            if cart_new is None:
-                check_item_cart.color = color
-                check_item_cart.quantity = quantity
-            else:
-                cart_new.quantity = cart_new.quantity + quantity
-                db.session.delete(check_item_cart)
-            db.session.flush()
-
-        elif size != "" and color != "":
-            cart_new = CartItems.query.filter(CartItems.user_id == user_id, CartItems.size == size.upper(),
-                                              CartItems.product_id == check_item_cart.product_id
-                                              , CartItems.color == color.lower()).first()
-            if cart_new is None:
-                check_item_cart.color = color.lower()
-                check_item_cart.size = size.upper()
-                check_item_cart.quantity = quantity
-
-            else:
-                cart_new.quantity = cart_new.quantity + quantity
-                db.session.delete(check_item_cart)
-            db.session.flush()
+        if check_item_cart.quantity == quantity:
+            return send_error(message='Không thay đổi gì', status='nochange')
+        check_item_cart.quantity = quantity
         db.session.commit()
         return send_result(message="Thay đổi số lượng sản phẩm trong giỏ hàng thành công", show=True)
     except Exception as ex:
