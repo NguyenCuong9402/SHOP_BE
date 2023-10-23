@@ -71,6 +71,23 @@ def delete_item_to_cart():
         return send_error(message=str(ex))
 
 
+@api.route("/get-total", methods=["GET"])
+@jwt_required()
+def get_to_tal_item_to_cart():
+    try:
+        user_id = get_jwt_identity()
+        body_request = request.get_json()
+        list_id = body_request.get("list_id", [])
+        count = 0
+        check_item_cart = CartItems.query.filter(CartItems.id.in_(list_id), CartItems.user_id == user_id).all()
+        for item in check_item_cart:
+            count += item.total
+        return send_result(data=count)
+    except Exception as ex:
+        db.session.rollback()
+        return send_error(message=str(ex))
+
+
 @api.route("<cart_item_id>", methods=["PUT"])
 @jwt_required()
 def put_item_to_cart(cart_item_id):
