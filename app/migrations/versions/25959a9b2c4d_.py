@@ -82,7 +82,7 @@ def upgrade():
     sa.Column('user_id', sa.String(length=50), nullable=True),
     sa.Column('quantity', sa.Integer(), nullable=True),
     sa.Column('size', sa.String(length=5), nullable=True),
-    sa.Column('color', sa.String(length=50), nullable=True),
+    sa.Column('color', sa.String(length=50, collation='utf8mb4_unicode_ci'), nullable=True),
     sa.Column('created_date', sa.Integer(), nullable=True),
     sa.ForeignKeyConstraint(['product_id'], ['product.id'], onupdate='CASCADE', ondelete='CASCADE'),
     sa.ForeignKeyConstraint(['user_id'], ['user.id'], onupdate='CASCADE', ondelete='CASCADE'),

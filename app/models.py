@@ -117,7 +117,7 @@ class CartItems(db.Model):
                         nullable=True)
     quantity = db.Column(db.Integer, nullable=True, default=1)
     size = db.Column(db.String(5), nullable=True)
-    color = db.Column(db.String(50), nullable=True)
+    color = db.Column(db.String(50, collation="utf8mb4_vietnamese_ci"), nullable=True)
     created_date = db.Column(db.Integer, default=0)
 
     @hybrid_property
