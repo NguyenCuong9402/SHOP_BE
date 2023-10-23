@@ -20,17 +20,17 @@ def add_item_to_cart(product_id):
         user_id = get_jwt_identity()
         body_request = request.get_json()
         quantity = body_request.get("quantity", 1)
-        size = body_request.get("size", "")
+        size = body_request.get("size", "M")
         color = body_request.get("color", "Đen")
         if size == "":
             size = "M"
         if color == "":
-            color = "black"
+            color = "Đen"
         check_item = Product.query.filter(Product.id == product_id).first()
         if check_item is None:
             return send_error(message="Sản phẩm không tồn tại, F5 lại web", is_dynamic=True)
-        check_to_cart = CartItems.query.filter(CartItems.product_id == product_id, CartItems.color == color.lower(),
-                                               CartItems.size == size.upper()).first()
+        check_to_cart = CartItems.query.filter(CartItems.product_id == product_id, CartItems.color == color,
+                                               CartItems.size == size).first()
         if check_to_cart:
             check_to_cart.quantity = check_to_cart.quantity + quantity
         else:
