@@ -211,7 +211,6 @@ def get_list_user():
 def get_user():
     try:
         user_id = get_jwt_identity()
-
         user = User.query.filter(User.id == user_id).first()
         data = UserSchema().dump(user)
         return send_result(data=data)
