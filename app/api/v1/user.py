@@ -8,7 +8,7 @@ from app.schema import UserSchema
 from werkzeug.utils import secure_filename
 import io
 import pandas as pd
-
+from sqlalchemy import distinct
 from app.blocklist import BLOCKLIST
 from app.extensions import mail
 from app.models import db, User, DiaChiVN
@@ -280,7 +280,7 @@ def import_dia_chi():
         return send_error(message=str(ex))
 
 
-@api.route("tim_dia_chi", methods=["get"])
+@api.route("tim_dia_chi", methods=["GET"])
 @jwt_required()
 def tim_dia_chi():
     try:
@@ -288,12 +288,21 @@ def tim_dia_chi():
         huyen = request.args.get('huyen', "")
         xa = request.args.get('xa', "")
         if tinh == "" or tinh is None:
-            pass
+            cac_tinh = DiaChiVN.query.with_entities(DiaChiVN.tinh).distinct().order_by(DiaChiVN.tinh).all()
+            data = [tinh.tinh for tinh in cac_tinh]
+            send_result(data=data, message='Danh sách tỉnh')
         if huyen == "" or tinh is None:
-            pass
+            cac_huyen = DiaChiVN.query.filter(DiaChiVN.tinh == tinh) \
+                .with_entities(DiaChiVN.huyen) \
+                .distinct().order_by(DiaChiVN.huyen).all()
+            data = [row.huyen for row in cac_huyen]
+            send_result(data=data, message='Danh sách huyện')
         if xa == "" or xa is None:
-            pass
-
+            cac_huyen = DiaChiVN.query.filter(DiaChiVN.tinh == tinh, DiaChiVN.huyen == huyen) \
+                .with_entities(DiaChiVN.xa).distinct().order_by(DiaChiVN.xa).all()
+            data = [row.xa for row in cac_huyen]
+            send_result(data=data, message='Danh sách xã')
+        return  send_result(message='Done')
     except Exception as ex:
         return send_error(message=str(ex))
 
