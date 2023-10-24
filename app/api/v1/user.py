@@ -7,9 +7,11 @@ from sqlalchemy import asc, desc
 from app.schema import UserSchema
 from werkzeug.utils import secure_filename
 import io
+import pandas as pd
+
 from app.blocklist import BLOCKLIST
 from app.extensions import mail
-from app.models import db, User
+from app.models import db, User, DiaChiVN
 from app.utils import send_error, get_timestamp_now, send_result, generate_password
 from flask_mail import Message as MessageMail
 
@@ -239,6 +241,35 @@ def update_user():
         db.session.flush()
         db.session.commit()
         return send_result(data=UserSchema().dump(user))
+    except Exception as ex:
+        return send_error(message=str(ex))
+
+
+@api.route("import", methods=["POST"])
+def import_dia_chi():
+    try:
+        file = request.files['file']
+        if file:
+            # Đọc dữ liệu từ tệp Excel bằng pandas
+            df = pd.read_excel(file)
+            list_chia_chi = []
+            # Lặp qua từng hàng của DataFrame và thêm vào cơ sở dữ liệu
+            for index, row in df.iterrows():
+                dia_chi = DiaChiVN.query.filter(DiaChiVN.tinh == row['tinh'].strip(),
+                                                DiaChiVN.huyen == row['huyen'].strip(),
+                                                DiaChiVN.xa == row['xa'].strip()).first()
+                if dia_chi is None:
+                    dia_chi = DiaChiVN(
+                        id=str(uuid.uuid4()),
+                        tinh=row['tinh'].strip(),
+                        huyen=row['huyen'].strip(),
+                        xa=row['xa'].strip()
+                    )
+                    list_chia_chi.append(dia_chi)
+            db.session.bulk_save_objects(list_chia_chi)
+            db.session.commit()
+            return send_result(message="Thành Công.")
+        return send_error(message="No file uploaded.")
     except Exception as ex:
         return send_error(message=str(ex))
 
