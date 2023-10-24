@@ -80,6 +80,7 @@ class CartItemsSchema(Schema):
     size = fields.String()
     color = fields.String()
     total = fields.Integer()
+    cac_mau = fields.List(fields.String)
 
 
 class GetTypeSchema(Schema):

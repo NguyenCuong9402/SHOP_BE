@@ -135,6 +135,12 @@ class CartItems(db.Model):
         product = Product.query.filter(Product.id == self.product_id).first()
         return product.price*self.quantity
 
+    @hybrid_property
+    def cac_mau(self):
+        product = Product.query.filter(Product.id == self.product_id).first()
+        return product.cac_mau
+
+
 
 class Reviews(db.Model):
     __tablename__ = 'reviews'
