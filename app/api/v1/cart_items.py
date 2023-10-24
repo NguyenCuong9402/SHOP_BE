@@ -130,7 +130,8 @@ def put_cart(cart_item_id):
             item_cart.color = color
             db.session.flush()
         check = CartItems.query.filter(CartItems.product_id == item_cart.product_id, CartItems.color == item_cart.color,
-                                       CartItems.size == item_cart.size, CartItems.user_id == user_id).first()
+                                       CartItems.size == item_cart.size, CartItems.user_id == user_id,
+                                       CartItems.id != item_cart.id).first()
         if check is not None:
             item = CartItems(
                 id=str(uuid.uuid4()),
