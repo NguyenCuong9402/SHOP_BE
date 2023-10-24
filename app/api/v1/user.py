@@ -246,8 +246,13 @@ def update_user():
 
 
 @api.route("import", methods=["POST"])
+@jwt_required()
 def import_dia_chi():
     try:
+        user_id = get_jwt_identity()
+        user = User.query.filter(User.id == user_id).first()
+        if user.admin == 0:
+            return send_error(message='Chỉ có admin mới có quyền!')
         file = request.files['file']
         if file:
             # Đọc dữ liệu từ tệp Excel bằng pandas
@@ -255,17 +260,18 @@ def import_dia_chi():
             list_chia_chi = []
             # Lặp qua từng hàng của DataFrame và thêm vào cơ sở dữ liệu
             for index, row in df.iterrows():
-                dia_chi = DiaChiVN.query.filter(DiaChiVN.tinh == row['tinh'],
-                                                DiaChiVN.huyen == row['huyen'],
-                                                DiaChiVN.xa == row['xa']).first()
+                dia_chi = DiaChiVN.query.filter(DiaChiVN.tinh == str(row['tinh']),
+                                                DiaChiVN.huyen == str(row['huyen']),
+                                                DiaChiVN.xa == str(row['xa'])).first()
                 if dia_chi is None:
                     dia_chi = DiaChiVN(
                         id=str(uuid.uuid4()),
-                        tinh=row['tinh'],
-                        huyen=row['huyen'],
-                        xa=row['xa']
+                        tinh=str(row['tinh']),
+                        huyen=str(row['huyen']),
+                        xa=str(row['xa'])
                     )
                     list_chia_chi.append(dia_chi)
+
             db.session.bulk_save_objects(list_chia_chi)
             db.session.commit()
             return send_result(message="Thành Công.")
