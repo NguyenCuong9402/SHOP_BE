@@ -167,6 +167,12 @@ class PhanLoai(db.Model):
                           nullable=True)
 
 
+class DiaChiVN(db.Model):
+    __tablename__ = 'dia_chi'
+    id = db.Column(db.String(50), primary_key=True)
+    tinh = db.Column(db.String(50, collation="utf8mb4_vietnamese_ci"), nullable=True)
+    huyen = db.Column(db.String(50, collation="utf8mb4_vietnamese_ci"), nullable=True)
+    xa = db.Column(db.String(50, collation="utf8mb4_vietnamese_ci"), nullable=True)
 
 
 
