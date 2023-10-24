@@ -280,6 +280,24 @@ def import_dia_chi():
         return send_error(message=str(ex))
 
 
+@api.route("tim_dia_chi", methods=["get"])
+@jwt_required()
+def tim_dia_chi():
+    try:
+        tinh = request.args.get('tinh', "")
+        huyen = request.args.get('huyen', "")
+        xa = request.args.get('xa', "")
+        if tinh == "" or tinh is None:
+            pass
+        if huyen == "" or tinh is None:
+            pass
+        if xa == "" or xa is None:
+            pass
+
+    except Exception as ex:
+        return send_error(message=str(ex))
+
+
 @api.route('/send_pass_email', methods=['POST'])
 def send_email():
     try:
