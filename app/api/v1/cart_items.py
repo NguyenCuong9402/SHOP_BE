@@ -132,11 +132,20 @@ def put_cart(cart_item_id):
         check = CartItems.query.filter(CartItems.product_id == item_cart.product_id, CartItems.color == item_cart.color,
                                        CartItems.size == item_cart.size, CartItems.user_id == user_id).first()
         if check is not None:
-            item2 = CartItemsSchema().dump(check)
-            item_cart.quantity = item_cart.quantity + item2['quantity']
+            item = CartItems(
+                id=str(uuid.uuid4()),
+                product_id=item_cart.product_id,
+                quantity=item_cart.quantity + check.quantity,
+                size=item_cart.size,
+                color=item_cart.color,
+                created_date=get_timestamp_now(),
+                user_id=user_id
+            )
+            db.session.add(item)
             db.session.flush()
-            CartItems.query.filter(CartItems.id == check.id).delete()
+            CartItems.query.filter(CartItems.id.in_([check.id, cart_item_id])).delete()
             db.session.flush()
+
         db.session.commit()
         return send_result(data=CartItemsSchema().dump(item_cart),
                            message="Thay đổi số lượng sản phẩm trong giỏ hàng thành công", show=True)
