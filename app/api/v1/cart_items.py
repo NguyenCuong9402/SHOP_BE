@@ -133,10 +133,12 @@ def put_cart(cart_item_id):
                                        CartItems.size == item_cart.size, CartItems.user_id == user_id).first()
         if check is not None:
             item_cart.quantity = item_cart.quantity + check.quantity
+            db.session.flush()
             CartItems.query.filter(CartItems.id == check.id).delete()
             db.session.flush()
         db.session.commit()
-        return send_result(message="Thay đổi số lượng sản phẩm trong giỏ hàng thành công", show=True)
+        return send_result(data=CartItemsSchema().dump(item_cart),
+                           message="Thay đổi số lượng sản phẩm trong giỏ hàng thành công", show=True)
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
