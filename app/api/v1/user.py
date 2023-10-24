@@ -290,19 +290,19 @@ def tim_dia_chi():
         if tinh == "" or tinh is None:
             cac_tinh = DiaChiVN.query.with_entities(DiaChiVN.tinh).distinct().order_by(DiaChiVN.tinh).all()
             data = [tinh.tinh for tinh in cac_tinh]
-            send_result(data=data, message='Danh sách tỉnh')
+            send_result(data=data, message='Danh sách tỉnh', status='tinh')
         if huyen == "" or tinh is None:
             cac_huyen = DiaChiVN.query.filter(DiaChiVN.tinh == tinh) \
                 .with_entities(DiaChiVN.huyen) \
                 .distinct().order_by(DiaChiVN.huyen).all()
             data = [row.huyen for row in cac_huyen]
-            send_result(data=data, message='Danh sách huyện')
+            send_result(data=data, message='Danh sách huyện', status='huyen')
         if xa == "" or xa is None:
             cac_huyen = DiaChiVN.query.filter(DiaChiVN.tinh == tinh, DiaChiVN.huyen == huyen) \
                 .with_entities(DiaChiVN.xa).distinct().order_by(DiaChiVN.xa).all()
             data = [row.xa for row in cac_huyen]
-            send_result(data=data, message='Danh sách xã')
-        return  send_result(message='Done')
+            send_result(data=data, message='Danh sách xã', status='xa')
+        return send_result(message='Done')
     except Exception as ex:
         return send_error(message=str(ex))
 
