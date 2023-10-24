@@ -255,15 +255,15 @@ def import_dia_chi():
             list_chia_chi = []
             # Lặp qua từng hàng của DataFrame và thêm vào cơ sở dữ liệu
             for index, row in df.iterrows():
-                dia_chi = DiaChiVN.query.filter(DiaChiVN.tinh == row['tinh'].strip(),
-                                                DiaChiVN.huyen == row['huyen'].strip(),
-                                                DiaChiVN.xa == row['xa'].strip()).first()
+                dia_chi = DiaChiVN.query.filter(DiaChiVN.tinh == row['tinh'],
+                                                DiaChiVN.huyen == row['huyen'],
+                                                DiaChiVN.xa == row['xa']).first()
                 if dia_chi is None:
                     dia_chi = DiaChiVN(
                         id=str(uuid.uuid4()),
-                        tinh=row['tinh'].strip(),
-                        huyen=row['huyen'].strip(),
-                        xa=row['xa'].strip()
+                        tinh=row['tinh'],
+                        huyen=row['huyen'],
+                        xa=row['xa']
                     )
                     list_chia_chi.append(dia_chi)
             db.session.bulk_save_objects(list_chia_chi)
