@@ -134,13 +134,23 @@ def change_pass():
     try:
         user_id = get_jwt_identity()
         body_request = request.get_json()
+        password = body_request.get("password", "")
         new_password = body_request.get("new_password", "")
         confirm_password = body_request.get("confirm_password", "")
-        if new_password == "" or confirm_password == "":
-            return send_error(message="Không để trống mật khẩu", is_dynamic=True)
+        if password == "":
+            return send_error(message='Chưa điền mật khẩu.')
         user = User.query.filter(User.id == user_id).first()
+        if new_password == "":
+            return send_error(message="Chưa điền mật khẩu mới.")
+        if confirm_password == "":
+            return send_error(message="Chưa điền xác nhận mật khẩu.")
         if new_password != confirm_password:
-            return send_error(message=" Password sai, xin moi nhap lai.")
+            return send_error(message="Xác nhận mật khẩu không đúng.")
+        if len(new_password) < 8:
+            return send_error(message="Mật khẩu phải lớn hơn hoặc bằng 8 kí tự.")
+
+        if user.password != password:
+            return send_error(message='Mật khẩu không đúng.')
         user.password = new_password
         db.session.commit()
         jti = get_jwt()["jti"]
