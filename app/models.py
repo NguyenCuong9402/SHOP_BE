@@ -102,6 +102,10 @@ class User(db.Model):
     name_user = db.Column(db.Text(collation='utf8mb4_unicode_ci'), nullable=True)
     phone_number = db.Column(db.String(100), nullable=True)
     address = db.Column(db.Text(collation='utf8mb4_unicode_ci'), nullable=True)
+    tinh = db.Column(db.Text(collation='utf8mb4_unicode_ci'), nullable=True)
+    huyen = db.Column(db.Text(collation='utf8mb4_unicode_ci'), nullable=True)
+    xa = db.Column(db.Text(collation='utf8mb4_unicode_ci'), nullable=True)
+
     gender = db.Column(db.Boolean, nullable=True)  # 0: Nam , Nu : 1
     admin = db.Column(db.Integer, default=0)
     created_date = db.Column(db.Integer, default=0)
