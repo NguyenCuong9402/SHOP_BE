@@ -228,17 +228,16 @@ def update_user():
         user = User.query.filter(User.id == user_id).first()
 
         body_request = request.get_json()
-        name_user = body_request.get("name_user", None)
-        phone_number = body_request.get("phone_number", None)
-        address = body_request.get("address", None)
-        if name_user == "" or phone_number == "" or address == "":
-            return send_error(message="Data empty")
-        if name_user is not None:
-            user.name_user = name_user
-        if phone_number is not None:
-            user.phone_number = phone_number
-        if address is not None:
-            user.address = address
+
+        for key, value in body_request.items():
+            if isinstance(value, str):
+                if value == "" and key != 'address':
+                    return send_error("Không được để trống item")
+                body_request.update({key: value.strip()})
+
+        for key, value in body_request.items():
+            if key != "birthday":
+                user.__setattr__(key, value)
         db.session.flush()
         db.session.commit()
         return send_result(data=UserSchema().dump(user))
