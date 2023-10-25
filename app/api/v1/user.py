@@ -240,7 +240,7 @@ def update_user():
                 user.__setattr__(key, value)
         db.session.flush()
         db.session.commit()
-        return send_result(data=UserSchema().dump(user))
+        return send_result(data=UserSchema().dump(user), message='Thay đổi thông tin thành công!')
     except Exception as ex:
         return send_error(message=str(ex))
 
