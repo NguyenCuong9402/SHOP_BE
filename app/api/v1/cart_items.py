@@ -168,7 +168,7 @@ def get_item_to_cart():
 
 
 @api.route("/shipper", methods=["GET"])
-def get_item_to_cart():
+def get_ship():
     try:
         ship = Shipper.query.filter().order_by(asc(Shipper.gia_ship))
         data = ShipperSchema(many=True).dump(ship)
