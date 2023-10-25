@@ -232,7 +232,7 @@ def update_user():
         for key, value in body_request.items():
             if isinstance(value, str):
                 if value == "" and key != 'address':
-                    return send_error("Không được để trống item")
+                    return send_error("Không được để trống ngoài Địa chỉ bổ sung!")
                 body_request.update({key: value.strip()})
 
         for key, value in body_request.items():
