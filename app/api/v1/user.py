@@ -153,9 +153,7 @@ def change_pass():
             return send_error(message='Mật khẩu không đúng.')
         user.password = new_password
         db.session.commit()
-        jti = get_jwt()["jti"]
-        BLOCKLIST.add(jti)
-        return send_result(message="Thay đổi mật khẩu thành công! \n Vui lòng đăng nhập lại")
+        return send_result(message="Thay đổi mật khẩu thành công!")
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
