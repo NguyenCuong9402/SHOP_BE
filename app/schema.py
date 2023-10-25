@@ -97,3 +97,9 @@ class DiaChiVnSchema(Schema):
     tinh = fields.String()
     huyen = fields.String()
     xa = fields.String()
+
+
+class ShipperSchema(Schema):
+    id = fields.String()
+    name = fields.String()
+    gia_ship = fields.Integer()

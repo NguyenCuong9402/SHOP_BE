@@ -6,9 +6,9 @@ from sqlalchemy import asc, desc
 from io import BytesIO
 import datetime
 import io
-from app.models import db, Product, User, Orders, OrderItems, CartItems
+from app.models import db, Product, User, Orders, OrderItems, CartItems, Shipper
 from app.utils import send_error, get_timestamp_now, send_result
-from app.schema import ProductSchema, CartItemsSchema
+from app.schema import ProductSchema, CartItemsSchema, ShipperSchema
 
 api = Blueprint('cart_items', __name__)
 
@@ -163,6 +163,16 @@ def get_item_to_cart():
         carts = CartItems.query.filter(CartItems.user_id == user_id).order_by(desc(CartItems.created_date))
         resul = CartItemsSchema(many=True).dump(carts)
         return send_result(data=resul)
+    except Exception as ex:
+        return send_error(message=str(ex))
+
+
+@api.route("/shipper", methods=["GET"])
+def get_item_to_cart():
+    try:
+        ship = Shipper.query.filter().order_by(asc(Shipper.gia_ship))
+        data = ShipperSchema(many=True).dump(ship)
+        return send_result(data=data)
     except Exception as ex:
         return send_error(message=str(ex))
 
