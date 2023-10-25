@@ -247,33 +247,22 @@ def update_user():
 
 
 @api.route("import", methods=["POST"])
-@jwt_required()
 def import_dia_chi():
     try:
-        user_id = get_jwt_identity()
-        user = User.query.filter(User.id == user_id).first()
-        if user.admin == 0:
-            return send_error(message='Chỉ có admin mới có quyền!')
         file = request.files['file']
         if file:
             # Đọc dữ liệu từ tệp Excel bằng pandas
             df = pd.read_excel(file)
-            list_chia_chi = []
             # Lặp qua từng hàng của DataFrame và thêm vào cơ sở dữ liệu
             for index, row in df.iterrows():
-                dia_chi = DiaChiVN.query.filter(DiaChiVN.tinh == str(row['tinh']),
-                                                DiaChiVN.huyen == str(row['huyen']),
-                                                DiaChiVN.xa == str(row['xa'])).first()
-                if dia_chi is None:
-                    dia_chi = DiaChiVN(
-                        id=str(uuid.uuid4()),
-                        tinh=str(row['tinh']),
-                        huyen=str(row['huyen']),
-                        xa=str(row['xa'])
-                    )
-                    list_chia_chi.append(dia_chi)
-
-            db.session.bulk_save_objects(list_chia_chi)
+                dia_chi = DiaChiVN(
+                    id=str(uuid.uuid4()),
+                    tinh=str(row['tinh']),
+                    huyen=str(row['huyen']),
+                    xa=str(row['xa'])
+                )
+                db.session.add(dia_chi)
+                db.session.flush()
             db.session.commit()
             return send_result(message="Thành Công.")
         return send_error(message="No file uploaded.")
@@ -282,29 +271,29 @@ def import_dia_chi():
 
 
 @api.route("tim_dia_chi", methods=["GET"])
-@jwt_required()
 def tim_dia_chi():
     try:
         tinh = request.args.get('tinh', "")
         huyen = request.args.get('huyen', "")
         xa = request.args.get('xa', "")
-        if tinh == "" or tinh is None:
-            cac_tinh = DiaChiVN.query.with_entities(DiaChiVN.tinh).distinct().order_by(DiaChiVN.tinh).all()
-            data = [tinh.tinh for tinh in cac_tinh]
-            send_result(data=data, message='Danh sách tỉnh', status='tinh')
-        if huyen == "" or tinh is None:
+
+        data = {}
+        cac_tinh = DiaChiVN.query.with_entities(DiaChiVN.tinh).distinct().order_by(DiaChiVN.tinh).all()
+        data['tinh'] = [tinh.tinh for tinh in cac_tinh]
+
+        if huyen == "" or huyen is None:
             cac_huyen = DiaChiVN.query.filter(DiaChiVN.tinh == tinh) \
                 .with_entities(DiaChiVN.huyen) \
                 .distinct().order_by(DiaChiVN.huyen).all()
-            data = [row.huyen for row in cac_huyen]
-            send_result(data=data, message='Danh sách huyện', status='huyen')
+            data['huyen'] = [row.huyen for row in cac_huyen]
         if xa == "" or xa is None:
-            cac_huyen = DiaChiVN.query.filter(DiaChiVN.tinh == tinh, DiaChiVN.huyen == huyen) \
+            cac_huyen = DiaChiVN.query.filter(DiaChiVN.tinh == tinh) \
+                .with_entities(DiaChiVN.huyen) \
+                .distinct().order_by(DiaChiVN.huyen).all()
+            data['huyen'] = [row.huyen for row in cac_huyen]
+            cac_xa = DiaChiVN.query.filter(DiaChiVN.tinh == tinh, DiaChiVN.huyen == huyen) \
                 .with_entities(DiaChiVN.xa).distinct().order_by(DiaChiVN.xa).all()
-            data = [row.xa for row in cac_huyen]
-            send_result(data=data, message='Danh sách xã', status='xa')
-        dia_chi = DiaChiVN.query.filter(DiaChiVN.tinh == tinh, DiaChiVN.huyen == huyen, DiaChiVN.xa == xa).first()
-        data = DiaChiVnSchema().dump(dia_chi)
+            data['xa'] = [row.xa for row in cac_xa]
         return send_result(message='Done', data=data)
     except Exception as ex:
         return send_error(message=str(ex))
