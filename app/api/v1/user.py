@@ -4,7 +4,7 @@ import base64
 from flask import Blueprint, request, make_response, send_file, Response, jsonify
 from flask_jwt_extended import get_jwt_identity, create_access_token, create_refresh_token, jwt_required, get_jwt
 from sqlalchemy import asc, desc
-from app.schema import UserSchema
+from app.schema import UserSchema, DiaChiVnSchema
 from werkzeug.utils import secure_filename
 import io
 import pandas as pd
@@ -303,7 +303,9 @@ def tim_dia_chi():
                 .with_entities(DiaChiVN.xa).distinct().order_by(DiaChiVN.xa).all()
             data = [row.xa for row in cac_huyen]
             send_result(data=data, message='Danh sách xã', status='xa')
-        return send_result(message='Done')
+        dia_chi = DiaChiVN.query.filter(DiaChiVN.tinh == tinh, DiaChiVN.huyen == huyen, DiaChiVN.xa == xa).first()
+        data = DiaChiVnSchema().dump(dia_chi)
+        return send_result(message='Done', data=data)
     except Exception as ex:
         return send_error(message=str(ex))
 
