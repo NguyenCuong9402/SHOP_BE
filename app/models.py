@@ -178,6 +178,13 @@ class DiaChiVN(db.Model):
     huyen = db.Column(db.Text(collation='utf8mb4_unicode_ci'), nullable=True)
     xa = db.Column(db.Text(collation='utf8mb4_unicode_ci'), nullable=True)
 
+class Shipper(db.Model):
+    __tablename__ = 'shipper'
+    id = db.Column(db.String(50), primary_key=True)
+    name = db.Column(db.Text(collation='utf8mb4_unicode_ci'), nullable=True)
+    gia_ship = db.Column(db.Integer, default=1)
+
+
 
 
 
