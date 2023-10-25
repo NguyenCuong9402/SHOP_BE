@@ -12,7 +12,7 @@ from sqlalchemy import distinct
 from app.blocklist import BLOCKLIST
 from app.extensions import mail
 from app.models import db, User, DiaChiVN
-from app.utils import send_error, get_timestamp_now, send_result, generate_password
+from app.utils import send_error, get_timestamp_now, send_result, generate_password, is_valid_birthday, format_birthday
 from flask_mail import Message as MessageMail
 
 api = Blueprint('user', __name__)
@@ -233,11 +233,15 @@ def update_user():
             if isinstance(value, str):
                 if value == "" and key != 'address':
                     return send_error("Không được để trống ngoài Địa chỉ bổ sung!")
+                if key == 'birthday':
+                    if not is_valid_birthday(value):
+                        return send_error(message='Ngày sinh không hợp lệ!')
                 body_request.update({key: value.strip()})
-
         for key, value in body_request.items():
             if key != "birthday":
                 user.__setattr__(key, value)
+            else:
+                user.__setattr__(key, format_birthday(value))
         db.session.flush()
         db.session.commit()
         return send_result(data=UserSchema().dump(user), message='Thay đổi thông tin thành công!')

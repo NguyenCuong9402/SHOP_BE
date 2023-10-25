@@ -191,3 +191,21 @@ def generate_password():
     letters_and_digits = string.ascii_letters + string.digits
     result_str = ''.join(random.choices(letters_and_digits, k=6))
     return '{}{}{}'.format(result_str, random.choice(symbol_list), random.choice(number))
+
+
+def format_birthday(date_string):
+    # Chuyển đổi chuỗi thành đối tượng datetime
+    date_obj = datetime.strptime(date_string, '%Y-%m-%dT%H:%M:%S.%fZ')
+
+    # Chuyển đối tượng datetime thành chuỗi định dạng mong muốn
+    formatted_birthday = date_obj.strftime('%Y-%m-%d')
+
+    return formatted_birthday
+
+
+def is_valid_birthday(date_string):
+    try:
+        date_obj = datetime.strptime(date_string, '%Y-%m-%dT%H:%M:%S.%fZ')
+        return True
+    except ValueError:
+        return False
