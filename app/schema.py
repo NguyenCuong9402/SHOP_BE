@@ -69,6 +69,7 @@ class UserSchema(Schema):
     picture = fields.String()
     admin = fields.Integer()
     count_money_buy = fields.Integer()
+    birthday = fields.Date()
 
 
 class CartItemsSchema(Schema):
