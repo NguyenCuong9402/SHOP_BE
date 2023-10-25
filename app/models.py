@@ -145,7 +145,6 @@ class CartItems(db.Model):
         return product.cac_mau
 
 
-
 class Reviews(db.Model):
     __tablename__ = 'reviews'
     id = db.Column(db.String(50), primary_key=True)
@@ -177,6 +176,7 @@ class DiaChiVN(db.Model):
     tinh = db.Column(db.Text(collation='utf8mb4_unicode_ci'), nullable=True)
     huyen = db.Column(db.Text(collation='utf8mb4_unicode_ci'), nullable=True)
     xa = db.Column(db.Text(collation='utf8mb4_unicode_ci'), nullable=True)
+
 
 class Shipper(db.Model):
     __tablename__ = 'shipper'
