@@ -65,6 +65,7 @@ class UserSchema(Schema):
     email = fields.String()
     address = fields.String()
     created_date = fields.Integer()
+    gender = fields.Integer()
     picture = fields.String()
     admin = fields.Integer()
     count_money_buy = fields.Integer()
