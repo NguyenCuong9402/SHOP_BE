@@ -281,19 +281,14 @@ def tim_dia_chi():
         cac_tinh = DiaChiVN.query.with_entities(DiaChiVN.tinh).distinct().order_by(DiaChiVN.tinh).all()
         data['tinh'] = [tinh.tinh for tinh in cac_tinh]
 
-        if huyen == "" or huyen is None:
-            cac_huyen = DiaChiVN.query.filter(DiaChiVN.tinh == tinh) \
-                .with_entities(DiaChiVN.huyen) \
-                .distinct().order_by(DiaChiVN.huyen).all()
-            data['huyen'] = [row.huyen for row in cac_huyen]
-        if xa == "" or xa is None:
-            cac_huyen = DiaChiVN.query.filter(DiaChiVN.tinh == tinh) \
-                .with_entities(DiaChiVN.huyen) \
-                .distinct().order_by(DiaChiVN.huyen).all()
-            data['huyen'] = [row.huyen for row in cac_huyen]
-            cac_xa = DiaChiVN.query.filter(DiaChiVN.tinh == tinh, DiaChiVN.huyen == huyen) \
-                .with_entities(DiaChiVN.xa).distinct().order_by(DiaChiVN.xa).all()
-            data['xa'] = [row.xa for row in cac_xa]
+        cac_huyen = DiaChiVN.query.filter(DiaChiVN.tinh == tinh) \
+            .with_entities(DiaChiVN.huyen) \
+            .distinct().order_by(DiaChiVN.huyen).all()
+        data['huyen'] = [row.huyen for row in cac_huyen]
+        cac_xa = DiaChiVN.query.filter(DiaChiVN.tinh == tinh, DiaChiVN.huyen == huyen) \
+            .with_entities(DiaChiVN.xa).distinct().order_by(DiaChiVN.xa).all()
+        data['xa'] = [row.xa for row in cac_xa]
+
         return send_result(message='Done', data=data)
     except Exception as ex:
         return send_error(message=str(ex))
