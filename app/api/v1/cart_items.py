@@ -78,11 +78,16 @@ def get_to_tal_item_to_cart():
         user_id = get_jwt_identity()
         body_request = request.get_json()
         list_id = body_request.get("list_id", [])
+        ship_id = body_request.get("ship_id", "")
         count = 0
         check_item_cart = CartItems.query.filter(CartItems.id.in_(list_id), CartItems.user_id == user_id).all()
         for item in check_item_cart:
             count += item.total
-        return send_result(data=count)
+        ship = Shipper.query.filter(Shipper.id == ship_id).first()
+        gia_ship = 0 if ship is None else ship.gia_ship
+        return send_result(data={
+            "tong": count, "thanh_toan": count + gia_ship
+        })
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
@@ -176,4 +181,13 @@ def get_ship():
     except Exception as ex:
         return send_error(message=str(ex))
 
+
+@api.route("/shipper/<id>", methods=["GET"])
+def get_ship_id(id):
+    try:
+        ship = Shipper.query.filter(Shipper.id == id).first()
+        data = 0 if ship is None else ship.gia_ship
+        return send_result(data=data)
+    except Exception as ex:
+        return send_error(message=str(ex))
 
