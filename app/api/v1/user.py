@@ -213,6 +213,10 @@ def get_user():
         user_id = get_jwt_identity()
         user = User.query.filter(User.id == user_id).first()
         data = UserSchema().dump(user)
+        [nam_sinh, thang_sinh, ngay_sinh] = data['birthday'].split('-')
+        data['nam_sinh'] = nam_sinh
+        data['thang_sinh'] = thang_sinh
+        data['ngay_sinh'] = ngay_sinh
         return send_result(data=data)
     except Exception as ex:
         return send_error(message=str(ex))
