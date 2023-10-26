@@ -29,19 +29,17 @@ def register():
         password = body_request.get("password", "")
         confirmPassword = body_request.get("confirmPassword", "")
         gender = body_request.get("gender", "")
-        if name_user == "":
-            return send_error(message="Không được để trống thông tin")
-        if "phone_number" == "":
-            return send_error(message='Không được để trống thông tin')
-        if email == "":
-            return send_error(message='Không được để trống thông tin')
-        if password == "":
-            return send_error(message='Không được để trống thông tin')
-        if confirmPassword == "":
-            return send_error(message='Không được để trống thông tin')
 
+        if name_user == "":
+            return send_error(message="Chưa điền tên/")
+        if len(phone_number) != 10:
+            return send_error(message='Số điện thoại chưa đúng.')
+        if email == "":
+            return send_error(message='Chưa điền email')
+        if password == "" or password == "":
+            return send_error(message='Không được để trống mật khẩu')
         if password != confirmPassword:
-            return send_error(message='Confirm false')
+            return send_error(message='Xác nhận mật khẩu sai')
         gender = 0 if gender == 'male' else 1
         check_user = User.query.filter(User.email == email).first()
         if check_user:
