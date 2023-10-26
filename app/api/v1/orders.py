@@ -48,13 +48,32 @@ def add_order():
             return send_error(message='Số điện thoại chưa đúng. '
                                       'Vui lòng điền thêm!')
 
-        CartItems.query.filter(CartItems.id.in_(cart_ids), CartItems.user_id == user_id).all()
-
-
-
-
-
+        cart_items = CartItems.query.filter(CartItems.id.in_(cart_ids), CartItems.user_id == user_id).all()
+        count = 0
+        for cart_item in cart_items:
+            count += cart_item.total
+        #Tạo đơn hàng
+        order = Orders(
+            id=str(uuid.uuid4()),
+            user_id=user_id,
+            phone_number=phone_number,
+            address=address,
+            tinh=tinh,
+            huyen=huyen,
+            xa=xa,
+            created_date=get_timestamp_now(),
+            loi_nhan=loi_nhan,
+            ship_id=ship_id,
+            gia_ship=gia_ship,
+            count=count,
+            tong_thanh_toan=count + gia_ship
+        )
+        db.session.add(order)
         db.session.flush()
+        #Thông tin chi tiết đơn hàng
+        for cart_item in cart_items:
+
+
         # Xóa item trong giỏ hàng sau khi đặt hàng
         CartItems.query.filter(CartItems.id.in_(cart_ids), CartItems.user_id == user_id).delete()
         db.session.flush()
