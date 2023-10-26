@@ -35,15 +35,17 @@ def register():
         address = body_request.get("address", "")
         email = body_request.get("email", "")
         password = body_request.get("password", "")
-        confirm_assword = body_request.get("confirmPassword", "")
+        confirm_password = body_request.get("confirmPassword", "")
         gender = body_request.get("gender", "")
         tinh = body_request.get("tinh")
         huyen = body_request.get("huyen")
         xa = body_request.get("xa")
         birthday = body_request.get('birthday')
+        if len(password) < 8:
+            send_error(message='Mật khẩu lớn hơn hoặc 8 kí tự.')
         if len(phone_number) != 10:
             return send_error(message='Số điện thoại chưa đúng.')
-        if password != confirm_assword:
+        if password != confirm_password:
             return send_error(message='Xác nhận mật khẩu sai')
 
         gender = 0 if gender == 'male' else 1
