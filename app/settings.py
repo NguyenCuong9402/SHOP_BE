@@ -36,7 +36,7 @@ class DevConfig(Config):
     MAIL_SERVER = 'smtp.gmail.com'
     MAIL_PORT = 465
     MAIL_USERNAME = 'cuong09042002@gmail.com'
-    MAIL_PASSWORD = 'egzyiyrlkigbfpgzr'
+    MAIL_PASSWORD = 'cyeb cioq ynmo zirk'
     MAIL_DEFAULT_SENDER = 'cuong09042002@gmail.com'
     MAIL_USE_TLS = False
     MAIL_USE_SSL = True
