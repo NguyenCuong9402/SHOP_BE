@@ -105,7 +105,7 @@ def login():
                 return send_error(message="Tài khoản không tồn tại!", is_dynamic=True)
             if user.password != password:
                 return send_error(message="Sai mật khẩu, vui lòng đăng nhập lại!", is_dynamic=True)
-            if user.admin == 1:
+            if user.admin != 0:
                 return send_error(message="Tài khoản admin!", is_dynamic=True)
         access_token = create_access_token(identity=user.id, fresh=True, expires_delta=False)
         refresh_token = create_refresh_token(user.id)
@@ -182,28 +182,69 @@ def add_admin():
             return send_result(message="Bạn không phải admin.")
         body_request = request.get_json()
         email = body_request.get("email", "")
-        password = body_request.get("password", "")
         name_user = body_request.get("name_user", "")
         phone_number = body_request.get("phone_number", "")
-        address = body_request.get("address", "")
         user_admin = User.query.filter(User.email == email).first()
+        if name_user == "":
+            return send_error(message='Không để tên trống')
         if user_admin:
             return send_error(message="Email đã được đăng ký, vui lòng thay đổi Email")
         user_admin_phone_number = User.query.filter(User.phone_number == phone_number).first()
+
+        if len(phone_number) != 10:
+            return send_error(message='Số điện thoại chưa đúng')
+
         if user_admin_phone_number:
             return send_error(message="SĐT đã được đăng ký, vui lòng thay đổi SĐT")
+
+        password = generate_password()
         user = User(
             id=str(uuid.uuid4()),
             email=email,
             password=password,
             phone_number=phone_number,
-            address=address,
             name_user=name_user,
             created_date=get_timestamp_now(),
-            admin=1
+            admin=2
         )
         db.session.add(user)
         db.session.flush()
+
+        msg = MessageMail('Mật khẩu tài khoản admmin ', recipients=[email])
+        html_content = """
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <style>
+                        .container {
+                      padding: 100px;
+                    }
+                    .envelop {
+                      width: 300px;
+                      height: 200px;
+                      box-sizing: border-box;
+                      border-color: grey;
+                      border-style: solid;
+                      border-top: 100px solid #F4F9F9;
+                      border-right: 150px solid #CCF2F4;
+                      border-bottom: 100px solid #A4EBF3;
+                      border-left: 150px solid #A4EBF3;
+                    }
+                    </style>
+                </head>
+                <div class="container">
+                  <div class="envelop"></div>
+                </div>
+                <div>Xin chào quản lý UserName</div>
+                <div>Mật Khẩu của bạn là: NEWPASSWORD</div>
+
+                </html>
+                """
+
+        html_content = html_content.replace("UserName", user.name_user)
+        html_content = html_content.replace("NEWPASSWORD", password)
+        msg.html = html_content
+        mail.send(msg)
         db.session.commit()
         return send_result(message="Đăng ký toàn khoản thành công", show=True)
     except Exception as ex:
