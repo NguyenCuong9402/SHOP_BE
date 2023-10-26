@@ -22,31 +22,39 @@ api = Blueprint('user', __name__)
 def register():
     try:
         body_request = request.get_json()
+        for key, value in body_request.items():
+            if isinstance(value, str):
+                if value == "" and key != 'address':
+                    return send_error("Không được để trống ngoài Địa chỉ bổ sung!")
+                if key == 'birthday':
+                    if not is_valid_birthday(value):
+                        return send_error(message='Ngày sinh không hợp lệ!')
+                body_request.update({key: value.strip()})
         name_user = body_request.get("fullName", "")
         phone_number = body_request.get("phoneNumber", "")
         address = body_request.get("address", "")
         email = body_request.get("email", "")
         password = body_request.get("password", "")
-        confirmPassword = body_request.get("confirmPassword", "")
+        confirm_assword = body_request.get("confirmPassword", "")
         gender = body_request.get("gender", "")
-
-        if name_user == "":
-            return send_error(message="Chưa điền tên/")
+        tinh = body_request.get("tinh")
+        huyen = body_request.get("huyen")
+        xa = body_request.get("xa")
+        birthday = body_request.get('birthday')
         if len(phone_number) != 10:
             return send_error(message='Số điện thoại chưa đúng.')
-        if email == "":
-            return send_error(message='Chưa điền email')
-        if password == "" or password == "":
-            return send_error(message='Không được để trống mật khẩu')
-        if password != confirmPassword:
+        if password != confirm_assword:
             return send_error(message='Xác nhận mật khẩu sai')
+
         gender = 0 if gender == 'male' else 1
+
         check_user = User.query.filter(User.email == email).first()
         if check_user:
             return send_error(message="Email đã tồn tại", is_dynamic=True)
         user_phone_number = User.query.filter(User.phone_number == phone_number).first()
         if user_phone_number:
             return send_error(message="SĐT đã được đăng ký, vui lòng thay đổi SĐT")
+
         user = User(
             id=str(uuid.uuid4()),
             email=email,
@@ -55,6 +63,10 @@ def register():
             address=address,
             name_user=name_user,
             gender=gender,
+            tinh=tinh,
+            huyen=huyen,
+            xa=xa,
+            birthday=format_birthday(birthday),
             created_date=get_timestamp_now()
         )
         db.session.add(user)
