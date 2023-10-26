@@ -180,6 +180,9 @@ def add_admin():
         user = User.query.filter(User.id == user_id).first()
         if user.admin == 0 or (not jwt.get("is_admin")):
             return send_result(message="Bạn không phải admin.")
+
+        if user.admin == 2:
+            return send_error(message='Bạn không có quyền!')
         body_request = request.get_json()
         email = body_request.get("email", "")
         name_user = body_request.get("name_user", "")
