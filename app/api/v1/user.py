@@ -237,7 +237,7 @@ def add_admin():
                 </div>
                 <div>Xin chào quản lý UserName</div>
                 <div>Mật Khẩu của bạn là: NEWPASSWORD</div>
-
+                <div> Hãy đăng nhập vào trang web để thay đổi thông tin cá nhân!</div>
                 </html>
                 """
 
@@ -246,7 +246,7 @@ def add_admin():
         msg.html = html_content
         mail.send(msg)
         db.session.commit()
-        return send_result(message="Đăng ký toàn khoản thành công", show=True)
+        return send_result(message="", show=True)
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
