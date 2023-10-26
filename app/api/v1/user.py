@@ -249,7 +249,7 @@ def add_admin():
         msg.html = html_content
         mail.send(msg)
         db.session.commit()
-        return send_result(message="", show=True)
+        return send_result(message="Tạo tài khoản thành công!", show=True)
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
