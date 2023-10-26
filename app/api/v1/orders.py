@@ -52,7 +52,7 @@ def add_order():
         count = 0
         for cart_item in cart_items:
             count += cart_item.total
-        #Tạo đơn hàng
+        # Tạo đơn hàng
         order = Orders(
             id=str(uuid.uuid4()),
             user_id=user_id,
@@ -70,9 +70,20 @@ def add_order():
         )
         db.session.add(order)
         db.session.flush()
-        #Thông tin chi tiết đơn hàng
-        for cart_item in cart_items:
 
+        # Thông tin chi tiết đơn hàng
+        for cart_item in cart_items:
+            order_item = OrderItems(
+                id=str(uuid.uuid4()),
+                order_id=order.id,
+                quantity=cart_item.quantity,
+                size=cart_item.size,
+                color=cart_item.color,
+                created_date=get_timestamp_now(),
+                count=cart_item.total
+            )
+            db.session.add(order_item)
+            db.session.flush()
 
         # Xóa item trong giỏ hàng sau khi đặt hàng
         CartItems.query.filter(CartItems.id.in_(cart_ids), CartItems.user_id == user_id).delete()
