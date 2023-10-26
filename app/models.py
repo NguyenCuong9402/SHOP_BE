@@ -64,6 +64,8 @@ class Orders(db.Model):
     loi_nhan = db.Column(db.Text(collation='utf8mb4_unicode_ci'), nullable=True)
     ship_id = db.Column(db.String(50), db.ForeignKey('shipper.id', ondelete='SET NULL', onupdate='SET NULL'),
                         nullable=True)
+    gia_ship = db.Column(db.Integer, nullable=True)
+    tong_thanh_toan = db.Column(db.Integer, nullable=True)
 
     @hybrid_property
     def user_name(self):
