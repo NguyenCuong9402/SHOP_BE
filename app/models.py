@@ -58,11 +58,18 @@ class Orders(db.Model):
     address = db.Column(db.Text(collation='utf8mb4_unicode_ci'), nullable=True)
     count = db.Column(db.Integer, nullable=True, default=0)
     created_date = db.Column(db.Integer, default=0)
+    tinh = db.Column(db.Text(collation='utf8mb4_unicode_ci'), nullable=True)
+    huyen = db.Column(db.Text(collation='utf8mb4_unicode_ci'), nullable=True)
+    xa = db.Column(db.Text(collation='utf8mb4_unicode_ci'), nullable=True)
+    loi_nhan = db.Column(db.Text(collation='utf8mb4_unicode_ci'), nullable=True)
+    ship_id = db.Column(db.String(50), db.ForeignKey('shipper.id', ondelete='SET NULL', onupdate='SET NULL'),
+                        nullable=True)
 
     @hybrid_property
     def user_name(self):
         user = User.query.filter(User.id == self.user_id).first()
-        return user.name_user
+
+        return user.name_user if user is not None else "Người dùng đã xóa tài khoản"
 
     @hybrid_property
     def order_items(self):
