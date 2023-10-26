@@ -30,12 +30,14 @@ def add_product():
             return send_result(message="Bạn không phải admin.")
         file = request.files.get('file', None)
         name = request.form.get('name', '')
-        price = request.form.get('price', 0)
-        type_item = request.form.get('type_item', '')
+        old_price = request.form.get('price', 0)
+        giam_gia = request.form.get('giam_gia', 0)
+        phan_loai_id = request.form.get('phan_loai_id', '')
         describe = request.form.get('describe', '')
+        cac_mau = request.form.get('cac_mau', [])
 
-        if name == "" or int(price) <= 0 or type_item not in ["ao", "quan", "phukien"]:
-            return send_error(message="Vui lòng điền thêm thông tin", show=True)
+        if phan_loai_id == "":
+            return send_error(message='Vui lòng chọn loại sản phẩm')
         if len(name) > 40:
             return send_error(message='Tên quá dài!')
         if check_coincided_name(name):
@@ -44,8 +46,11 @@ def add_product():
             product = Product(
                 id=str(uuid.uuid4()),
                 name=name,
-                price=int(price),
-                type=type_item,
+                old_price=old_price,
+                phan_loai_id=phan_loai_id,
+                price=old_price*(100-giam_gia)/100,
+                cac_mau=cac_mau,
+                giam_gia=giam_gia,
                 describe=describe,
                 created_date=get_timestamp_now()
             )
@@ -57,10 +62,13 @@ def add_product():
                 os.makedirs(FILE_PATH_PRODUCT)
             file.save(os.path.join(FILE_PATH_PRODUCT + file_name))
             product = Product(
-                id=id_product,
+                id=str(uuid.uuid4()),
                 name=name,
-                price=int(price),
-                type=type_item,
+                old_price=old_price,
+                phan_loai_id=phan_loai_id,
+                price=old_price * (100 - giam_gia) / 100,
+                cac_mau=cac_mau,
+                giam_gia=giam_gia,
                 describe=describe,
                 created_date=get_timestamp_now(),
                 picture=file_name
