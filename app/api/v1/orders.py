@@ -30,7 +30,8 @@ def add_order():
         cart_ids = body_request.get("cart_ids", [])
 
         user = User.query.filter(User.id == user_id).first()
-
+        if user is None:
+            return send_error('Người dùng không tồn tại!')
         if len(cart_ids) == 0:
             return send_error(message='Chưa chọn đơn hàng nào.')
         if ship_id == "":
@@ -80,7 +81,8 @@ def add_order():
                 size=cart_item.size,
                 color=cart_item.color,
                 created_date=get_timestamp_now(),
-                count=cart_item.total
+                count=cart_item.total,
+                product_id=cart_item.product_id
             )
             db.session.add(order_item)
             db.session.flush()
@@ -89,7 +91,8 @@ def add_order():
         CartItems.query.filter(CartItems.id.in_(cart_ids), CartItems.user_id == user_id).delete()
         db.session.flush()
         db.session.commit()
-        return send_result()
+        return send_result(message='Đặt hàng thành công.'
+                                   'Thanh toán khi nhận hàng!')
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
