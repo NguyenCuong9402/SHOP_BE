@@ -198,20 +198,35 @@ def fix_item(product_id):
             return send_error(message='Vui lòng chọn loại sản phẩm')
         if len(name) > 40:
             return send_error(message='Tên quá dài!')
-        existed_name = Product.query.filter(Product.name == name, Product.id == product_id).first()
+        existed_name = Product.query.filter(Product.name == name, Product.id != product_id).first()
         if existed_name is not None:
             return send_error(message="Tên đã tồn tại")
 
-        product = Product.query.filter(Product.id == product_id).fisrt()
-
+        product = Product.query.filter(Product.id == product_id)
+        if product_id is None:
+            return send_error(message='Sản phẩm đã bị xóa')
         product.name = name
-        product.old_price = old_price
-        product.giam_gia = giam_gia
-        product.price = old_price - old_price*giam_gia
-        product.describe = describe
-        product.phan_loai_id = phan_loai_id
-        product.cac_mau = cac_mau
+        db.session.flush()
 
+        product.old_price = old_price
+        db.session.flush()
+
+        product.giam_gia = giam_gia
+        db.session.flush()
+
+        product.price = old_price - old_price*giam_gia
+        db.session.flush()
+
+        product.describe = describe
+        db.session.flush()
+
+        product.phan_loai_id = phan_loai_id
+        db.session.flush()
+
+        product.cac_mau = cac_mau
+        db.session.flush()
+        # Lưu các thay đổi vào cơ sở dữ liệu
+        db.session.commit()
         if file:
             filename, file_extension = os.path.splitext(file.filename)
             id_product = str(uuid.uuid4())
