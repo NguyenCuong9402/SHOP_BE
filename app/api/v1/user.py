@@ -12,8 +12,10 @@ from sqlalchemy import distinct
 from app.blocklist import BLOCKLIST
 from app.extensions import mail
 from app.models import db, User, DiaChiVN
-from app.utils import send_error, get_timestamp_now, send_result, generate_password, is_valid_birthday, format_birthday
+from app.utils import send_error, get_timestamp_now, send_result, generate_password, is_valid_birthday, format_birthday, \
+    escape_wildcard
 from flask_mail import Message as MessageMail
+from sqlalchemy import or_
 
 api = Blueprint('user', __name__)
 
@@ -230,12 +232,26 @@ def add_admin():
 def get_list_user():
     try:
         user_id = get_jwt_identity()
+        order_by = request.args.get('order_by', 'desc')
+        text_search = request.args.get('text_search', '')
+
         user = User.query.filter(User.id == user_id).first()
         if user.admin == 0:
             return send_result(message="Bạn không phải admin.")
-        users = User.query.filter(User.admin == 0).order_by(desc(User.count_money_buy)).all()
-        data = UserSchema(many=True).dump(users)
-        return send_result(data=data)
+        query = User.query.filter(User.admin == 0)
+        if text_search is not None and text_search != "":
+            text_search = text_search.strip()
+            if text_search != "":
+                text_search = text_search.lower()
+                text_search = escape_wildcard(text_search)
+                text_search = "%{}%".format(text_search)
+                query = query.filter(or_(User.name.ilike(text_search),User.email.ilike(text_search)))
+        data = UserSchema(many=True).dump(query)
+        if order_by == 'desc':
+            sorted_data = sorted(data, key=lambda x: x["count_money_buy"], reverse=True)
+        else:
+            sorted_data = sorted(data, key=lambda x: x["count_money_buy"], reverse=False)
+        return send_result(data=sorted_data)
     except Exception as ex:
         return send_error(message=str(ex))
 
