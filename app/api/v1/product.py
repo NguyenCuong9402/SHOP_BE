@@ -231,8 +231,7 @@ def fix_item(product_id):
         db.session.commit()
         if file:
             filename, file_extension = os.path.splitext(file.filename)
-            id_product = str(uuid.uuid4())
-            file_name = secure_filename(id_product + file_extension)
+            file_name = secure_filename(product_id + file_extension)
             if not os.path.exists(FILE_PATH_PRODUCT):
                 os.makedirs(FILE_PATH_PRODUCT)
             file.save(os.path.join(FILE_PATH_PRODUCT + file_name))
