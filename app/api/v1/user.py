@@ -256,6 +256,32 @@ def get_list_user():
         return send_error(message=str(ex))
 
 
+@api.route("/list-nhan-vien", methods=["GET"])
+@jwt_required()
+def get_list_user():
+    try:
+        user_id = get_jwt_identity()
+        order_by = request.args.get('order_by', 'desc')
+        text_search = request.args.get('text_search', '')
+
+        user = User.query.filter(User.id == user_id).first()
+        if user.admin == 0:
+            return send_result(message="Bạn không phải admin.")
+        query = User.query.filter(User.admin == 1)
+        if text_search is not None and text_search != "":
+            text_search = text_search.strip()
+            if text_search != "":
+                text_search = text_search.lower()
+                text_search = escape_wildcard(text_search)
+                text_search = "%{}%".format(text_search)
+                query = query.filter(or_(User.name_user.ilike(text_search), User.email.ilike(text_search)))
+        query = query.order_by(desc(User.name_user)) if order_by == 'desc' else query.order_by(asc(User.name_user))
+        data = UserSchema(many=True).dump(query.all())
+        return send_result(data=data)
+    except Exception as ex:
+        return send_error(message=str(ex))
+
+
 @api.route("", methods=["GET"])
 @jwt_required()
 def get_user():
