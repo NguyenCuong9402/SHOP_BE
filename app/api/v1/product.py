@@ -190,7 +190,9 @@ def fix_item(product_id):
 
         phan_loai_id = request.form.get('phan_loai_id', '').strip()
         describe = request.form.get('describe', '').strip()
-        cac_mau = request.form.get('cac_mau', "").strip()
+        cac_mau = request.form.get('cac_mau', [])
+        if cac_mau == "":
+            return send_error(message="Chưa chọn màu")
         cac_mau = cac_mau.split(',')
         if len(cac_mau) == 0:
             return send_error(message='Chưa chọn màu cho sản phẩm')
@@ -202,7 +204,7 @@ def fix_item(product_id):
         if existed_name is not None:
             return send_error(message="Tên đã tồn tại")
 
-        product = Product.query.filter(Product.id == product_id)
+        product = Product.query.filter(Product.id == product_id).first()
         if product_id is None:
             return send_error(message='Sản phẩm đã bị xóa')
         product.name = name
