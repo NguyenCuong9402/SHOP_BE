@@ -211,7 +211,7 @@ def add_admin():
             name_user=name_user,
             created_date=get_timestamp_now(),
             gender=1,
-            admin=1
+            admin=2
         )
         db.session.add(user)
         db.session.flush()
@@ -267,7 +267,7 @@ def get_list_nv():
         user = User.query.filter(User.id == user_id).first()
         if user.admin == 0:
             return send_result(message="Bạn không phải admin.")
-        query = User.query.filter(User.admin == 1)
+        query = User.query.filter(User.admin == 2)
         if text_search is not None and text_search != "":
             text_search = text_search.strip()
             if text_search != "":
