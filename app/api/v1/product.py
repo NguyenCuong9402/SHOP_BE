@@ -150,6 +150,17 @@ def get_type():
         return send_error(message=str(ex))
 
 
+@api.route("/get-type2", methods=["GET"])
+def get_typ2e():
+    try:
+        query = PhanLoai.query.filter().order_by(asc(PhanLoai.key)).all()
+        data = GetTypeSchema(many=True).dump(query)
+        return send_result(data=data)
+
+    except Exception as ex:
+        return send_error(message=str(ex))
+
+
 @api.route("/<product_id>", methods=["PUT"])
 @jwt_required()
 def fix_item(product_id):
