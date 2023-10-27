@@ -120,7 +120,7 @@ class User(db.Model):
     tinh = db.Column(db.Text(collation='utf8mb4_unicode_ci'), nullable=True)
     huyen = db.Column(db.Text(collation='utf8mb4_unicode_ci'), nullable=True)
     xa = db.Column(db.Text(collation='utf8mb4_unicode_ci'), nullable=True)
-
+    is_active = db.Column(db.Boolean, default=1)  # 1: Mở tài khoản , 0: Khóa tài khoản
     gender = db.Column(db.Boolean, nullable=True)  # 0: Nam , Nu : 1
     admin = db.Column(db.Integer, default=0)
     created_date = db.Column(db.Integer, default=0)
