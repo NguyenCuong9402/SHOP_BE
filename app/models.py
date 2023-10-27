@@ -126,6 +126,15 @@ class User(db.Model):
     created_date = db.Column(db.Integer, default=0)
     picture = db.Column(db.Text(), nullable=True)
 
+    @hybrid_property
+    def count_money_buy(self):
+        orders = Orders.query.filter(Orders.user_id == self.id).all()
+        count = 0
+        for order in orders:
+            count += order.count
+
+        return count
+
 
 class CartItems(db.Model):
     __tablename__ = 'cart_items'
