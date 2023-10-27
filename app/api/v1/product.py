@@ -30,7 +30,7 @@ def add_product():
             return send_result(message="Bạn không phải admin.")
         file = request.files.get('file', None)
         name = request.form.get('name', '')
-        old_price = int(request.form.get('price', 0))
+        old_price = int(request.form.get('old_price', 0))
         giam_gia = int(request.form.get('giam_gia', 0))
         phan_loai_id = request.form.get('phan_loai_id', '')
         describe = request.form.get('describe', '')
