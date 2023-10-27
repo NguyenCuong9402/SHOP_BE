@@ -245,7 +245,7 @@ def get_list_user():
                 text_search = text_search.lower()
                 text_search = escape_wildcard(text_search)
                 text_search = "%{}%".format(text_search)
-                query = query.filter(or_(User.name.ilike(text_search),User.email.ilike(text_search)))
+                query = query.filter(or_(User.name_user.ilike(text_search), User.email.ilike(text_search)))
         data = UserSchema(many=True).dump(query)
         if order_by == 'desc':
             sorted_data = sorted(data, key=lambda x: x["count_money_buy"], reverse=True)
