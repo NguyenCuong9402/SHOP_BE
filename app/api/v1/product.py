@@ -123,15 +123,19 @@ def get_list_item():
                     query = query.filter(Product.price >= int(khoang_tien.get('start')),
                                          Product.price <= int(khoang_tien.get('end')))
         column_sorted = getattr(Product, order_by)
+        list_ds = query.order_by(desc(column_sorted)) if order == "desc" else query.order_by(asc(column_sorted)).all()
         query = query.order_by(desc(column_sorted)) if order == "desc" else query.order_by(asc(column_sorted))
 
         paginator = paginate(query, page, page_size)
 
         products = ProductSchema(many=True).dump(paginator.items)
+
+        product_all = ProductSchema(many=True, only=["id"]).dump(list_ds)
         response_data = dict(
             items=products,
             total_pages=paginator.pages if paginator.pages > 0 else 1,
-            total=paginator.total
+            total=paginator.total,
+            all_product=product_all
         )
         return send_result(data=response_data)
     except Exception as ex:
@@ -228,23 +232,27 @@ def fix_item(product_id):
         return send_error(message=str(ex))
 
 
-@api.route("/<product_id>", methods=["DELETE"])
+@api.route("", methods=["DELETE"])
 @jwt_required()
-def remove_item(product_id):
+def remove_item():
     try:
         jwt = get_jwt()
         user_id = get_jwt_identity()
+        body_request = request.get_json()
+        list_id = body_request.get('list_id', [])
         user = User.query.filter(User.id == user_id).first()
         if user.admin == 0 or (not jwt.get("is_admin")):
             return send_result(message="Bạn không phải admin.")
-        check_item = Product.query.filter(Product.id == product_id).first()
-        if check_item is None:
-            return send_error(message="Sản phẩm không tồn tại, F5 lại web", is_dynamic=True)
-        if check_item.picture is not None and check_item.picture != "":
-            file_path = FILE_PATH_PRODUCT + check_item.picture
-            if os.path.exists(os.path.join(file_path)):
-                os.remove(file_path)
-        Product.query.filter(Product.id == product_id).delete()
+        if len(list_id) == 0:
+            return send_error(message='Chưa chọn item nào.')
+        items = Product.query.filter(Product.id.in_(list_id)).all()
+
+        for item in items:
+            if item.picture is not None and item.picture != "":
+                file_path = FILE_PATH_PRODUCT + item.picture
+                if os.path.exists(os.path.join(file_path)):
+                    os.remove(file_path)
+        Product.query.filter(Product.id.in_(list_id)).delete()
         db.session.flush()
         db.session.commit()
         return send_result(message="Xóa sản phẩm thành công", show=True)
