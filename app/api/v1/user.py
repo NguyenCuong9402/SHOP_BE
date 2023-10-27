@@ -258,7 +258,7 @@ def get_list_user():
 
 @api.route("/list-nhan-vien", methods=["GET"])
 @jwt_required()
-def get_list_user():
+def get_list_nv():
     try:
         user_id = get_jwt_identity()
         order_by = request.args.get('order_by', 'desc')
