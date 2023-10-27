@@ -68,7 +68,7 @@ def upload_picture_avatar():
         }
         db.session.flush()
         db.session.commit()
-        return send_result(data=dt, message="Ok")
+        return send_result(data=dt, message="Thay avatar thành công")
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
