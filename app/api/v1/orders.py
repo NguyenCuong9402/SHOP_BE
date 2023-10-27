@@ -202,3 +202,21 @@ def get_order_detail(order_id):
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
+
+
+@api.route("/<order_id>", methods=["PUT"])
+@jwt_required()
+def put_order_detail(order_id):
+    try:
+        user_id = get_jwt_identity()
+        user = User.query.filter(User.id == user_id).first()
+        if user.admin ==0:
+            return send_error(message='Không có quyền')
+        orders = Orders.query.filter(Orders.id == order_id).first()
+        orders.trang_thai = True
+        db.session.flush()
+        db.session.commit()
+        return send_result(message='Đổi trạng thái thành công.', show=True)
+    except Exception as ex:
+        db.session.rollback()
+        return send_error(message=str(ex))

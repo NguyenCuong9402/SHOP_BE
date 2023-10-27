@@ -66,7 +66,7 @@ class Orders(db.Model):
                         nullable=True)
     gia_ship = db.Column(db.Integer, nullable=True)
     tong_thanh_toan = db.Column(db.Integer, nullable=True)
-    trang_thai = db.Column(db.Boolean, default=0)  # 0: Chưa lên đơn ,  1: đã lên đơn
+    trang_thai = db.Column(db.Boolean, default=False)  # 0: Chưa lên đơn ,  1: đã lên đơn
 
     @hybrid_property
     def user_name(self):

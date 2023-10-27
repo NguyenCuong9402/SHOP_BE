@@ -65,7 +65,7 @@ class HistoryOrdersSchema(Schema):
     tong_thanh_toan = fields.Integer()
     don_vi_ship = fields.String()
     gia_ship = fields.Integer()
-    trang_thai = fields.Integer()
+    trang_thai = fields.Bool()
 
 
 class UserSchema(Schema):
