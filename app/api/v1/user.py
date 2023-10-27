@@ -208,6 +208,7 @@ def add_admin():
             phone_number=phone_number,
             name_user=name_user,
             created_date=get_timestamp_now(),
+            gender=1,
             admin=1
         )
         db.session.add(user)
@@ -246,8 +247,7 @@ def get_user():
         user_id = get_jwt_identity()
         user = User.query.filter(User.id == user_id).first()
         data = UserSchema().dump(user)
-        [nam_sinh, thang_sinh, ngay_sinh] = data['birthday'].split('-')
-        data['ngay_sinh'] = ngay_sinh + "/" + thang_sinh + "/" + nam_sinh
+
         return send_result(data=data)
     except Exception as ex:
         return send_error(message=str(ex))
