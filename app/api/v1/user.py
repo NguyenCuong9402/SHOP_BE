@@ -295,6 +295,35 @@ def get_user():
         return send_error(message=str(ex))
 
 
+@api.route("change-active/<user_id_nv>", methods=["PUT"])
+@jwt_required()
+def change(user_id_nv):
+    try:
+        user_id = get_jwt_identity()
+        user = User.query.filter(User.id == user_id).first()
+
+        if user.admin != 1:
+            return send_error(message='Bạn không có quyền thay đổi trạng thái tài khoản của người khác.')
+        user_nv = User.query.filter(User.id == user_id_nv).first()
+        if user_nv is None:
+            return send_error(message='Nhân viên không tồn tại!')
+        if user_nv.admin == 1:
+            return send_error(message='Không được phép khóa tài khoản này')
+        if user_nv.is_active == 1:
+            user_nv.is_active = 0
+            message = 'Khóa tài khoản thành công.'
+        else:
+            user_nv.is_active = 1
+            message = 'Mở tài khoản thành công.'
+
+        db.session.flush()
+        db.session.commit()
+
+        return send_result(message=message)
+    except Exception as ex:
+        return send_error(message=str(ex))
+
+
 @api.route("/update", methods=["PUT"])
 @jwt_required()
 def update_user():
