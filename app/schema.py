@@ -83,6 +83,7 @@ class UserSchema(Schema):
     admin = fields.Integer()
     count_money_buy = fields.Integer()
     birthday = fields.Date()
+    is_active = fields.Bool()
 
 
 class CartItemsSchema(Schema):
