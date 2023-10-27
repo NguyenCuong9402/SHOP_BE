@@ -177,45 +177,40 @@ def fix_item(product_id):
         if user.admin == 0 or (not jwt.get("is_admin")):
             return send_result(message="Bạn không phải admin.")
         file = request.files.get('file', None)
-        name = request.form.get('name', '')
-        price_str = request.form.get('price', 0)
-        type_item = request.form.get('type_item', '')
-        describe = request.form.get('describe', '')
-        if file is None and price_str == "" and name == "" and type_item == "" and describe == "":
-            return send_error(message="Bạn không thay đổi thông tin nào", show=True)
-        if price_str == "0":
-            return send_error(message="Giá không hơp lệ", show=True)
-        if price_str == "":
-            price_str = 0
+        name = request.form.get('name', '').strip()
         try:
-            price = int(price_str)
+            old_price = int(request.form.get('old_price', 0))
+            giam_gia = int(request.form.get('giam_gia', 0))
         except:
-            return send_error(message="Giá phải là số")
+            return send_error(message='Nhập sai giá, giảm giá')
+        if giam_gia < 0:
+            return send_error('Vui lòng điền lại giảm giá.')
+        if giam_gia > 50:
+            return send_error(message='Bạn sẽ lỗ đó!')
 
-        if price < 0:
-            return send_error(message="Giá không hơp lệ", show=True)
-        if type_item not in ["ao", "quan", "phukien", ""]:
-            return send_error(message="Type không hơp lệ", show=True)
-        product = Product.query.filter(Product.id == product_id).first()
-        if product is None:
-            return send_error(message="Sản phẩm không tồn tại")
-        if check_coincided_name_product(name=name, product_id=product_id):
-            return send_error(message="Tên sản phẩm đã tồn tại", is_dynamic=True)
-        if name != "":
-            product.name = name
-            db.session.flush()
+        phan_loai_id = request.form.get('phan_loai_id', '').strip()
+        describe = request.form.get('describe', '').strip()
+        cac_mau = request.form.get('cac_mau', "").strip()
+        cac_mau = cac_mau.split(',')
+        if len(cac_mau) == 0:
+            return send_error(message='Chưa chọn màu cho sản phẩm')
+        if phan_loai_id == "":
+            return send_error(message='Vui lòng chọn loại sản phẩm')
+        if len(name) > 40:
+            return send_error(message='Tên quá dài!')
+        existed_name = Product.query.filter(Product.name == name, Product.id == product_id).first()
+        if existed_name is not None:
+            return send_error(message="Tên đã tồn tại")
 
-        if price != 0:
-            product.price = price
-            db.session.flush()
+        product = Product.query.filter(Product.id == product_id).fisrt()
 
-        if describe != "":
-            product.describe = describe
-            db.session.flush()
-
-        if type_item != "":
-            product.type = type_item
-            db.session.flush()
+        product.name = name
+        product.old_price = old_price
+        product.giam_gia = giam_gia
+        product.price = old_price - old_price*giam_gia
+        product.describe = describe
+        product.phan_loai_id = phan_loai_id
+        product.cac_mau = cac_mau
 
         if file:
             filename, file_extension = os.path.splitext(file.filename)
