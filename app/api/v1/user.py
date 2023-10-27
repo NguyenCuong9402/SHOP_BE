@@ -208,7 +208,7 @@ def add_admin():
             phone_number=phone_number,
             name_user=name_user,
             created_date=get_timestamp_now(),
-            admin=2
+            admin=1
         )
         db.session.add(user)
         db.session.flush()

@@ -170,22 +170,17 @@ def get_order():
 @jwt_required()
 def get_order_admin():
     try:
-        text_search = request.args.get('text_search', '')
-        text_search = text_search.strip()
         user_id = get_jwt_identity()
         user = User.query.filter(User.id == user_id).first()
         if user.admin == 0:
             return send_result(message="Bạn không phải admin.")
-        query = Orders.query.filter()
-        if text_search is not None or text_search != "":
-            text_search = text_search.strip()
-            text_search = text_search.lower()
-            text_search = escape_wildcard(text_search)
-            text_search = "%{}%".format(text_search)
-            query = query.filter(Orders.id.like(text_search))
-        orders = query.order_by(desc(Orders.created_date)).all()
-        data = HistoryOrdersSchema(many=True).dump(orders)
-        return send_result(data=data, message="oke", show=True)
+        query1 = Orders.query.filter(Orders.trang_thai == 0).order_by(desc(Orders.created_date)).all()
+        query2 = Orders.query.filter(Orders.trang_thai == 1).order_by(desc(Orders.created_date)).all()
+
+        data = HistoryOrdersSchema(many=True).dump(query1)
+        data2 = HistoryOrdersSchema(many=True).dump(query2)
+        data3 = data+ data2
+        return send_result(data=data3, message="oke", show=True)
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
