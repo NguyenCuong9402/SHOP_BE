@@ -36,6 +36,8 @@ def add_product():
         describe = request.form.get('describe', '')
         cac_mau = request.form.get('cac_mau', [])
         cac_mau = cac_mau.split(',')
+        if len(cac_mau) == 0:
+            return send_error(message='Chưa chọn màu cho sản phẩm')
         if phan_loai_id == "":
             return send_error(message='Vui lòng chọn loại sản phẩm')
         if len(name) > 40:
