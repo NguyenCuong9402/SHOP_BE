@@ -35,7 +35,7 @@ def add_product():
         phan_loai_id = request.form.get('phan_loai_id', '')
         describe = request.form.get('describe', '')
         cac_mau = request.form.get('cac_mau', [])
-
+        cac_mau = cac_mau.split(',')
         if phan_loai_id == "":
             return send_error(message='Vui lòng chọn loại sản phẩm')
         if len(name) > 40:
