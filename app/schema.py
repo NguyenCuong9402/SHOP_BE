@@ -54,8 +54,18 @@ class HistoryOrdersSchema(Schema):
     user_name = fields.String()
     phone_number = fields.String()
     address = fields.String()
+    tinh = fields.String()
+    huyen = fields.String()
+    xa = fields.String()
+    loi_nhan = fields.String()
+    ship_id = fields.String()
     count = fields.Integer()
     created_date = fields.Integer()
+    order_items = fields.List(fields.Nested(OrderItemsSchema))
+    tong_thanh_toan = fields.Integer()
+    don_vi_ship = fields.String()
+    gia_ship = fields.Integer()
+
 
 
 class UserSchema(Schema):

@@ -79,6 +79,11 @@ class Orders(db.Model):
             .order_by(desc(OrderItems.created_date)).all()
         return order_items
 
+    @hybrid_property
+    def don_vi_ship(self):
+        ship = Shipper.query.filter(Shipper.id == self.ship_id).first()
+        return  ship.name if ship is not None else 'Đã ngừng hoạt động'
+
 
 class OrderItems(db.Model):
     __tablename__ = 'order_items'

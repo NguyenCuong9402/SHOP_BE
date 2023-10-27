@@ -170,13 +170,14 @@ def get_order():
 @jwt_required()
 def get_order_admin():
     try:
-        text_search = request.args.get('text_search', '', type=str)
+        text_search = request.args.get('text_search', '')
+        text_search = text_search.strip()
         user_id = get_jwt_identity()
         user = User.query.filter(User.id == user_id).first()
         if user.admin == 0:
             return send_result(message="Bạn không phải admin.")
         query = Orders.query.filter()
-        if text_search is not None:
+        if text_search is not None or text_search != "":
             text_search = text_search.strip()
             text_search = text_search.lower()
             text_search = escape_wildcard(text_search)
