@@ -186,7 +186,7 @@ def generate_password():
     """
     :return: random password
     """
-    symbol_list = ["@", "$", "!", "%", "*", "?", "&"]
+    symbol_list = ["a", "b", "c", "d", "e", "f", "k"]
     number = '0123456789'
     letters_and_digits = string.ascii_letters + string.digits
     result_str = ''.join(random.choices(letters_and_digits, k=6))
