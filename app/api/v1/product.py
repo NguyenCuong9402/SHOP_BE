@@ -214,7 +214,7 @@ def fix_item(product_id):
         product.giam_gia = giam_gia
         db.session.flush()
 
-        product.price = old_price - old_price*giam_gia
+        product.price = old_price - old_price*giam_gia/100
         db.session.flush()
 
         product.describe = describe
