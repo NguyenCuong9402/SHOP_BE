@@ -9,7 +9,7 @@ from flask_admin import Admin
 from flask_admin.contrib.sqla import ModelView
 
 from app.blocklist import BLOCKLIST
-from app.extensions import jwt, migrate, ma
+from app.extensions import jwt, migrate, ma, mail
 from app.models import db, Message
 from app.api import v1 as api_v1
 from app.settings import DevConfig
@@ -91,6 +91,7 @@ def register_extensions(app):
     jwt.init_app(app)
     migrate.init_app(app, db)
     ma.init_app(app)
+    mail.init_app(app)
 
     # Flask Admin
     admin = Admin(app, name='admin management', template_mode='bootstrap3')

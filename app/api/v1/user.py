@@ -213,40 +213,9 @@ def add_admin():
         db.session.add(user)
         db.session.flush()
 
-        msg = MessageMail('Mật khẩu tài khoản admmin ', recipients=[email])
-        html_content = """
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <style>
-                        .container {
-                      padding: 100px;
-                    }
-                    .envelop {
-                      width: 300px;
-                      height: 200px;
-                      box-sizing: border-box;
-                      border-color: grey;
-                      border-style: solid;
-                      border-top: 100px solid #F4F9F9;
-                      border-right: 150px solid #CCF2F4;
-                      border-bottom: 100px solid #A4EBF3;
-                      border-left: 150px solid #A4EBF3;
-                    }
-                    </style>
-                </head>
-                <div class="container">
-                  <div class="envelop"></div>
-                </div>
-                <div>Xin chào quản lý UserName</div>
-                <div>Mật Khẩu của bạn là: NEWPASSWORD</div>
-                <div> Hãy đăng nhập vào trang web để thay đổi thông tin cá nhân!</div>
-                </html>
-                """
+        msg = MessageMail('Mật khẩu tài khoản admmin', recipients=[email])
 
-        html_content = html_content.replace("UserName", user.name_user)
-        html_content = html_content.replace("NEWPASSWORD", password)
-        msg.html = html_content
+        msg.body = f"Mật khẩu của bạn là : {password} "
         mail.send(msg)
         db.session.commit()
         return send_result(message="Tạo tài khoản thành công!", show=True)
@@ -367,42 +336,12 @@ def send_email():
         body_request = request.get_json()
         email = body_request.get('email', "")
         msg = MessageMail('THAY ĐỔI MẬT KHẨU TÀI KHOẢN', recipients=[email])
-        html_content = """
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <style>
-                .container {
-              padding: 100px;
-            }
-            .envelop {
-              width: 300px;
-              height: 200px;
-              box-sizing: border-box;
-              border-color: grey;
-              border-style: solid;
-              border-top: 100px solid #F4F9F9;
-              border-right: 150px solid #CCF2F4;
-              border-bottom: 100px solid #A4EBF3;
-              border-left: 150px solid #A4EBF3;
-            }
-            </style>
-        </head>
-        <div class="container">
-          <div class="envelop"></div>
-        </div>
-        <div>Xin chào UserName</div>
-        <div>Mật Khẩu của bạn là: NEWPASSWORD</div>
 
-        </html>
-        """
         user = User.query.filter(User.email == email).first()
         if user is None:
             return send_error(message='Tài Khoản Không Tồn Tại')
-        html_content = html_content.replace("UserName", user.name_user)
         new_password = generate_password()
-        html_content = html_content.replace("NEWPASSWORD", new_password)
-        msg.html = html_content
+        msg.body = f"Mật khẩu của bạn là : {new_password} "
         mail.send(msg)
         user.password = new_password
         db.session.flush()
