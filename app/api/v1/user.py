@@ -455,3 +455,25 @@ def delete_user():
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
+
+
+@api.route('/change_pass', methods=['get'])
+@jwt_required()
+def change_pass():
+    try:
+        user_id = get_jwt_identity()
+
+        user = User.query.filter(User.id == user_id).first()
+        if user is None:
+            return send_error(message='Tài Khoản Không Tồn Tại')
+        msg = MessageMail('THAY ĐỔI MẬT KHẨU TÀI KHOẢN', recipients=[user.email])
+        new_password = generate_password()
+        msg.body = f"Mật khẩu của bạn là : {new_password} "
+        mail.send(msg)
+        user.password = new_password
+        db.session.flush()
+        db.session.commit()
+        return send_result(message='Check EMAIL lấy mật khẩu.')
+    except Exception as ex:
+        db.session.rollback()
+        return send_error(message=str(ex))
