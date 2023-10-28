@@ -74,8 +74,8 @@ def export():
         for index, data in enumerate(datas):
             worksheet.write(2+index, 0, data["name"], center_format)
             worksheet.write(2+index, 1, data["old_price"], center_format)
-            worksheet.write(2+index, 2, data["phan_loai"], center_format)
-            worksheet.write(2+index, 3, data["count_sold"], center_format)
+            worksheet.write(2+index, 2, data["phan_loai_name"], center_format)
+            worksheet.write(2+index, 3, data["sold_count"], center_format)
             worksheet.write(2+index, 4, data["revenue"], center_format)
             worksheet.write(2+index, 5, data["giam_gia"], center_format)
 

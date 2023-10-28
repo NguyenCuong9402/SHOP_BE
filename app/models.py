@@ -41,19 +41,20 @@ class Product(db.Model):
         reviews = Reviews.query.filter(Reviews.product_id == self.id).order_by(desc(Reviews.created_date)).all()
         return reviews
 
-    @hybrid_property
+    @property
     def sold_count(self):
         sold_count = db.session.query(func.sum(OrderItems.quantity)).filter(OrderItems.product_id == self.id).scalar()
         if sold_count is None:
             sold_count = 0
         return sold_count
 
-    @hybrid_property
-    def phan_loai(self):
-        phan_loai = PhanLoai.query.filter(PhanLoai.id == self.phan_loai_id).frist()
+    @property
+    def phan_loai_name(self):
+        phan_loai = PhanLoai.query.filter(PhanLoai.id == self.phan_loai_id).first()
+
         return phan_loai.name if phan_loai is not None else ""
 
-    @hybrid_property
+    @property
     def revenue(self):
         revenue = db.session.query(func.sum(OrderItems.count)).filter(OrderItems.product_id == self.id).scalar()
         if revenue is None:
