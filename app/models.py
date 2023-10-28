@@ -41,12 +41,18 @@ class Product(db.Model):
         reviews = Reviews.query.filter(Reviews.product_id == self.id).order_by(desc(Reviews.created_date)).all()
         return reviews
 
-    @property
+    @hybrid_property
     def sold_count(self):
         sold_count = db.session.query(func.sum(OrderItems.quantity)).filter(OrderItems.product_id == self.id).scalar()
         if sold_count is None:
             sold_count = 0
         return sold_count
+
+    @hybrid_property
+    def phan_loai(self):
+        phan_loai = PhanLoai.query.filter(PhanLoai.id == self.id).frist()
+        return phan_loai.name
+
 
 
 class Orders(db.Model):

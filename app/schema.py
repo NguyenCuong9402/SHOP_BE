@@ -27,6 +27,7 @@ class ProductSchema(Schema):
     giam_gia = fields.Integer()
     sold_count = fields.Integer()
     cac_mau = fields.List(fields.String())
+    phan_loai = fields.String()
 
 
 class OrderItemsSchema(Schema):
