@@ -51,7 +51,7 @@ class Product(db.Model):
     @hybrid_property
     def phan_loai(self):
         phan_loai = PhanLoai.query.filter(PhanLoai.id == self.phan_loai_id).frist()
-        return phan_loai.name
+        return phan_loai.name if phan_loai is not None else ""
 
     @hybrid_property
     def revenue(self):
