@@ -67,8 +67,10 @@ def export():
         worksheet.write(1, 4, "Doanh Thu($)", center_format_title)
         worksheet.write(1, 5, "Giảm giá", center_format_title)
 
-        products = Product.query.filter().order_by(desc(Product.revenue)).all()
-        datas = ProductSchema(many=True).dump(products)
+        products = Product.query.filter().all()
+        data = ProductSchema(many=True).dump(products)
+        datas = sorted(data, key=lambda x: x["revenue"], reverse=True)
+
         for index, data in enumerate(datas):
             worksheet.write(2+index, 0, data["name"], center_format)
             worksheet.write(2+index, 1, data["old_price"], center_format)
