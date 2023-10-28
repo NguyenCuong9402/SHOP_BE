@@ -439,9 +439,9 @@ def delete_user():
         count = 0
         list_id = body_request.get('list_id', "")
         for id in list_id:
-            query = User.query.filter(User.id == id)
+            query = User.query.filter(User.id == id).first()
             if query.admin == 2:
-                query.delete()
+                User.query.filter(User.id == id).delete()
                 db.session.flush()
                 count += 1
 
