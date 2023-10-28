@@ -53,6 +53,12 @@ class Product(db.Model):
         phan_loai = PhanLoai.query.filter(PhanLoai.id == self.id).frist()
         return phan_loai.name
 
+    @hybrid_property
+    def revenue(self):
+        revenue = db.session.query(func.sum(OrderItems.count)).filter(OrderItems.product_id == self.id).scalar()
+        if revenue is None:
+            revenue = 0
+        return revenue
 
 
 class Orders(db.Model):

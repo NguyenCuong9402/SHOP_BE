@@ -55,6 +55,8 @@ def export():
         worksheet.set_column(0, 2, 20)
         worksheet.set_column(0, 3, 20)
         worksheet.set_column(0, 4, 35)
+        worksheet.set_column(0, 5, 20)
+
         worksheet.merge_range(0, 0, 0, 4, f'Thống Kê',
                               workbook.add_format({'font_name': 'Times New Roman', 'bold': True, 'font_size': 14,
                                                    'align': 'center', 'valign': 'vcenter', 'border': 1}))
@@ -62,15 +64,19 @@ def export():
         worksheet.write(1, 1, "GIÁ", center_format_title)
         worksheet.write(1, 2, "Phân Loại", center_format_title)
         worksheet.write(1, 3, "Số lượng bán", center_format_title)
-        worksheet.write(1, 4, "Doanh Thu(VNĐ)", center_format_title)
+        worksheet.write(1, 4, "Doanh Thu($)", center_format_title)
+        worksheet.write(1, 5, "Giảm giá", center_format_title)
+
         products = Product.query.filter().order_by(desc(Product.revenue)).all()
         datas = ProductSchema(many=True).dump(products)
         for index, data in enumerate(datas):
             worksheet.write(2+index, 0, data["name"], center_format)
             worksheet.write(2+index, 1, data["old_price"], center_format)
-            worksheet.write(2+index, 2, data["type"], center_format)
+            worksheet.write(2+index, 2, data["phan_loai"], center_format)
             worksheet.write(2+index, 3, data["count_sold"], center_format)
             worksheet.write(2+index, 4, data["revenue"], center_format)
+            worksheet.write(2+index, 5, data["giam_gia"], center_format)
+
             # Sheet2
         chart = workbook.add_chart({'type': 'column'})
         worksheet2 = workbook.add_worksheet(name="Sheet2")

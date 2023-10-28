@@ -28,6 +28,7 @@ class ProductSchema(Schema):
     sold_count = fields.Integer()
     cac_mau = fields.List(fields.String())
     phan_loai = fields.String()
+    revenue = fields.Integer()
 
 
 class OrderItemsSchema(Schema):
