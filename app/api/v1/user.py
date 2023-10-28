@@ -423,3 +423,35 @@ def send_email():
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
+
+
+@api.route("", methods =['DELETE'])
+@jwt_required()
+def delete_user():
+    try:
+        body_request = request.get_json()
+        user_id = get_jwt_identity()
+        user = User.query.filter(User.id == user_id).first()
+
+        if user.admin != 1:
+            return send_error(message='Bạn không có quyền xóa tài khoản của người khác.')
+
+        count = 0
+        list_id = body_request.get('list_id', "")
+        for id in list_id:
+            query = User.query.filter(User.id == id)
+            if query.admin == 2:
+                query.delete()
+                db.session.flush()
+                count += 1
+
+        db.session.flush()
+        db.session.commit()
+        if count > 0:
+            return send_result(message='Xóa tài khoản thành công.')
+        else:
+            return send_result(message='Chưa chọn tài khoản admin nào.')
+
+    except Exception as ex:
+        db.session.rollback()
+        return send_error(message=str(ex))
