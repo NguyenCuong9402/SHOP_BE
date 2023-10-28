@@ -457,9 +457,9 @@ def delete_user():
         return send_error(message=str(ex))
 
 
-@api.route('/change_pass', methods=['get'])
+@api.route('/quen_pass', methods=['GET'])
 @jwt_required()
-def change_pass():
+def quen_pass():
     try:
         user_id = get_jwt_identity()
 
