@@ -60,12 +60,12 @@ def export():
         worksheet.merge_range(0, 0, 0, 4, f'Thống Kê',
                               workbook.add_format({'font_name': 'Times New Roman', 'bold': True, 'font_size': 14,
                                                    'align': 'center', 'valign': 'vcenter', 'border': 1}))
-        worksheet.write(1, 0, "TÊN", center_format_title)
-        worksheet.write(1, 1, "GIÁ", center_format_title)
+        worksheet.write(1, 0, "Tên Sản Phẩm", center_format_title)
+        worksheet.write(1, 1, "Giá ($)", center_format_title)
         worksheet.write(1, 2, "Phân Loại", center_format_title)
-        worksheet.write(1, 3, "Số lượng bán", center_format_title)
-        worksheet.write(1, 4, "Doanh Thu($)", center_format_title)
-        worksheet.write(1, 5, "Giảm giá", center_format_title)
+        worksheet.write(1, 3, "Số Lượng Bán", center_format_title)
+        worksheet.write(1, 4, "Doanh Thu ($)", center_format_title)
+        worksheet.write(1, 5, "Giảm giá (%)", center_format_title)
 
         products = Product.query.filter().all()
         data = ProductSchema(many=True).dump(products)
