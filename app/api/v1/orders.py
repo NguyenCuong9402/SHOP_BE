@@ -158,9 +158,15 @@ def order_now():
 def get_order():
     try:
         user_id = get_jwt_identity()
-        orders = Orders.query.filter(Orders.user_id == user_id).order_by(desc(Orders.created_date)).all()
-        data = HistoryOrdersSchema(many=True).dump(orders)
-        return send_result(data=data, message="oke", show=True)
+        user = User.query.filter(User.id == user_id).first()
+
+        query1 = Orders.query.filter(User.id == user_id, Orders.trang_thai == 0).order_by(desc(Orders.created_date)).all()
+        query2 = Orders.query.filter(User.id == user_id, Orders.trang_thai == 1).order_by(desc(Orders.created_date)).all()
+
+        data = HistoryOrdersSchema(many=True).dump(query1)
+        data2 = HistoryOrdersSchema(many=True).dump(query2)
+        data3 = data+ data2
+        return send_result(data=data3, message="oke", show=True)
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
