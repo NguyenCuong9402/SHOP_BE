@@ -99,6 +99,8 @@ def login():
                 return send_error(message="Sai mật khẩu, vui lòng đăng nhập lại!", is_dynamic=True)
             if user.admin == 0:
                 return send_error(message="Tài khoản không phải admin!", is_dynamic=True)
+            if user.is_active == 0:
+                return send_error(message='Tài khoản của bạn đã bị khóa.')
         else:
             if email == "" or password == "":
                 return send_error(message="Vui lòng điền email và mật khẩu", is_dynamic=True)
