@@ -487,7 +487,7 @@ def test_ocr():
 
         files = request.files.getlist('files')
         for file in files:
-            # read file OCR
+            # OCR read file
             pass
         return send_result(message='Done')
     except Exception as ex:
