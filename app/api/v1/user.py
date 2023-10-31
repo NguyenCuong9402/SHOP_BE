@@ -16,6 +16,8 @@ from app.utils import send_error, get_timestamp_now, send_result, generate_passw
     escape_wildcard
 from flask_mail import Message as MessageMail
 from sqlalchemy import or_
+import zipfile
+
 
 api = Blueprint('user', __name__)
 
@@ -474,6 +476,20 @@ def quen_pass():
         db.session.flush()
         db.session.commit()
         return send_result(message='Check EMAIL lấy mật khẩu.')
+    except Exception as ex:
+        db.session.rollback()
+        return send_error(message=str(ex))
+
+
+@api.route('/test-ocr', methods=['POST'])
+def test_ocr():
+    try:
+
+        files = request.files.getlist('files')
+        for file in files:
+            # read file OCR
+            pass
+        return send_result(message='Done')
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
