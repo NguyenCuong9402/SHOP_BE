@@ -488,6 +488,62 @@ def test_ocr():
         files = request.files.getlist('files')
         for file in files:
             # OCR read file
+            # import os
+            # import shutil
+            #
+            # # Đường dẫn tới thư mục gốc chứa 1200 tệp PDF
+            # source_folder = '/path/to/source_folder'
+            #
+            # # Tạo 12 thư mục nhỏ
+            # for i in range(12):
+            #     os.makedirs(os.path.join(source_folder,
+            #                              os.makedirs(os.path.join(source_folder, f
+            #     f'subfolder_{i + 1}'))
+            #
+            #     # Di chuyển 100 tệp vào mỗi thư mục nhỏ
+            #     file_count = 0
+            #     subfolder_index =
+            #     subfolder
+            #     1
+            #     for root, dirs, files in os.walk(source_folder):
+            #         for
+            #     file in files:
+            #     if file.endswith('.pdf'):
+            #         source_file_path = os.path.join(root, file)
+            #     destination_folder = os.path.join(source_folder,
+            #                                       source_file_path=os.path.join(root, file)
+            #     destination_folder = os.path.join(source_folder, f
+            #
+            #     source_file_path = os.path.join(root, file)
+            #     destination_folder = os.path.join
+            #
+            #     source_file_path =
+            #
+            #     source_file
+            #     f'subfolder_{subfolder_index}')
+            #     destination_file_path = os.path.join(destination_folder, file)
+            #
+            #     destination_file_path = os.path.join(destination_folder, file
+            #
+            #     destination_file_path = os.path.join(destination_folder
+            #
+            #     destination_file_path = os.path
+            #     # Di chuyển tệp vào thư mục nhỏ
+            #     shutil.move(source_file_path, destination_file_path)
+            #
+            #     file_count +=
+            #     shutil.move(source_file_path,
+            #
+            #                 1
+            #
+            #     # Nếu đã di chuyển 100 tệp vào một thư mục, chuyển sang thư mục tiếp theo
+            #     if file_count == 100:
+            #         file_count = 0
+            #     subfolder_index +=
+            #
+            #     1
+            #
+            #     print("Chia thư mục thành 12 thư mục nhỏ thành công.")
             pass
         return send_result(message='Done')
     except Exception as ex:
