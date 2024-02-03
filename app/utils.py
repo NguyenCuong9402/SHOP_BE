@@ -14,7 +14,7 @@ from app.extensions import red
 
 
 def send_result(data: any = None, message_id: str = '', message: str = "OK", code: int = 200,
-                status: str = 'success', show: bool = False, duration: int = 0, is_dynamic=False):
+                status: str = 'success', show: bool = False, duration: int = 0):
     """
     Args:
         data: simple result object like dict, string or list
@@ -37,17 +37,12 @@ def send_result(data: any = None, message_id: str = '', message: str = "OK", cod
         "id": message_id,
         "text": message,
         "status": status,
-        "show": show,
-        "duration": duration,
-        "dynamic": is_dynamic
     }
     message_redis = red.get(f"message:{message_id}")
     if message_redis is not None:
         message_obj = json.loads(message_redis)
         message_dict['text'] = message_obj['message']
         message_dict['status'] = message_obj['status']
-        message_dict['show'] = message_obj['show']
-        message_dict['duration'] = message_obj['duration']
 
     res = {
         "code": code,
@@ -59,8 +54,7 @@ def send_result(data: any = None, message_id: str = '', message: str = "OK", cod
 
 
 def send_error(data: any = None, message_id: str = '', message: str = "Error", code: int = 200,
-               status: str = 'error', show: bool = False, duration: int = 0,
-               val_error: dict = None, is_dynamic=False):
+               status: str = 'error', show: bool = False, duration: int = 0, is_dynamic=False):
     """
     :param data:
     :param message_id:
@@ -73,24 +67,16 @@ def send_error(data: any = None, message_id: str = '', message: str = "Error", c
     :param val_error:
     :return:
     """
-    if val_error is None:
-        val_error = {}
     message_dict = {
         "id": message_id,
         "text": message,
         "status": status,
-        "show": show,
-        "duration": duration,
-        "dynamic": is_dynamic
     }
     message_redis = red.get(f"message:{message_id}")
     if message_redis is not None:
         message_obj = json.loads(message_redis)
         message_dict['text'] = message_obj['message']
         message_dict['status'] = message_obj['status']
-        message_dict['show'] = message_obj['show']
-        message_dict['duration'] = message_obj['duration']
-
     res = {
         "code": code,
         "data": data,

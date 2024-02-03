@@ -128,11 +128,8 @@ def add_messages_to_redis():
         value = {
             "id": message.id,
             "message_id": message.message_id,
-            "show": message.show,
             "description": message.description,
-            "duration": message.duration,
             "status": message.status,
-            "dynamic": message.dynamic,
             "message": message.message,
         }
         red.set(key, json.dumps(value))
