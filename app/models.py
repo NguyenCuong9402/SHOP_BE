@@ -11,8 +11,8 @@ from sqlalchemy.ext.hybrid import hybrid_property
 
 class Message(db.Model):
     __tablename__ = 'message'
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    message_id = db.Column(db.String(50), unique=True)
+    id = db.Column(db.String(50), primary_key=True)
+    message_id = db.Column(db.String(50))
     description = db.Column(db.String(255))
     show = db.Column(db.Boolean, default=0)
     duration = db.Column(db.Integer, default=5)

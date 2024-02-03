@@ -150,7 +150,7 @@ def get_type():
         query = PhanLoai.query.filter().order_by(asc(PhanLoai.key)).all()
         data1 = [{"id": "", "name": "Tất cả"}]
         data = data1 + GetTypeSchema(many=True).dump(query)
-        return send_result(data=data)
+        return send_result(data=data, message_id="1")
 
     except Exception as ex:
         return send_error(message=str(ex))
