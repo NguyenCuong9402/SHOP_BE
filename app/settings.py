@@ -40,3 +40,10 @@ class DevConfig(Config):
     MAIL_DEFAULT_SENDER = 'cuong09042002@gmail.com'
     MAIL_USE_TLS = False
     MAIL_USE_SSL = True
+
+    # redis config
+    # REDIS_HOST = 'redis_base_stg'
+    REDIS_HOST = '127.0.0.1'
+    REDIS_PORT = 6379
+    REDIS_DB = 1
+    REDIS_PASSWORD = 'cuong-boot-ai'

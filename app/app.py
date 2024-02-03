@@ -9,11 +9,11 @@ from flask_admin import Admin
 from flask_admin.contrib.sqla import ModelView
 
 from app.blocklist import BLOCKLIST
-from app.extensions import jwt, migrate, ma, mail
-from app.models import db, Message
+from app.extensions import jwt, migrate, ma, mail, red
+from app.models import Message
 from app.api import v1 as api_v1
 from app.settings import DevConfig
-from app.models import db, Product, User, Orders, OrderItems, CartItems
+from app.models import db, User
 
 
 def create_app():
@@ -92,6 +92,7 @@ def register_extensions(app):
     migrate.init_app(app, db)
     ma.init_app(app)
     mail.init_app(app)
+    red.init_app(app)
 
     # Flask Admin
     admin = Admin(app, name='admin management', template_mode='bootstrap3')
