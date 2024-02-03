@@ -99,10 +99,6 @@ def register_extensions(app):
     mail.init_app(app)
     red.init_app(app)
 
-    # Flask Admin
-    admin = Admin(app, name='admin management', template_mode='bootstrap3')
-    admin.add_view(ModelView(Message, db.session))
-
 
 def register_blueprints(app):
     """
