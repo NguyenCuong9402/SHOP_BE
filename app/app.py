@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import json
 import os
 import traceback
 
@@ -27,6 +28,10 @@ def create_app():
     register_extensions(app)
     register_blueprints(app)
     CORS(app, resources={r"/api/v1/*": {"origins": "*"}})
+
+    @app.before_first_request
+    def setup_redis():
+        add_messages_to_redis()
 
     @jwt.token_in_blocklist_loader
     def check_if_token_in_blocklist(jwt_header, jwt_payload):
@@ -116,7 +121,22 @@ def register_blueprints(app):
     app.register_blueprint(api_v1.report.api, url_prefix='/api/v1/report')
 
 
-
+def add_messages_to_redis():
+    messages = Message.query.all()
+    for message in messages:
+        key = f"message:{message.message_id}"
+        value = {
+            "id": message.id,
+            "message_id": message.message_id,
+            "show": message.show,
+            "description": message.description,
+            "duration": message.duration,
+            "status": message.status,
+            "dynamic": message.dynamic,
+            "object": message.object,
+            "message": message.message,
+        }
+        red.set(key, json.dumps(value))
 
 
 
