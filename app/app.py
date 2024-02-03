@@ -133,7 +133,6 @@ def add_messages_to_redis():
             "duration": message.duration,
             "status": message.status,
             "dynamic": message.dynamic,
-            "object": message.object,
             "message": message.message,
         }
         red.set(key, json.dumps(value))
