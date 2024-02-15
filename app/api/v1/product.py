@@ -43,7 +43,7 @@ def add_product():
         if len(name) > 40:
             return send_error(message='Tên quá dài!')
         if check_coincided_name(name):
-            return send_error(message="Tên sản phẩm đã tồn tại", is_dynamic=True)
+            return send_error(message="Tên sản phẩm đã tồn tại")
         if file is None:
             product = Product(
                 id=str(uuid.uuid4()),
@@ -78,7 +78,7 @@ def add_product():
         db.session.add(product)
         db.session.flush()
         db.session.commit()
-        return send_result(message="Thêm sản phẩm thành công", show=True)
+        return send_result(message="Thêm sản phẩm thành công")
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
@@ -239,7 +239,7 @@ def fix_item(product_id):
             db.session.flush()
         db.session.commit()
         return send_result(data=ProductSchema().dump(product),
-                           message="Thay đổi thông tin sản phẩm thành công", show=True)
+                           message="Thay đổi thông tin sản phẩm thành công")
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
@@ -268,7 +268,7 @@ def remove_item():
         Product.query.filter(Product.id.in_(list_id)).delete()
         db.session.flush()
         db.session.commit()
-        return send_result(message="Xóa sản phẩm thành công", show=True)
+        return send_result(message="Xóa sản phẩm thành công")
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
@@ -280,7 +280,7 @@ def get_item(product_id):
 
         check_item = Product.query.filter(Product.id == product_id).first()
         if check_item is None:
-            return send_error(message="Sản phẩm không tồn tại, F5 lại web", is_dynamic=True)
+            return send_error(message="Sản phẩm không tồn tại, F5 lại web")
         san_pham_lien_quan = Product.query.filter(Product.phan_loai_id == check_item.phan_loai_id,
                                                   Product.id != check_item.id)\
             .order_by(Product.created_date).limit(10).all()

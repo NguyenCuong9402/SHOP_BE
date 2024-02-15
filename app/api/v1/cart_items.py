@@ -28,7 +28,7 @@ def add_item_to_cart(product_id):
             return send_error(message='Chưa chọn Màu')
         check_item = Product.query.filter(Product.id == product_id).first()
         if check_item is None:
-            return send_error(message="Sản phẩm không tồn tại, F5 lại web", is_dynamic=True)
+            return send_error(message="Sản phẩm không tồn tại, F5 lại web")
         check_to_cart = CartItems.query.filter(CartItems.product_id == product_id, CartItems.color == color,
                                                CartItems.size == size).first()
         if check_to_cart:
@@ -46,7 +46,7 @@ def add_item_to_cart(product_id):
             db.session.add(cart_item)
         db.session.flush()
         db.session.commit()
-        return send_result(message="Thêm sản phẩm thành công", show=True)
+        return send_result(message="Thêm sản phẩm thành công")
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
@@ -106,12 +106,12 @@ def put_item_to_cart(cart_item_id):
             return send_error(message="Số lượng sản phẩm > 0 hoặc xóa ra khỏi giỏ hàng", status='<0')
         check_item_cart = CartItems.query.filter(CartItems.id == cart_item_id, CartItems.user_id == user_id).first()
         if check_item_cart is None:
-            return send_error(message="Sản phẩm không có trong giỏ hàng, vui lòng F5", is_dynamic=True)
+            return send_error(message="Sản phẩm không có trong giỏ hàng, vui lòng F5")
         if check_item_cart.quantity == quantity:
             return send_error(message='Không thay đổi gì', status='nochange')
         check_item_cart.quantity = quantity
         db.session.commit()
-        return send_result(message="Thay đổi số lượng sản phẩm trong giỏ hàng thành công", show=True)
+        return send_result(message="Thay đổi số lượng sản phẩm trong giỏ hàng thành công")
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
@@ -127,7 +127,7 @@ def put_cart(cart_item_id):
         color = body_request.get("color", "")
         item_cart = CartItems.query.filter(CartItems.id == cart_item_id, CartItems.user_id == user_id).first()
         if item_cart is None:
-            return send_error(message="Sản phẩm không có trong giỏ hàng, vui lòng F5", is_dynamic=True)
+            return send_error(message="Sản phẩm không có trong giỏ hàng, vui lòng F5")
         if item_cart.size != size and size in ['S', 'M', 'L', 'XL']:
             item_cart.size = size
             db.session.flush()
@@ -154,7 +154,7 @@ def put_cart(cart_item_id):
 
         db.session.commit()
         return send_result(data=CartItemsSchema().dump(item_cart),
-                           message="Thay đổi số lượng sản phẩm trong giỏ hàng thành công", show=True)
+                           message="Thay đổi số lượng sản phẩm trong giỏ hàng thành công")
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))

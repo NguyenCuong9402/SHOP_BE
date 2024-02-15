@@ -24,9 +24,9 @@ def post_comment(product_id):
             return send_error(message="Mời bạn đang nhập lại")
         product = Product.query.filter(Product.id == product_id).first()
         if product is None:
-            return send_error(message="Sản phẩm không tồn tại, F5 lại web", is_dynamic=True)
+            return send_error(message="Sản phẩm không tồn tại, F5 lại web")
         if comment == "":
-            return send_error(message="Vui lòng điền comment", is_dynamic=True)
+            return send_error(message="Vui lòng điền comment")
         review = Reviews(
             id=str(uuid.uuid4()),
             product_id=product_id,
@@ -48,7 +48,7 @@ def get_comment(product_id):
     try:
         product = Product.query.filter(Product.id == product_id).first()
         if product is None:
-            return send_error(message="Sản phẩm không tồn tại, F5 lại web", is_dynamic=True)
+            return send_error(message="Sản phẩm không tồn tại, F5 lại web")
         review = Reviews.query.filter(Reviews.product_id == product_id).order_by(desc(Reviews.created_date)).all()
         data = ReviewsSchema(many=True).dump(review)
         return send_result(data=data)

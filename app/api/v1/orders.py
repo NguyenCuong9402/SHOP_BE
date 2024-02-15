@@ -147,7 +147,7 @@ def order_now():
         db.session.add(order_item)
         db.session.flush()
         db.session.commit()
-        return send_result(message="Đặt hàng thành công", show=True)
+        return send_result(message="Đặt hàng thành công")
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
@@ -166,7 +166,7 @@ def get_order():
         data = HistoryOrdersSchema(many=True).dump(query1)
         data2 = HistoryOrdersSchema(many=True).dump(query2)
         data3 = data+ data2
-        return send_result(data=data3, message="oke", show=True)
+        return send_result(data=data3, message="oke")
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
@@ -186,7 +186,7 @@ def get_order_admin():
         data = HistoryOrdersSchema(many=True).dump(query1)
         data2 = HistoryOrdersSchema(many=True).dump(query2)
         data3 = data+ data2
-        return send_result(data=data3, message="oke", show=True)
+        return send_result(data=data3, message="oke")
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
@@ -199,7 +199,7 @@ def get_order_detail(order_id):
         user_id = get_jwt_identity()
         orders = OrderItems.query.filter(OrderItems.order_id == order_id).order_by(desc(OrderItems.created_date)).all()
         data = OrderItemsSchema(many=True).dump(orders)
-        return send_result(data=data, message="oke", show=True)
+        return send_result(data=data, message="oke")
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
@@ -217,7 +217,7 @@ def put_order_detail(order_id):
         orders.trang_thai = True
         db.session.flush()
         db.session.commit()
-        return send_result(message='Đổi trạng thái thành công.', show=True)
+        return send_result(message='Đổi trạng thái thành công.')
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))

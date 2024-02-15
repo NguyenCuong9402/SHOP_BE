@@ -56,7 +56,7 @@ def register():
 
         check_user = User.query.filter(User.email == email).first()
         if check_user:
-            return send_error(message="Email đã tồn tại", is_dynamic=True)
+            return send_error(message="Email đã tồn tại")
         user_phone_number = User.query.filter(User.phone_number == phone_number).first()
         if user_phone_number:
             return send_error(message="SĐT đã được đăng ký, vui lòng thay đổi SĐT")
@@ -78,7 +78,7 @@ def register():
         db.session.add(user)
         db.session.flush()
         db.session.commit()
-        return send_result(message="Đăng ký toàn khoản thành công", show=True)
+        return send_result(message="Đăng ký toàn khoản thành công")
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
@@ -93,26 +93,26 @@ def login():
         admin = body_request.get("admin", False)
         if admin:
             if email == "" or password == "":
-                return send_error(message="Vui lòng điền email và mật khẩu", is_dynamic=True)
+                return send_error(message="Vui lòng điền email và mật khẩu")
             user = User.query.filter(User.email == email).first()
             if user is None:
-                return send_error(message="Tài khoản không tồn tại!", is_dynamic=True)
+                return send_error(message="Tài khoản không tồn tại!")
             if user.password != password:
-                return send_error(message="Sai mật khẩu, vui lòng đăng nhập lại!", is_dynamic=True)
+                return send_error(message="Sai mật khẩu, vui lòng đăng nhập lại!")
             if user.admin == 0:
-                return send_error(message="Tài khoản không phải admin!", is_dynamic=True)
+                return send_error(message="Tài khoản không phải admin!")
             if user.is_active == 0:
                 return send_error(message='Tài khoản của bạn đã bị khóa.')
         else:
             if email == "" or password == "":
-                return send_error(message="Vui lòng điền email và mật khẩu", is_dynamic=True)
+                return send_error(message="Vui lòng điền email và mật khẩu")
             user = User.query.filter(User.email == email).first()
             if user is None:
-                return send_error(message="Tài khoản không tồn tại!", is_dynamic=True)
+                return send_error(message="Tài khoản không tồn tại!")
             if user.password != password:
-                return send_error(message="Sai mật khẩu, vui lòng đăng nhập lại!", is_dynamic=True)
+                return send_error(message="Sai mật khẩu, vui lòng đăng nhập lại!")
             if user.admin != 0:
-                return send_error(message="Tài khoản admin!", is_dynamic=True)
+                return send_error(message="Tài khoản admin!")
         access_token = create_access_token(identity=user.id, fresh=True, expires_delta=False)
         refresh_token = create_refresh_token(user.id)
         return send_result(data={"access_token": access_token, "refresh_token": refresh_token,
