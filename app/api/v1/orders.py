@@ -159,9 +159,10 @@ def get_order():
     try:
         user_id = get_jwt_identity()
         user = User.query.filter(User.id == user_id).first()
-
-        query1 = Orders.query.filter(User.id == user_id, Orders.trang_thai == 0).order_by(desc(Orders.created_date)).all()
-        query2 = Orders.query.filter(User.id == user_id, Orders.trang_thai == 1).order_by(desc(Orders.created_date)).all()
+        if user is None:
+            return send_error(message="User khong ton tai.")
+        query1 = Orders.query.filter(Orders.user_id == user.id, Orders.trang_thai == 0).order_by(desc(Orders.created_date)).all()
+        query2 = Orders.query.filter(Orders.user_id == user.id, Orders.trang_thai == 1).order_by(desc(Orders.created_date)).all()
 
         data = HistoryOrdersSchema(many=True).dump(query1)
         data2 = HistoryOrdersSchema(many=True).dump(query2)
