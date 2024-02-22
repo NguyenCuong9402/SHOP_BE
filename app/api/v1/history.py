@@ -1,14 +1,10 @@
-import os
-import uuid
-from flask import Blueprint, request, make_response, send_file, Response
+
+from flask import Blueprint
 from flask_jwt_extended import get_jwt_identity, jwt_required, get_jwt
-from sqlalchemy import asc, desc
-from io import BytesIO
-import datetime
-import io
-from app.models import db, Product, User, Orders, OrderItems, CartItems
-from app.utils import send_error, get_timestamp_now, send_result
-from app.schema import ProductSchema, OrdersSchema, HistoryOrdersSchema
+from sqlalchemy import desc
+from app.models import User, Orders
+from app.utils import send_error, send_result
+from app.schema import OrdersSchema, HistoryOrdersSchema
 
 api = Blueprint('history', __name__)
 
