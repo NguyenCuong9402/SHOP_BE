@@ -11,8 +11,6 @@ class Config(object):
 
 
 class DevConfig(Config):
-    """Development configuration."""
-    # app config
     ENV = 'dev'
     DEBUG = True
     DEBUG_TB_ENABLED = True  # Disable Debug toolbar
@@ -23,14 +21,11 @@ class DevConfig(Config):
     JWT_SECRET_KEY = 'HA560##$shls12'
     JWT_BLACKLIST_ENABLED = True
     JWT_BLACKLIST_TOKEN_CHECKS = ['access', 'refresh']
-
     # mysql config
     SQLALCHEMY_DATABASE_URI = 'mysql://root:cuong942002@127.0.0.1:3306/shop_quan_ao'
     SQLALCHEMY_TRACK_MODIFICATIONS = True
-
     # upload config
     UPLOAD_FOLDER = "app/files"
-
     # email config
     MAIL_SERVER = 'smtp.gmail.com'
     MAIL_PORT = 465
@@ -39,9 +34,7 @@ class DevConfig(Config):
     MAIL_DEFAULT_SENDER = 'cuong09042002@gmail.com'
     MAIL_USE_TLS = False
     MAIL_USE_SSL = True
-
     # redis config
-    # REDIS_HOST = 'redis_base_stg'
     REDIS_HOST = '127.0.0.1'
     REDIS_PORT = 6379
     REDIS_DB = 1
