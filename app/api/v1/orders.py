@@ -210,6 +210,9 @@ def put_order_detail(order_id):
         if user.admin ==0:
             return send_error(message='Không có quyền')
         orders = Orders.query.filter(Orders.id == order_id).first()
+        if orders.trang_thai is True:
+            return send_error(message='Đơn hàng đã được xuất.')
+
         orders.trang_thai = True
         db.session.flush()
         db.session.commit()
