@@ -213,7 +213,7 @@ def put_order_detail(order_id):
         orders.trang_thai = True
         db.session.flush()
         db.session.commit()
-        return send_result(message='Đổi trạng thái thành công.')
+        return send_result(message='Đơn hàng hoàn thành.')
     except Exception as ex:
         db.session.rollback()
         return send_error(message=str(ex))
