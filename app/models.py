@@ -1,4 +1,4 @@
-S# coding: utf-8
+# coding: utf-8
 import json
 from typing import List
 from sqlalchemy import func
