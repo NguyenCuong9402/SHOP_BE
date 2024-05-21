@@ -30,10 +30,10 @@ def create_app():
     register_blueprints(app)
     CORS(app, resources={r"/api/v1/*": {"origins": "*"}})
 
-    cred = credentials.Certificate("app/private_key_firebase.json")
-    firebase_admin.initialize_app(cred, {
-        'storageBucket': 'fir-b13c4.appspot.com'
-    })
+    # cred = credentials.Certificate("app/private_key_firebase.json")
+    # firebase_admin.initialize_app(cred, {
+    #     'storageBucket': 'fir-b13c4.appspot.com'
+    # })
 
     @app.before_first_request
     def setup_redis():
