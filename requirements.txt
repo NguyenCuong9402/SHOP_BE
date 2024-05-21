@@ -41,3 +41,4 @@ openpyxl == 3.1.2
 xlsxwriter == 3.1.9
 redis==3.5.3
 Flask-And-Redis==1.0.0
+minio==7.2.7

@@ -15,7 +15,8 @@ from app.models import Message
 from app.api import v1 as api_v1
 from app.settings import DevConfig
 from app.models import db, User
-
+import firebase_admin
+from firebase_admin import credentials, storage
 
 def create_app():
     """
@@ -28,6 +29,11 @@ def create_app():
     register_extensions(app)
     register_blueprints(app)
     CORS(app, resources={r"/api/v1/*": {"origins": "*"}})
+
+    cred = credentials.Certificate("path/to/serviceAccount.json")
+    firebase_admin.initialize_app(cred, {
+        'storageBucket': 'fir-b13c4.appspot.com'
+    })
 
     @app.before_first_request
     def setup_redis():
