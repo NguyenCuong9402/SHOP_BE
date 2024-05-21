@@ -30,7 +30,7 @@ def create_app():
     register_blueprints(app)
     CORS(app, resources={r"/api/v1/*": {"origins": "*"}})
 
-    cred = credentials.Certificate("path/to/serviceAccount.json")
+    cred = credentials.Certificate("app/private_key_firebase.json")
     firebase_admin.initialize_app(cred, {
         'storageBucket': 'fir-b13c4.appspot.com'
     })
@@ -121,6 +121,7 @@ def register_blueprints(app):
     app.register_blueprint(api_v1.reviews.api, url_prefix='/api/v1/reviews')
     app.register_blueprint(api_v1.picture.api, url_prefix='/api/v1/picture')
     app.register_blueprint(api_v1.report.api, url_prefix='/api/v1/report')
+    app.register_blueprint(api_v1.fire_base.api, url_prefix='/api/v1/fire_base')
 
 
 def add_messages_to_redis():

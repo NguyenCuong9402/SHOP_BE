@@ -7,7 +7,7 @@ from sqlalchemy import asc, desc
 from app.schema import UserSchema, DiaChiVnSchema
 from werkzeug.utils import secure_filename
 import io
-import pandas as pd
+# import pandas as pd
 from sqlalchemy import distinct
 from app.blocklist import BLOCKLIST
 from app.extensions import mail
@@ -357,28 +357,28 @@ def update_user():
         return send_error(message=str(ex))
 
 
-@api.route("import", methods=["POST"])
-def import_dia_chi():
-    try:
-        file = request.files['file']
-        if file:
-            # Đọc dữ liệu từ tệp Excel bằng pandas
-            df = pd.read_excel(file)
-            # Lặp qua từng hàng của DataFrame và thêm vào cơ sở dữ liệu
-            for index, row in df.iterrows():
-                dia_chi = DiaChiVN(
-                    id=str(uuid.uuid4()),
-                    tinh=str(row['tinh']),
-                    huyen=str(row['huyen']),
-                    xa=str(row['xa'])
-                )
-                db.session.add(dia_chi)
-                db.session.flush()
-            db.session.commit()
-            return send_result(message="Thành Công.")
-        return send_error(message="No file uploaded.")
-    except Exception as ex:
-        return send_error(message=str(ex))
+# @api.route("import", methods=["POST"])
+# def import_dia_chi():
+#     try:
+#         file = request.files['file']
+#         if file:
+#             # Đọc dữ liệu từ tệp Excel bằng pandas
+#             df = pd.read_excel(file)
+#             # Lặp qua từng hàng của DataFrame và thêm vào cơ sở dữ liệu
+#             for index, row in df.iterrows():
+#                 dia_chi = DiaChiVN(
+#                     id=str(uuid.uuid4()),
+#                     tinh=str(row['tinh']),
+#                     huyen=str(row['huyen']),
+#                     xa=str(row['xa'])
+#                 )
+#                 db.session.add(dia_chi)
+#                 db.session.flush()
+#             db.session.commit()
+#             return send_result(message="Thành Công.")
+#         return send_error(message="No file uploaded.")
+#     except Exception as ex:
+#         return send_error(message=str(ex))
 
 
 @api.route("tim_dia_chi", methods=["GET"])
