@@ -1,4 +1,6 @@
 import io
+import json
+import os
 
 from firebase_admin import storage
 from flask import Blueprint, request, send_file
@@ -40,11 +42,19 @@ def download_file(filename):
 
         # Tạo liên kết tải xuống tạm thời hoặc tải xuống nội dung tệp
         file_content = blob.download_as_bytes()
+        file_extension = os.path.splitext(filename)[1].lower()
 
-        # Trả về nội dung tệp trực tiếp
-        return send_file(io.BytesIO(file_content),
-                         mimetype=blob.content_type,
-                         attachment_filename=filename,
-                         as_attachment=True)
+        if file_extension in ['.jpg', '.jpeg', '.png']:
+            # Trả về nội dung tệp ảnh
+            return send_file(io.BytesIO(file_content),
+                             mimetype=blob.content_type,
+                             attachment_filename=filename,
+                             as_attachment=True)
+        elif file_extension == '.json':
+            # Đọc nội dung tệp JSON
+            data = json.loads(file_content)
+            return send_result(data=data)
+        else:
+            return send_result(data={"error": "Unsupported file type"})
     except Exception as ex:
         return send_error(message=str(ex))
